@@ -1,28 +1,29 @@
 :root {
   font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", Arial, sans-serif;
   color: #1c2b3f;
-  background: #f3f6fa;
+  background: #f6f9fc;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-  --nav: #07344d;
-  --nav-deep: #042c43;
-  --nav-active: #0784bf;
-  --blue: #0875de;
-  --blue-deep: #005fca;
+  --nav: #ffffff;
+  --nav-deep: #edf6ff;
+  --nav-active: #e8f3ff;
+  --blue: #1478f2;
+  --blue-deep: #0d63d5;
+  --cyan: #27b7d9;
   --green: #18a560;
   --orange: #f28a00;
   --red: #ef3b2d;
   --slate: #8fa0af;
-  --bg: #f3f6fa;
+  --bg: #f6f9fc;
   --surface: #ffffff;
   --soft: #f7f9fc;
-  --line: #e4ebf2;
-  --line-strong: #d7e1eb;
+  --line: #dde8f4;
+  --line-strong: #cddced;
   --text: #17243a;
   --muted: #66768a;
   --subtle: #8a99aa;
-  --shadow: 0 10px 28px rgba(22, 46, 78, 0.08);
-  --shadow-soft: 0 4px 14px rgba(18, 44, 74, 0.05);
+  --shadow: 0 14px 34px rgba(38, 92, 150, 0.08);
+  --shadow-soft: 0 8px 22px rgba(38, 92, 150, 0.055);
 }
 
 * {
@@ -53,7 +54,8 @@ button {
   place-items: center;
   padding: 24px;
   background:
-    radial-gradient(circle at top left, rgba(8, 117, 222, 0.12), transparent 34%),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.86), rgba(246, 249, 252, 0.78)),
+    url("/assets/ui/backgrounds/modal-flow-overlay.png") center / cover no-repeat,
     var(--bg);
 }
 
@@ -77,6 +79,19 @@ button {
   border-radius: 10px;
   font-weight: 900;
   box-shadow: inset 0 0 0 1px #dcecff;
+}
+
+.brand-icon img,
+.metric-icon img,
+.nav-item img,
+.mobile-tabs img,
+.field-icon,
+.button-icon,
+.empty-clipboard img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .access-panel h1 {
@@ -129,7 +144,10 @@ button {
   min-height: 100vh;
   display: grid;
   grid-template-columns: 242px 1fr;
-  background: var(--bg);
+  background:
+    linear-gradient(180deg, rgba(246, 249, 252, 0.92), rgba(246, 249, 252, 0.98)),
+    url("/assets/ui/backgrounds/light-tech-flow-bg.png") center top / cover fixed no-repeat,
+    var(--bg);
 }
 
 .sidebar {
@@ -139,8 +157,12 @@ button {
   display: flex;
   flex-direction: column;
   padding: 22px 14px 18px;
-  background: linear-gradient(180deg, #073a55 0%, #062f48 52%, #042b41 100%);
-  color: #eaf6ff;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(240, 247, 255, 0.96)),
+    url("/assets/ui/backgrounds/dashboard-flow-header.png") center top / auto 180px no-repeat;
+  color: var(--text);
+  border-right: 1px solid var(--line);
+  box-shadow: 8px 0 24px rgba(38, 92, 150, 0.05);
 }
 
 .sidebar-brand {
@@ -152,7 +174,7 @@ button {
 
 .sidebar-brand strong {
   display: block;
-  color: #fff;
+  color: var(--text);
   font-size: 18px;
   line-height: 1.2;
   letter-spacing: 0;
@@ -161,7 +183,7 @@ button {
 .sidebar-brand small {
   display: block;
   margin-top: 5px;
-  color: #d0e7f3;
+  color: #4d6b89;
   font-size: 14px;
   font-weight: 700;
 }
@@ -181,7 +203,7 @@ button {
   border: 0;
   border-radius: 7px;
   padding: 0 13px;
-  color: #d8ecf7;
+  color: #33506c;
   background: transparent;
   text-align: left;
 }
@@ -194,12 +216,18 @@ button {
   display: grid;
   place-items: center;
   width: 22px;
-  color: #e7f8ff;
+  color: var(--blue);
   font-size: 18px;
 }
 
+.nav-item span img,
+.mobile-tabs span img {
+  width: 19px;
+  height: 19px;
+}
+
 .nav-item i {
-  color: #fff;
+  color: #8aa4bd;
   font-style: normal;
   font-size: 24px;
   opacity: 0.9;
@@ -207,9 +235,9 @@ button {
 
 .nav-item.active,
 .nav-item:hover {
-  color: #fff;
-  background: linear-gradient(180deg, #0a91c6, #087eae);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 10px 18px rgba(0, 20, 38, 0.18);
+  color: var(--blue);
+  background: linear-gradient(90deg, rgba(232, 243, 255, 0.96), rgba(238, 250, 255, 0.86));
+  box-shadow: inset 3px 0 0 var(--blue), 0 10px 22px rgba(20, 120, 242, 0.09);
 }
 
 .logout-button {
@@ -217,9 +245,9 @@ button {
   margin-top: auto;
   width: 100%;
   min-height: 42px;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  border-top: 1px solid var(--line);
   border-radius: 0;
-  color: #d8ecf7;
+  color: #33506c;
   font-size: 15px;
   font-weight: 800;
 }
@@ -240,7 +268,7 @@ button {
   min-height: 74px;
   margin: 0 -18px 18px;
   padding: 0 20px;
-  background: rgba(255, 255, 255, 0.94);
+  background: rgba(255, 255, 255, 0.88);
   border-bottom: 1px solid var(--line);
   backdrop-filter: blur(10px);
 }
@@ -288,9 +316,10 @@ button {
   padding: 0 14px;
 }
 
-.search-wrap span {
-  color: #53667c;
-  font-size: 20px;
+.field-icon {
+  width: 18px;
+  height: 18px;
+  opacity: 0.72;
 }
 
 .search-wrap input {
@@ -322,8 +351,16 @@ button {
 
 .secondary-action {
   border: 1px solid #9edcbf;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   color: #0e9755;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.button-icon {
+  width: 18px;
+  height: 18px;
 }
 
 .topbar-user {
@@ -390,7 +427,7 @@ button {
 .detail-panel,
 .placeholder-panel,
 .insurance-card {
-  background: var(--surface);
+  background: rgba(255, 255, 255, 0.92);
   border: 1px solid var(--line);
   border-radius: 8px;
   box-shadow: var(--shadow-soft);
@@ -403,6 +440,20 @@ button {
   align-items: center;
   gap: 12px;
   padding: 15px 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.metric-card::after {
+  content: "";
+  position: absolute;
+  right: -28px;
+  bottom: -36px;
+  width: 118px;
+  height: 76px;
+  border: 2px solid rgba(39, 183, 217, 0.14);
+  border-radius: 999px;
+  transform: rotate(-18deg);
 }
 
 .metric-icon {
@@ -415,6 +466,12 @@ button {
   font-size: 22px;
   font-weight: 900;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.metric-icon img {
+  width: 27px;
+  height: 27px;
+  filter: brightness(0) invert(1);
 }
 
 .metric-icon.blue { background: linear-gradient(180deg, #0b83f1, #006bd8); }
@@ -449,6 +506,9 @@ button {
 .workflow-panel {
   grid-column: 1 / -1;
   padding: 14px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.94), rgba(255,255,255,0.9)),
+    url("/assets/ui/backgrounds/dashboard-flow-header.png") center / cover no-repeat;
 }
 
 .workflow-panel h2,
@@ -533,8 +593,11 @@ button {
 .empty-clipboard {
   align-self: end;
   justify-self: center;
+  width: 48px;
+  height: 48px;
   color: #a7b5c4;
   font-size: 44px;
+  opacity: 0.65;
 }
 
 .workflow-card.empty p {
@@ -761,7 +824,7 @@ td:last-child {
 
 th {
   color: #23344c;
-  background: linear-gradient(180deg, #f7f9fc, #f0f4f8);
+  background: linear-gradient(180deg, #f8fbff, #eef6ff);
   font-size: 13px;
   font-weight: 900;
 }

@@ -2,6 +2,30 @@ import React, { useEffect, useMemo, useState } from 'react';
 
 const navItems = ['首页看板', '维修接待', '历史查询', '车辆保险', '客户车辆', '汇总报表', '数据导出', '系统设置'];
 
+const iconBase = '/assets/ui/icons/';
+
+const navIconMap = {
+  首页看板: 'nav-home.png',
+  维修接待: 'nav-repair.png',
+  历史查询: 'nav-history.png',
+  车辆保险: 'nav-insurance.png',
+  客户车辆: 'nav-customers.png',
+  汇总报表: 'nav-reports.png',
+  数据导出: 'nav-export.png',
+  系统设置: 'nav-settings.png',
+};
+
+const metricIconMap = {
+  yuan: 'metric-yuan.png',
+  car: 'metric-car.png',
+  order: 'metric-order.png',
+  shield: 'metric-shield.png',
+};
+
+function AssetIcon({ name, alt = '', className = '' }) {
+  return <img className={className} src={`${iconBase}${name}`} alt={alt} aria-hidden={alt ? undefined : 'true'} />;
+}
+
 const repairOrders = [
   {
     id: 'RO20260723003',
@@ -210,7 +234,7 @@ function App() {
     <div className="app-shell">
       <aside className="sidebar" aria-label="主导航">
         <div className="sidebar-brand">
-          <span className="brand-icon">车</span>
+          <span className="brand-icon"><AssetIcon name="metric-car.png" /></span>
           <div>
             <strong>汽修接待</strong>
             <small>& 保险管理系统</small>
@@ -223,7 +247,7 @@ function App() {
               className={activePage === item ? 'nav-item active' : 'nav-item'}
               onClick={() => setActivePage(item)}
             >
-              <span>{navIcon(item)}</span>
+              <span><AssetIcon name={navIcon(item)} /></span>
               <b>{item}</b>
               <i>›</i>
             </button>
@@ -249,7 +273,7 @@ function App() {
             <input type="date" defaultValue="2026-07-31" aria-label="结束日期" />
           </div>
           <div className="search-wrap">
-            <span>⌕</span>
+            <AssetIcon name="action-search.png" className="field-icon" />
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
@@ -265,7 +289,7 @@ function App() {
           >
             ＋ 新增工单
           </button>
-          <button className="secondary-action">▣ 导出Excel</button>
+          <button className="secondary-action"><AssetIcon name="action-excel.png" className="button-icon" />导出Excel</button>
           <div className="topbar-user">
             <span className="notice-dot">8</span>
             <span className="avatar" />
@@ -302,13 +326,13 @@ function Dashboard({ filteredOrders }) {
   return (
     <section className="dashboard-grid">
       <div className="metric-strip">
-        <Metric icon="¥" title="今日产值（元）" value={formatMoney(5260)} trend="较昨日 +12.8%" tone="blue" />
-        <Metric icon="车" title="今日台次（台）" value="2" trend="较昨日 +1" tone="blue" />
-        <Metric icon="单" title="未结算（元）" value={formatMoney(pendingAmount + 8100)} trend="待处理 1 单" tone="orange" />
-        <Metric icon="车" title="在修车辆（台）" value={repairing.toString()} trend="待处理" tone="green" />
-        <Metric icon="¥" title="本月产值（元）" value={formatMoney(total + 89430)} trend="较上月 +18.6%" tone="blue" />
-        <Metric icon="车" title="本月台次（台）" value="126" trend="月累计" tone="blue" />
-        <Metric icon="盾" title="即将保险到期（台）" value="2" trend="7天内到期" tone="red" />
+        <Metric icon="yuan" title="今日产值（元）" value={formatMoney(5260)} trend="较昨日 +12.8%" tone="blue" />
+        <Metric icon="car" title="今日台次（台）" value="2" trend="较昨日 +1" tone="blue" />
+        <Metric icon="order" title="未结算（元）" value={formatMoney(pendingAmount + 8100)} trend="待处理 1 单" tone="orange" />
+        <Metric icon="car" title="在修车辆（台）" value={repairing.toString()} trend="待处理" tone="green" />
+        <Metric icon="yuan" title="本月产值（元）" value={formatMoney(total + 89430)} trend="较上月 +18.6%" tone="blue" />
+        <Metric icon="car" title="本月台次（台）" value="126" trend="月累计" tone="blue" />
+        <Metric icon="shield" title="即将保险到期（台）" value="2" trend="7天内到期" tone="red" />
       </div>
 
       <section className="workflow-panel">
@@ -319,7 +343,7 @@ function Dashboard({ filteredOrders }) {
           <WorkflowColumn tone="orange" title="未结算（1）" order={repairOrders[2]} footer="请及时结算" />
           <article className="workflow-card empty">
             <header><strong>结算（0）</strong><span>→</span></header>
-            <div className="empty-clipboard">▤</div>
+            <div className="empty-clipboard"><AssetIcon name="empty-table.png" /></div>
             <p>暂无数据</p>
           </article>
         </div>
@@ -363,7 +387,7 @@ function Dashboard({ filteredOrders }) {
 function Metric({ icon, title, value, trend, tone }) {
   return (
     <article className="metric-card">
-      <span className={`metric-icon ${tone}`}>{icon}</span>
+      <span className={`metric-icon ${tone}`}><AssetIcon name={metricIconMap[icon]} /></span>
       <div>
         <p>{title}</p>
         <strong>{value}</strong>
@@ -831,8 +855,8 @@ function PlaceholderPage({ title, orders }) {
       <h2>{title}</h2>
       <p>该页面入口已保留。后续会接入云端数据、筛选条件、汇总报表和 Excel 导出能力。</p>
       <div className="placeholder-summary">
-        <Metric icon="单" title="当前筛选工单" value={orders.length.toString()} trend="模拟数据" tone="blue" />
-        <Metric icon="表" title="可导出记录" value={`${orders.length + insuranceRows.length}`} trend="待接入导出" tone="green" />
+        <Metric icon="order" title="当前筛选工单" value={orders.length.toString()} trend="模拟数据" tone="blue" />
+        <Metric icon="yuan" title="可导出记录" value={`${orders.length + insuranceRows.length}`} trend="待接入导出" tone="green" />
       </div>
     </section>
   );
@@ -844,7 +868,7 @@ function MobileTabs({ activePage, setActivePage }) {
     <nav className="mobile-tabs" aria-label="移动端导航">
       {tabs.map((tab) => (
         <button key={tab} className={activePage === tab ? 'active' : ''} onClick={() => setActivePage(tab)}>
-          <span>{navIcon(tab)}</span>
+          <span><AssetIcon name={navIcon(tab)} /></span>
           {tab}
         </button>
       ))}
@@ -853,17 +877,7 @@ function MobileTabs({ activePage, setActivePage }) {
 }
 
 function navIcon(item) {
-  const map = {
-    首页看板: '⌂',
-    维修接待: '▰',
-    历史查询: '⌕',
-    车辆保险: '◈',
-    客户车辆: '●',
-    汇总报表: '▥',
-    数据导出: '⇩',
-    系统设置: '⚙',
-  };
-  return map[item] || '•';
+  return navIconMap[item] || 'flow-line.png';
 }
 
 function statusClass(status) {
