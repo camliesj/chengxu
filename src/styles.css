@@ -37,7 +37,9 @@ body {
 }
 
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
 }
 
@@ -764,14 +766,28 @@ tbody tr:hover {
   background: #f8fbff;
 }
 
-.plate-link,
-.table-actions {
+.plate-link {
   color: var(--blue);
   font-weight: 900;
 }
 
 .table-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.table-actions button {
+  border: 0;
+  padding: 0;
+  color: var(--blue);
+  background: transparent;
   font-size: 13px;
+  font-weight: 900;
+}
+
+.table-actions button:hover {
+  text-decoration: underline;
 }
 
 .table-footer {
@@ -923,6 +939,131 @@ dd {
   color: var(--blue);
   background: #fff;
   font-weight: 900;
+}
+
+.wide-edit-button {
+  width: 100%;
+  min-height: 40px;
+  margin-top: 12px;
+  border: 0;
+  border-radius: 6px;
+  color: #fff;
+  background: linear-gradient(180deg, #087bef, #0067d6);
+  font-weight: 900;
+  box-shadow: 0 8px 18px rgba(8, 117, 222, 0.18);
+}
+
+.order-form {
+  display: grid;
+  gap: 14px;
+}
+
+.form-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.form-heading span {
+  color: var(--text);
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.form-heading strong {
+  color: var(--blue);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.form-grid label {
+  display: grid;
+  gap: 6px;
+  color: #425466;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.form-grid input,
+.form-grid select,
+.form-grid textarea {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  padding: 0 10px;
+  color: var(--text);
+  background: #fff;
+  outline: 0;
+}
+
+.form-grid input:focus,
+.form-grid select:focus,
+.form-grid textarea:focus {
+  border-color: #8fc7ff;
+  box-shadow: 0 0 0 3px rgba(8, 117, 222, 0.1);
+}
+
+.form-grid textarea {
+  min-height: 74px;
+  padding: 10px;
+  resize: vertical;
+}
+
+.full-field {
+  grid-column: 1 / -1;
+}
+
+.form-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid #cfe3fb;
+  border-radius: 7px;
+  color: #284057;
+  background: #f6fbff;
+  font-weight: 900;
+}
+
+.form-total strong {
+  color: var(--blue);
+  font-size: 22px;
+}
+
+.form-actions {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 10px;
+}
+
+.form-actions button {
+  min-height: 40px;
+  border-radius: 6px;
+  font-weight: 900;
+}
+
+.form-actions button:first-child {
+  border: 1px solid var(--line-strong);
+  color: #40536a;
+  background: #fff;
+}
+
+.form-actions button:last-child {
+  border: 0;
+  color: #fff;
+  background: linear-gradient(180deg, #087bef, #0067d6);
+  box-shadow: 0 8px 18px rgba(8, 117, 222, 0.18);
 }
 
 .insurance-layout {

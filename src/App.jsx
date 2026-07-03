@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 const navItems = ['首页看板', '维修接待', '历史查询', '车辆保险', '客户车辆', '汇总报表', '数据导出', '系统设置'];
 
@@ -172,17 +172,35 @@ function App() {
   const [isUnlocked, setIsUnlocked] = useState(() => localStorage.getItem('shop-access-granted') === 'true');
   const [activePage, setActivePage] = useState('首页看板');
   const [query, setQuery] = useState('');
+  const [orders, setOrders] = useState(repairOrders);
+  const [createRequest, setCreateRequest] = useState(0);
 
   const filteredOrders = useMemo(() => {
     const keyword = query.trim().toLowerCase();
-    if (!keyword) return repairOrders;
-    return repairOrders.filter((order) =>
+    if (!keyword) return orders;
+    return orders.filter((order) =>
       [order.id, order.plate, order.customer, order.phone, order.status, order.insurer]
         .join(' ')
         .toLowerCase()
         .includes(keyword),
     );
-  }, [query]);
+  }, [orders, query]);
+
+  function saveOrder(nextOrder) {
+    setOrders((currentOrders) => {
+      const exists = currentOrders.some((order) => order.id === nextOrder.id);
+      if (exists) {
+        return currentOrders.map((order) => (order.id === nextOrder.id ? nextOrder : order));
+      }
+      return [nextOrder, ...currentOrders];
+    });
+  }
+
+  function updateOrderStatus(orderId, status) {
+    setOrders((currentOrders) =>
+      currentOrders.map((order) => (order.id === orderId ? { ...order, status } : order)),
+    );
+  }
 
   if (!isUnlocked) {
     return <AccessGate onUnlock={() => setIsUnlocked(true)} />;
@@ -238,7 +256,15 @@ function App() {
               placeholder="搜索客户 / 车牌 / 手机号 / 工单号"
             />
           </div>
-          <button className="primary-action">＋ 新增工单</button>
+          <button
+            className="primary-action"
+            onClick={() => {
+              setActivePage('维修接待');
+              setCreateRequest((value) => value + 1);
+            }}
+          >
+            ＋ 新增工单
+          </button>
           <button className="secondary-action">▣ 导出Excel</button>
           <div className="topbar-user">
             <span className="notice-dot">8</span>
@@ -249,7 +275,14 @@ function App() {
         </header>
 
         {activePage === '首页看板' && <Dashboard filteredOrders={filteredOrders} />}
-        {activePage === '维修接待' && <RepairReception orders={filteredOrders} />}
+        {activePage === '维修接待' && (
+          <RepairReception
+            orders={filteredOrders}
+            createRequest={createRequest}
+            onSaveOrder={saveOrder}
+            onStatusChange={updateOrderStatus}
+          />
+        )}
         {activePage === '车辆保险' && <InsuranceLedger />}
         {!['首页看板', '维修接待', '车辆保险'].includes(activePage) && (
           <PlaceholderPage title={activePage} orders={filteredOrders} />
@@ -439,48 +472,282 @@ function RecentOrders({ orders }) {
   );
 }
 
-function RepairReception({ orders }) {
-  const selected = orders[0] || repairOrders[0];
+function createOrderDraft(order) {
+  if (order) {
+    return {
+      id: order.id,
+      date: order.date,
+      time: order.time,
+      plate: order.plate,
+      customer: order.customer,
+      phone: order.phone,
+      car: order.car,
+      insurer: order.insurer,
+      type: order.type,
+      status: order.status,
+      labor: String(order.labor),
+      material: String(order.material),
+      record: order.record,
+      staff: order.staff,
+      delivery: order.delivery,
+    };
+  }
+
+  const now = new Date();
+  const serial = String(now.getTime()).slice(-5);
+  return {
+    id: `RO202607${serial}`,
+    date: '07-23',
+    time: '11:30',
+    plate: '',
+    customer: '',
+    phone: '',
+    car: '',
+    insurer: '人保财险',
+    type: '标的车',
+    status: '在修中',
+    labor: '0',
+    material: '0',
+    record: '',
+    staff: '张工',
+    delivery: '待确认',
+  };
+}
+
+function normalizeMoney(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? number : 0;
+}
+
+function draftToOrder(draft) {
+  const labor = normalizeMoney(draft.labor);
+  const material = normalizeMoney(draft.material);
+  return {
+    ...draft,
+    labor,
+    material,
+    amount: labor + material,
+    plate: draft.plate.trim(),
+    customer: draft.customer.trim(),
+    phone: draft.phone.trim(),
+    car: draft.car.trim(),
+    record: draft.record.trim(),
+  };
+}
+
+function RepairReception({ orders, createRequest, onSaveOrder, onStatusChange }) {
+  const [selectedId, setSelectedId] = useState(() => orders[0]?.id || repairOrders[0].id);
+  const [formMode, setFormMode] = useState('view');
+  const [draft, setDraft] = useState(() => createOrderDraft(orders[0] || repairOrders[0]));
+
+  useEffect(() => {
+    if (createRequest > 0) {
+      setFormMode('create');
+      setDraft(createOrderDraft());
+    }
+  }, [createRequest]);
+
+  useEffect(() => {
+    if (!orders.some((order) => order.id === selectedId) && orders[0]) {
+      setSelectedId(orders[0].id);
+    }
+  }, [orders, selectedId]);
+
+  const selected = orders.find((order) => order.id === selectedId) || orders[0] || repairOrders[0];
+
+  function openView(order) {
+    setSelectedId(order.id);
+    setFormMode('view');
+    setDraft(createOrderDraft(order));
+  }
+
+  function openEdit(order) {
+    setSelectedId(order.id);
+    setFormMode('edit');
+    setDraft(createOrderDraft(order));
+  }
+
+  function saveDraft(event) {
+    event.preventDefault();
+    const nextOrder = draftToOrder(draft);
+    onSaveOrder(nextOrder);
+    setSelectedId(nextOrder.id);
+    setFormMode('view');
+    setDraft(createOrderDraft(nextOrder));
+  }
+
+  function changeStatus(status) {
+    onStatusChange(selected.id, status);
+    setDraft(createOrderDraft({ ...selected, status }));
+  }
 
   return (
     <section className="split-view">
       <div className="table-panel">
         <div className="table-titlebar">
           <h2>维修接待工单</h2>
-          <div><button>新增工单</button><button>批量导出</button></div>
+          <div>
+            <button onClick={() => {
+              setFormMode('create');
+              setDraft(createOrderDraft());
+            }}
+            >
+              新增工单
+            </button>
+            <button>批量导出</button>
+          </div>
         </div>
-        <OrderTable orders={orders} />
+        <OrderTable orders={orders} onView={openView} onEdit={openEdit} />
       </div>
       <aside className="detail-panel">
-        <div className="detail-heading">
-          <span className={`status-chip ${statusClass(selected.status)}`}>{selected.status}</span>
-          <h2>{selected.plate}</h2>
-          <p>{selected.customer} · {selected.phone}</p>
-        </div>
-        <dl>
-          <div><dt>工单号</dt><dd>{selected.id}</dd></div>
-          <div><dt>进厂时间</dt><dd>{selected.date} {selected.time}</dd></div>
-          <div><dt>车型</dt><dd>{selected.car}</dd></div>
-          <div><dt>保险公司</dt><dd>{selected.insurer}</dd></div>
-          <div><dt>车辆类型</dt><dd>{selected.type}</dd></div>
-          <div><dt>维修项目</dt><dd>{selected.record}</dd></div>
-        </dl>
-        <div className="fee-list">
-          <div><span>工时费</span><strong>{formatMoney(selected.labor)}</strong></div>
-          <div><span>材料费</span><strong>{formatMoney(selected.material)}</strong></div>
-          <div className="total"><span>工单金额</span><strong>{formatMoney(selected.amount)}</strong></div>
-        </div>
-        <div className="state-actions">
-          <button>切为在修</button>
-          <button>切为完工</button>
-          <button>完成结算</button>
-        </div>
+        {formMode === 'view' ? (
+          <>
+            <div className="detail-heading">
+              <span className={`status-chip ${statusClass(selected.status)}`}>{selected.status}</span>
+              <h2>{selected.plate}</h2>
+              <p>{selected.customer} · {selected.phone}</p>
+            </div>
+            <dl>
+              <div><dt>工单号</dt><dd>{selected.id}</dd></div>
+              <div><dt>进厂时间</dt><dd>{selected.date} {selected.time}</dd></div>
+              <div><dt>车型</dt><dd>{selected.car}</dd></div>
+              <div><dt>保险公司</dt><dd>{selected.insurer}</dd></div>
+              <div><dt>车辆类型</dt><dd>{selected.type}</dd></div>
+              <div><dt>维修项目</dt><dd>{selected.record}</dd></div>
+            </dl>
+            <div className="fee-list">
+              <div><span>工时费</span><strong>{formatMoney(selected.labor)}</strong></div>
+              <div><span>材料费</span><strong>{formatMoney(selected.material)}</strong></div>
+              <div className="total"><span>工单金额</span><strong>{formatMoney(selected.amount)}</strong></div>
+            </div>
+            <div className="state-actions">
+              <button onClick={() => changeStatus('在修中')}>切为在修</button>
+              <button onClick={() => changeStatus('已完工')}>切为完工</button>
+              <button onClick={() => changeStatus('已结算')}>完成结算</button>
+            </div>
+            <button className="wide-edit-button" onClick={() => openEdit(selected)}>编辑当前工单</button>
+          </>
+        ) : (
+          <OrderForm
+            draft={draft}
+            mode={formMode}
+            onChange={setDraft}
+            onCancel={() => {
+              setFormMode('view');
+              setDraft(createOrderDraft(selected));
+            }}
+            onSubmit={saveDraft}
+          />
+        )}
       </aside>
     </section>
   );
 }
 
-function OrderTable({ orders }) {
+function OrderForm({ draft, mode, onChange, onCancel, onSubmit }) {
+  const labor = normalizeMoney(draft.labor);
+  const material = normalizeMoney(draft.material);
+
+  function updateField(field, value) {
+    onChange({ ...draft, [field]: value });
+  }
+
+  return (
+    <form className="order-form" onSubmit={onSubmit}>
+      <div className="form-heading">
+        <span>{mode === 'create' ? '新增工单' : '编辑工单'}</span>
+        <strong>{draft.id}</strong>
+      </div>
+
+      <div className="form-grid">
+        <label>
+          车牌号
+          <input required value={draft.plate} onChange={(event) => updateField('plate', event.target.value)} placeholder="粤B·8A123" />
+        </label>
+        <label>
+          客户名称
+          <input required value={draft.customer} onChange={(event) => updateField('customer', event.target.value)} placeholder="陈先生" />
+        </label>
+        <label>
+          手机号
+          <input required value={draft.phone} onChange={(event) => updateField('phone', event.target.value)} placeholder="138****5678" />
+        </label>
+        <label>
+          车型
+          <input required value={draft.car} onChange={(event) => updateField('car', event.target.value)} placeholder="本田 凯美瑞" />
+        </label>
+        <label>
+          保险公司
+          <select value={draft.insurer} onChange={(event) => updateField('insurer', event.target.value)}>
+            <option>人保财险</option>
+            <option>平安保险</option>
+            <option>太平洋保险</option>
+            <option>阳光保险</option>
+          </select>
+        </label>
+        <label>
+          车辆类型
+          <select value={draft.type} onChange={(event) => updateField('type', event.target.value)}>
+            <option>标的车</option>
+            <option>三者车</option>
+          </select>
+        </label>
+        <label>
+          进厂日期
+          <input required value={draft.date} onChange={(event) => updateField('date', event.target.value)} placeholder="07-23" />
+        </label>
+        <label>
+          进厂时间
+          <input required value={draft.time} onChange={(event) => updateField('time', event.target.value)} placeholder="10:25" />
+        </label>
+        <label>
+          工时费
+          <input type="number" min="0" value={draft.labor} onChange={(event) => updateField('labor', event.target.value)} />
+        </label>
+        <label>
+          材料费
+          <input type="number" min="0" value={draft.material} onChange={(event) => updateField('material', event.target.value)} />
+        </label>
+        <label>
+          维修状态
+          <select value={draft.status} onChange={(event) => updateField('status', event.target.value)}>
+            <option>在修中</option>
+            <option>已完工</option>
+            <option>待结算</option>
+            <option>已结算</option>
+          </select>
+        </label>
+        <label>
+          业务员
+          <select value={draft.staff} onChange={(event) => updateField('staff', event.target.value)}>
+            <option>张工</option>
+            <option>王工</option>
+            <option>李工</option>
+          </select>
+        </label>
+        <label className="full-field">
+          维修项目
+          <textarea required value={draft.record} onChange={(event) => updateField('record', event.target.value)} placeholder="填写维修项目、故障描述或接待备注" />
+        </label>
+        <label className="full-field">
+          预计交车
+          <input value={draft.delivery} onChange={(event) => updateField('delivery', event.target.value)} placeholder="07-23 15:00" />
+        </label>
+      </div>
+
+      <div className="form-total">
+        <span>自动合计</span>
+        <strong>{formatMoney(labor + material)}</strong>
+      </div>
+      <div className="form-actions">
+        <button type="button" onClick={onCancel}>取消</button>
+        <button type="submit">保存工单</button>
+      </div>
+    </form>
+  );
+}
+
+function OrderTable({ orders, onView, onEdit }) {
   return (
     <div className="table-scroll">
       <table>
@@ -512,7 +779,14 @@ function OrderTable({ orders }) {
               <td><span className={`status-chip ${statusClass(order.status)}`}>{order.status}</span></td>
               <td>{order.delivery}</td>
               <td>{order.staff}</td>
-              <td><span className="table-actions">查看　编辑　打印　更多⌄</span></td>
+              <td>
+                <span className="table-actions">
+                  <button onClick={() => onView?.(order)}>查看</button>
+                  <button onClick={() => onEdit?.(order)}>编辑</button>
+                  <button>打印</button>
+                  <button>更多⌄</button>
+                </span>
+              </td>
             </tr>
           ))}
         </tbody>
