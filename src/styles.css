@@ -649,6 +649,13 @@ button {
   color: #6c7b8c;
 }
 
+.table-titlebar .filter-primary {
+  color: #fff;
+  border-color: var(--blue);
+  background: linear-gradient(180deg, #087bef, #0067d6);
+  box-shadow: 0 8px 18px rgba(8, 117, 222, 0.16);
+}
+
 .line-chart {
   min-height: 158px;
 }
@@ -857,6 +864,13 @@ tbody tr:hover {
   text-decoration: underline;
 }
 
+.empty-table-cell {
+  height: 92px;
+  color: var(--subtle);
+  text-align: center;
+  font-weight: 900;
+}
+
 .table-footer {
   display: flex;
   align-items: center;
@@ -928,6 +942,59 @@ tbody tr:hover {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 372px;
   gap: 14px;
+}
+
+.history-layout {
+  display: grid;
+  gap: 14px;
+}
+
+.history-filter-panel {
+  padding: 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.9)),
+    url("/assets/ui/backgrounds/dashboard-flow-header.png") center / cover no-repeat;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow-soft);
+}
+
+.history-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.history-filter-grid label {
+  display: grid;
+  gap: 6px;
+  color: #425466;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.history-filter-grid input,
+.history-filter-grid select {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  padding: 0 10px;
+  color: var(--text);
+  background: #fff;
+  outline: 0;
+}
+
+.history-filter-grid input:focus,
+.history-filter-grid select:focus {
+  border-color: #8fc7ff;
+  box-shadow: 0 0 0 3px rgba(8, 117, 222, 0.1);
+}
+
+.history-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  gap: 10px;
 }
 
 .detail-panel {
@@ -1209,6 +1276,11 @@ dd {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .history-filter-grid,
+  .history-summary {
+    grid-template-columns: repeat(2, minmax(150px, 1fr));
+  }
+
   .workflow-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1246,6 +1318,10 @@ dd {
     grid-template-columns: 1fr;
   }
 
+  .history-summary {
+    grid-template-columns: repeat(2, minmax(150px, 1fr));
+  }
+
   .insurance-cards {
     grid-template-columns: repeat(2, minmax(220px, 1fr));
   }
@@ -1281,6 +1357,8 @@ dd {
   .metric-strip,
   .workflow-grid,
   .insurance-cards,
+  .history-filter-grid,
+  .history-summary,
   .placeholder-summary {
     grid-template-columns: 1fr;
   }

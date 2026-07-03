@@ -137,6 +137,12 @@ const repairOrders = [
   },
 ];
 
+const orderRepository = {
+  listOrders(sourceOrders) {
+    return [...sourceOrders];
+  },
+};
+
 const insuranceReminders = [
   { plate: '粤B·5J999', car: '丰田 RAV4', customer: '王女士', phone: '137****2222', traffic: '2026-07-25', commercial: '2026-07-25', remaining: '剩余4天' },
   { plate: '粤A·8K321', car: '本田 雅阁', customer: '赵先生', phone: '139****6666', traffic: '2026-07-27', commercial: '2026-07-27', remaining: '剩余6天' },
@@ -198,17 +204,20 @@ function App() {
   const [query, setQuery] = useState('');
   const [orders, setOrders] = useState(repairOrders);
   const [createRequest, setCreateRequest] = useState(0);
+  const [receptionFocus, setReceptionFocus] = useState(null);
+
+  const orderData = useMemo(() => orderRepository.listOrders(orders), [orders]);
 
   const filteredOrders = useMemo(() => {
     const keyword = query.trim().toLowerCase();
-    if (!keyword) return orders;
-    return orders.filter((order) =>
+    if (!keyword) return orderData;
+    return orderData.filter((order) =>
       [order.id, order.plate, order.customer, order.phone, order.status, order.insurer]
         .join(' ')
         .toLowerCase()
         .includes(keyword),
     );
-  }, [orders, query]);
+  }, [orderData, query]);
 
   function saveOrder(nextOrder) {
     setOrders((currentOrders) => {
@@ -224,6 +233,12 @@ function App() {
     setOrders((currentOrders) =>
       currentOrders.map((order) => (order.id === orderId ? { ...order, status } : order)),
     );
+  }
+
+  function openOrderInReception(order, mode) {
+    setQuery('');
+    setReceptionFocus({ id: order.id, mode, requestId: Date.now() });
+    setActivePage('维修接待');
   }
 
   if (!isUnlocked) {
@@ -303,12 +318,20 @@ function App() {
           <RepairReception
             orders={filteredOrders}
             createRequest={createRequest}
+            focusRequest={receptionFocus}
             onSaveOrder={saveOrder}
             onStatusChange={updateOrderStatus}
           />
         )}
+        {activePage === '历史查询' && (
+          <HistoryQueryPage
+            orders={orderData}
+            onView={(order) => openOrderInReception(order, 'view')}
+            onEdit={(order) => openOrderInReception(order, 'edit')}
+          />
+        )}
         {activePage === '车辆保险' && <InsuranceLedger />}
-        {!['首页看板', '维修接待', '车辆保险'].includes(activePage) && (
+        {!['首页看板', '维修接待', '历史查询', '车辆保险'].includes(activePage) && (
           <PlaceholderPage title={activePage} orders={filteredOrders} />
         )}
       </main>
@@ -559,7 +582,156 @@ function draftToOrder(draft) {
   };
 }
 
-function RepairReception({ orders, createRequest, onSaveOrder, onStatusChange }) {
+const historyInitialFilters = {
+  startDate: '',
+  endDate: '',
+  plate: '',
+  customer: '',
+  phone: '',
+  status: '',
+  insurer: '',
+  type: '',
+};
+
+const statusOptions = ['在修中', '已完工', '待结算', '已结算'];
+const insurerOptions = ['人保财险', '平安保险', '太平洋保险', '阳光保险'];
+const vehicleTypeOptions = ['标的车', '三者车'];
+
+function normalizeQueryText(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function orderDateValue(orderDate) {
+  return `2026-${orderDate}`;
+}
+
+function matchesTextFilter(source, keyword) {
+  const normalizedKeyword = normalizeQueryText(keyword);
+  if (!normalizedKeyword) return true;
+  return normalizeQueryText(source).includes(normalizedKeyword);
+}
+
+function filterHistoryOrders(orders, filters) {
+  return orders.filter((order) => {
+    const normalizedDate = orderDateValue(order.date);
+    return (
+      (!filters.startDate || normalizedDate >= filters.startDate) &&
+      (!filters.endDate || normalizedDate <= filters.endDate) &&
+      matchesTextFilter(order.plate, filters.plate) &&
+      matchesTextFilter(order.customer, filters.customer) &&
+      matchesTextFilter(order.phone, filters.phone) &&
+      (!filters.status || order.status === filters.status) &&
+      (!filters.insurer || order.insurer === filters.insurer) &&
+      (!filters.type || order.type === filters.type)
+    );
+  });
+}
+
+function HistoryQueryPage({ orders, onView, onEdit }) {
+  const [draftFilters, setDraftFilters] = useState(historyInitialFilters);
+  const [appliedFilters, setAppliedFilters] = useState(historyInitialFilters);
+
+  const results = useMemo(() => filterHistoryOrders(orders, appliedFilters), [orders, appliedFilters]);
+  const settledCount = results.filter((order) => order.status === '已结算').length;
+  const unsettledCount = results.filter((order) => order.status !== '已结算').length;
+  const totalAmount = results.reduce((sum, order) => sum + order.amount, 0);
+
+  function updateFilter(field, value) {
+    setDraftFilters((current) => ({ ...current, [field]: value }));
+  }
+
+  function applyFilters(event) {
+    event.preventDefault();
+    setAppliedFilters(draftFilters);
+  }
+
+  function resetFilters() {
+    setDraftFilters(historyInitialFilters);
+    setAppliedFilters(historyInitialFilters);
+  }
+
+  return (
+    <section className="history-layout">
+      <form className="history-filter-panel" onSubmit={applyFilters}>
+        <div className="table-titlebar">
+          <h2>历史查询</h2>
+          <div>
+            <button type="button" onClick={resetFilters}>重置</button>
+            <button type="submit" className="filter-primary">查询</button>
+          </div>
+        </div>
+        <div className="history-filter-grid">
+          <label>
+            开始日期
+            <input type="date" value={draftFilters.startDate} onChange={(event) => updateFilter('startDate', event.target.value)} />
+          </label>
+          <label>
+            结束日期
+            <input type="date" value={draftFilters.endDate} onChange={(event) => updateFilter('endDate', event.target.value)} />
+          </label>
+          <label>
+            车牌号
+            <input value={draftFilters.plate} onChange={(event) => updateFilter('plate', event.target.value)} placeholder="粤B" />
+          </label>
+          <label>
+            客户名称
+            <input value={draftFilters.customer} onChange={(event) => updateFilter('customer', event.target.value)} placeholder="陈先生" />
+          </label>
+          <label>
+            手机号
+            <input value={draftFilters.phone} onChange={(event) => updateFilter('phone', event.target.value)} placeholder="138" />
+          </label>
+          <label>
+            维修状态
+            <select value={draftFilters.status} onChange={(event) => updateFilter('status', event.target.value)}>
+              <option value="">全部</option>
+              {statusOptions.map((status) => <option key={status}>{status}</option>)}
+            </select>
+          </label>
+          <label>
+            保险公司
+            <select value={draftFilters.insurer} onChange={(event) => updateFilter('insurer', event.target.value)}>
+              <option value="">全部</option>
+              {insurerOptions.map((insurer) => <option key={insurer}>{insurer}</option>)}
+            </select>
+          </label>
+          <label>
+            车辆类型
+            <select value={draftFilters.type} onChange={(event) => updateFilter('type', event.target.value)}>
+              <option value="">全部</option>
+              {vehicleTypeOptions.map((type) => <option key={type}>{type}</option>)}
+            </select>
+          </label>
+        </div>
+      </form>
+
+      <div className="history-summary">
+        <Metric icon="order" title="筛选结果" value={`${results.length} 单`} trend="点击查询后更新" tone="blue" />
+        <Metric icon="car" title="已结算" value={`${settledCount} 单`} trend="状态统计" tone="green" />
+        <Metric icon="shield" title="未结算" value={`${unsettledCount} 单`} trend="含在修/完工/待结算" tone="orange" />
+        <Metric icon="yuan" title="合计金额" value={formatMoney(totalAmount)} trend="当前结果合计" tone="blue" />
+      </div>
+
+      <section className="table-panel">
+        <div className="table-titlebar">
+          <h2>查询结果</h2>
+          <div>
+            <button>全部状态⌄</button>
+            <button>刷新</button>
+          </div>
+        </div>
+        <OrderTable orders={results} onView={onView} onEdit={onEdit} />
+        <footer className="table-footer">
+          <span>共 {results.length} 条</span>
+          <button>20条/页⌄</button>
+          <div className="pagination"><button>‹</button><button className="active">1</button><button>›</button></div>
+        </footer>
+      </section>
+    </section>
+  );
+}
+
+function RepairReception({ orders, createRequest, focusRequest, onSaveOrder, onStatusChange }) {
   const [selectedId, setSelectedId] = useState(() => orders[0]?.id || repairOrders[0].id);
   const [formMode, setFormMode] = useState('view');
   const [draft, setDraft] = useState(() => createOrderDraft(orders[0] || repairOrders[0]));
@@ -578,6 +750,15 @@ function RepairReception({ orders, createRequest, onSaveOrder, onStatusChange })
   }, [orders, selectedId]);
 
   const selected = orders.find((order) => order.id === selectedId) || orders[0] || repairOrders[0];
+
+  useEffect(() => {
+    if (!focusRequest) return;
+    const focusedOrder = orders.find((order) => order.id === focusRequest.id);
+    if (!focusedOrder) return;
+    setSelectedId(focusedOrder.id);
+    setFormMode(focusRequest.mode);
+    setDraft(createOrderDraft(focusedOrder));
+  }, [focusRequest, orders]);
 
   function openView(order) {
     setSelectedId(order.id);
@@ -791,7 +972,11 @@ function OrderTable({ orders, onView, onEdit }) {
           </tr>
         </thead>
         <tbody>
-          {orders.map((order) => (
+          {orders.length === 0 ? (
+            <tr>
+              <td colSpan="11" className="empty-table-cell">暂无匹配工单</td>
+            </tr>
+          ) : orders.map((order) => (
             <tr key={order.id}>
               <td>{order.id}</td>
               <td>{order.date}　{order.time}</td>
