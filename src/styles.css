@@ -1341,6 +1341,13 @@ dd {
   gap: 14px;
 }
 
+.insurance-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .quick-filters {
   display: flex;
   gap: 8px;
@@ -1353,9 +1360,16 @@ dd {
   background: var(--blue);
 }
 
+.insurance-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 372px;
+  gap: 14px;
+  align-items: start;
+}
+
 .insurance-cards {
   display: grid;
-  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
   gap: 14px;
 }
 
@@ -1373,6 +1387,33 @@ dd {
 .insurance-card p {
   margin: 0;
   color: var(--muted);
+}
+
+.insurance-card-action {
+  min-height: 36px;
+  border: 1px solid #cfe0f4;
+  border-radius: 6px;
+  color: var(--blue);
+  background: #f6fbff;
+  font-weight: 900;
+}
+
+.insurance-editor {
+  position: sticky;
+  top: 88px;
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--shadow-soft);
+}
+
+.insurance-add-button {
+  width: auto;
+  min-width: 118px;
+  margin-top: 0;
 }
 
 .expiry-tag.expired {
@@ -1462,6 +1503,14 @@ dd {
     grid-template-columns: repeat(2, minmax(220px, 1fr));
   }
 
+  .insurance-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .insurance-editor {
+    position: static;
+  }
+
   .modal-summary-strip,
   .modal-detail-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1504,6 +1553,15 @@ dd {
   .modal-detail-grid,
   .placeholder-summary {
     grid-template-columns: 1fr;
+  }
+
+  .insurance-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .insurance-add-button {
+    width: 100%;
   }
 
   .modal-backdrop {

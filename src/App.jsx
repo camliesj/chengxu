@@ -23,6 +23,8 @@ const metricIconMap = {
 };
 
 const ORDER_STORAGE_KEY = 'chengxu-repair-orders';
+const INSURANCE_STORAGE_KEY = 'chengxu-insurance-policies';
+const INSURANCE_BASE_DATE = '2026-07-21';
 
 function AssetIcon({ name, alt = '', className = '' }) {
   return <img className={className} src={`${iconBase}${name}`} alt={alt} aria-hidden={alt ? undefined : 'true'} />;
@@ -186,15 +188,57 @@ function readStoredOrders() {
   }
 }
 
+function normalizeInsurancePolicy(policy, index = 0) {
+  return {
+    id: policy.id || `IP${Date.now()}${index}`,
+    plate: policy.plate || '',
+    customer: policy.customer || '',
+    phone: policy.phone || '',
+    car: policy.car || '',
+    vin: policy.vin || '',
+    expiry: policy.expiry || INSURANCE_BASE_DATE,
+    amount: Number(policy.amount) || 0,
+    type: policy.type || '交强险 / 商业险',
+    insurer: policy.insurer || '人保财险',
+  };
+}
+
+function readStoredInsurancePolicies() {
+  try {
+    const rawPolicies = localStorage.getItem(INSURANCE_STORAGE_KEY);
+    if (!rawPolicies) return insuranceRows;
+    const parsedPolicies = JSON.parse(rawPolicies);
+    return Array.isArray(parsedPolicies) && parsedPolicies.length > 0
+      ? parsedPolicies.map(normalizeInsurancePolicy)
+      : insuranceRows;
+  } catch {
+    return insuranceRows;
+  }
+}
+
+function daysUntilExpiry(expiry) {
+  const base = new Date(`${INSURANCE_BASE_DATE}T00:00:00`);
+  const target = new Date(`${expiry}T00:00:00`);
+  return Math.ceil((target.getTime() - base.getTime()) / 86400000);
+}
+
+function insuranceState(policy) {
+  const days = daysUntilExpiry(policy.expiry);
+  if (days < 0) return '已过期';
+  if (days <= 7) return '7天内到期';
+  if (days <= 30) return '30天内到期';
+  return '正常';
+}
+
 const insuranceReminders = [
   { plate: '粤B·5J999', car: '丰田 RAV4', customer: '王女士', phone: '137****2222', traffic: '2026-07-25', commercial: '2026-07-25', remaining: '剩余4天' },
   { plate: '粤A·8K321', car: '本田 雅阁', customer: '赵先生', phone: '139****6666', traffic: '2026-07-27', commercial: '2026-07-27', remaining: '剩余6天' },
 ];
 
 const insuranceRows = [
-  { plate: '粤B·8A123', customer: '陈先生', car: '本田 凯美瑞', vin: 'LFV3A24G6N30***21', expiry: '2026-07-25', amount: 6520, type: '交强险 / 商业险', state: '7天内到期' },
-  { plate: '粤A·3C789', customer: '李女士', car: '大众 迈腾', vin: 'LBV8W3109P0***82', expiry: '2026-08-11', amount: 7340, type: '车损 / 三者 / 座位', state: '60天内到期' },
-  { plate: '粤B·7D555', customer: '刘先生', car: '大众 迈腾', vin: 'LC0CE4CD8N0***47', expiry: '2026-06-29', amount: 5100, type: '交强险 / 三者', state: '已过期' },
+  { id: 'IP20260725001', plate: '粤B·8A123', customer: '陈先生', phone: '138****5678', car: '本田 凯美瑞', vin: 'LFV3A24G6N30***21', expiry: '2026-07-25', amount: 6520, type: '交强险 / 商业险', insurer: '人保财险' },
+  { id: 'IP20260811002', plate: '粤A·3C789', customer: '李女士', phone: '139****1234', car: '大众 迈腾', vin: 'LBV8W3109P0***82', expiry: '2026-08-11', amount: 7340, type: '车损 / 三者 / 座位', insurer: '平安保险' },
+  { id: 'IP20260629003', plate: '粤B·7D555', customer: '刘先生', phone: '137****8888', car: '大众 迈腾', vin: 'LC0CE4CD8N0***47', expiry: '2026-06-29', amount: 5100, type: '交强险 / 三者', insurer: '太平洋保险' },
 ];
 
 const productionTrend = [68, 68, 82, 92, 125, 112, 132, 158, 98, 92, 112, 108, 152, 158, 120, 98, 70, 138];
@@ -246,6 +290,7 @@ function App() {
   const [activePage, setActivePage] = useState('首页看板');
   const [query, setQuery] = useState('');
   const [orders, setOrders] = useState(readStoredOrders);
+  const [insurancePolicies, setInsurancePolicies] = useState(readStoredInsurancePolicies);
   const [createRequest, setCreateRequest] = useState(0);
   const [receptionFocus, setReceptionFocus] = useState(null);
 
@@ -254,6 +299,10 @@ function App() {
   useEffect(() => {
     localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(orders));
   }, [orders]);
+
+  useEffect(() => {
+    localStorage.setItem(INSURANCE_STORAGE_KEY, JSON.stringify(insurancePolicies));
+  }, [insurancePolicies]);
 
   const filteredOrders = useMemo(() => {
     const keyword = query.trim().toLowerCase();
@@ -286,6 +335,17 @@ function App() {
     setQuery('');
     setReceptionFocus({ id: order.id, mode, requestId: Date.now() });
     setActivePage('维修接待');
+  }
+
+  function saveInsurancePolicy(nextPolicy) {
+    setInsurancePolicies((currentPolicies) => {
+      const normalizedPolicy = normalizeInsurancePolicy(nextPolicy);
+      const exists = currentPolicies.some((policy) => policy.id === normalizedPolicy.id);
+      if (exists) {
+        return currentPolicies.map((policy) => (policy.id === normalizedPolicy.id ? normalizedPolicy : policy));
+      }
+      return [normalizedPolicy, ...currentPolicies];
+    });
   }
 
   if (!isUnlocked) {
@@ -377,7 +437,9 @@ function App() {
             onEdit={(order) => openOrderInReception(order, 'edit')}
           />
         )}
-        {activePage === '车辆保险' && <InsuranceLedger />}
+        {activePage === '车辆保险' && (
+          <InsuranceLedger policies={insurancePolicies} onSavePolicy={saveInsurancePolicy} />
+        )}
         {!['首页看板', '维修接待', '历史查询', '车辆保险'].includes(activePage) && (
           <PlaceholderPage title={activePage} orders={filteredOrders} />
         )}
@@ -1162,32 +1224,195 @@ function OrderTable({ orders, onView, onEdit }) {
   );
 }
 
-function InsuranceLedger() {
+function createInsuranceDraft(policy) {
+  if (policy) {
+    return {
+      id: policy.id,
+      plate: policy.plate,
+      customer: policy.customer,
+      phone: policy.phone,
+      car: policy.car,
+      vin: policy.vin,
+      insurer: policy.insurer,
+      expiry: policy.expiry,
+      amount: String(policy.amount),
+      type: policy.type,
+    };
+  }
+
+  return {
+    id: `IP${Date.now()}`,
+    plate: '',
+    customer: '',
+    phone: '',
+    car: '',
+    vin: '',
+    insurer: '人保财险',
+    expiry: '2026-08-20',
+    amount: '0',
+    type: '交强险 / 商业险',
+  };
+}
+
+function draftToInsurancePolicy(draft) {
+  return normalizeInsurancePolicy({
+    ...draft,
+    plate: draft.plate.trim(),
+    customer: draft.customer.trim(),
+    phone: draft.phone.trim(),
+    car: draft.car.trim(),
+    vin: draft.vin.trim(),
+    type: draft.type.trim(),
+    amount: normalizeMoney(draft.amount),
+  });
+}
+
+function InsuranceLedger({ policies, onSavePolicy }) {
+  const [activeFilter, setActiveFilter] = useState('7天内到期');
+  const [formMode, setFormMode] = useState('create');
+  const [draft, setDraft] = useState(createInsuranceDraft);
+
+  const filteredPolicies = useMemo(() => {
+    if (activeFilter === '全部保险') return policies;
+    return policies.filter((policy) => insuranceState(policy) === activeFilter);
+  }, [activeFilter, policies]);
+
+  const within7Count = policies.filter((policy) => insuranceState(policy) === '7天内到期').length;
+  const within30Count = policies.filter((policy) => insuranceState(policy) === '30天内到期').length;
+  const expiredCount = policies.filter((policy) => insuranceState(policy) === '已过期').length;
+
+  function updateField(field, value) {
+    setDraft((current) => ({ ...current, [field]: value }));
+  }
+
+  function startCreate() {
+    setFormMode('create');
+    setDraft(createInsuranceDraft());
+  }
+
+  function startEdit(policy) {
+    setFormMode('edit');
+    setDraft(createInsuranceDraft(policy));
+  }
+
+  function savePolicy(event) {
+    event.preventDefault();
+    const nextPolicy = draftToInsurancePolicy(draft);
+    onSavePolicy(nextPolicy);
+    setFormMode('edit');
+    setDraft(createInsuranceDraft(nextPolicy));
+  }
+
   return (
     <section className="insurance-layout">
-      <div className="quick-filters">
-        <button className="active">7天内到期</button>
-        <button>30天内到期</button>
-        <button>已过期</button>
-        <button>全部保险</button>
+      <div className="insurance-toolbar">
+        <div className="quick-filters">
+          {['7天内到期', '30天内到期', '已过期', '全部保险'].map((filter) => (
+            <button key={filter} className={activeFilter === filter ? 'active' : ''} onClick={() => setActiveFilter(filter)}>
+              {filter}
+            </button>
+          ))}
+        </div>
+        <button className="wide-edit-button insurance-add-button" onClick={startCreate}>新增保险</button>
       </div>
-      <div className="insurance-cards">
-        {insuranceRows.map((row) => (
-          <article key={row.vin} className="insurance-card">
-            <div>
-              <span className={`expiry-tag ${row.state === '已过期' ? 'expired' : ''}`}>{row.state}</span>
-              <h2>{row.plate}</h2>
-              <p>{row.customer} · {row.car}</p>
-            </div>
-            <dl>
-              <div><dt>保险到期日</dt><dd>{row.expiry}</dd></div>
-              <div><dt>上年投保金额</dt><dd>{formatMoney(row.amount)}</dd></div>
-              <div><dt>险种</dt><dd>{row.type}</dd></div>
-              <div><dt>车架号</dt><dd>{row.vin}</dd></div>
-            </dl>
-          </article>
-        ))}
+
+      <div className="history-summary">
+        <Metric icon="shield" title="7天内到期" value={`${within7Count} 台`} trend="优先跟进" tone="red" />
+        <Metric icon="car" title="30天内到期" value={`${within30Count} 台`} trend="续保提醒" tone="orange" />
+        <Metric icon="order" title="已过期" value={`${expiredCount} 台`} trend="需立即处理" tone="red" />
+        <Metric icon="yuan" title="保险记录" value={`${policies.length} 条`} trend="本地保存" tone="blue" />
       </div>
+
+      <div className="insurance-workspace">
+        <div className="insurance-cards">
+          {filteredPolicies.map((row) => {
+            const state = insuranceState(row);
+            return (
+              <article key={row.id} className="insurance-card">
+                <div>
+                  <span className={`expiry-tag ${state === '已过期' ? 'expired' : ''}`}>{state}</span>
+                  <h2>{row.plate}</h2>
+                  <p>{row.customer} · {row.phone || row.car}</p>
+                </div>
+                <dl>
+                  <div><dt>保险到期日</dt><dd>{row.expiry}</dd></div>
+                  <div><dt>保险公司</dt><dd>{row.insurer}</dd></div>
+                  <div><dt>上年投保金额</dt><dd>{formatMoney(row.amount)}</dd></div>
+                  <div><dt>险种</dt><dd>{row.type}</dd></div>
+                  <div><dt>车型</dt><dd>{row.car}</dd></div>
+                  <div><dt>车架号</dt><dd>{row.vin}</dd></div>
+                </dl>
+                <button className="insurance-card-action" onClick={() => startEdit(row)}>编辑保险</button>
+              </article>
+            );
+          })}
+        </div>
+
+        <form className="insurance-editor" onSubmit={savePolicy}>
+          <div className="form-heading">
+            <span>{formMode === 'create' ? '新增保险' : '编辑保险'}</span>
+            <strong>{draft.id}</strong>
+          </div>
+          <div className="form-grid">
+            <label>
+              车牌号
+              <input required value={draft.plate} onChange={(event) => updateField('plate', event.target.value)} placeholder="粤B·8A123" />
+            </label>
+            <label>
+              客户名称
+              <input required value={draft.customer} onChange={(event) => updateField('customer', event.target.value)} placeholder="陈先生" />
+            </label>
+            <label>
+              手机号
+              <input value={draft.phone} onChange={(event) => updateField('phone', event.target.value)} placeholder="138****5678" />
+            </label>
+            <label>
+              车型
+              <input required value={draft.car} onChange={(event) => updateField('car', event.target.value)} placeholder="本田 凯美瑞" />
+            </label>
+            <label>
+              车架号
+              <input value={draft.vin} onChange={(event) => updateField('vin', event.target.value)} placeholder="LFV3A24G6N30***21" />
+            </label>
+            <label>
+              保险公司
+              <select value={draft.insurer} onChange={(event) => updateField('insurer', event.target.value)}>
+                <option>人保财险</option>
+                <option>平安保险</option>
+                <option>太平洋保险</option>
+                <option>阳光保险</option>
+              </select>
+            </label>
+            <label>
+              到期日期
+              <input required type="date" value={draft.expiry} onChange={(event) => updateField('expiry', event.target.value)} />
+            </label>
+            <label>
+              投保金额
+              <input type="number" min="0" value={draft.amount} onChange={(event) => updateField('amount', event.target.value)} />
+            </label>
+            <label className="full-field">
+              险种
+              <input required value={draft.type} onChange={(event) => updateField('type', event.target.value)} placeholder="交强险 / 商业险" />
+            </label>
+          </div>
+          <div className="form-total">
+            <span>到期状态</span>
+            <strong>{insuranceState(draftToInsurancePolicy(draft))}</strong>
+          </div>
+          <div className="form-actions">
+            <button type="button" onClick={startCreate}>清空新增</button>
+            <button type="submit">保存保险</button>
+          </div>
+        </form>
+      </div>
+
+      {filteredPolicies.length === 0 ? (
+        <section className="placeholder-panel">
+          <h2>暂无匹配保险</h2>
+          <p>当前筛选条件下没有保险记录，可以切换筛选或新增保险。</p>
+        </section>
+      ) : null}
     </section>
   );
 }
