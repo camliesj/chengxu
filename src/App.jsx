@@ -463,7 +463,7 @@ function App() {
           >
             ＋ 新增工单
           </button>
-          <button className="secondary-action"><AssetIcon name="action-excel.png" className="button-icon" />导出Excel</button>
+          <button className="secondary-action" onClick={() => setActivePage('数据导出')}><AssetIcon name="action-excel.png" className="button-icon" />导出Excel</button>
           <div className="topbar-user">
             <span className="notice-dot">8</span>
             <span className="avatar" />
@@ -1526,19 +1526,42 @@ function draftToCustomerVehicle(draft) {
   });
 }
 
-function csvCell(value) {
+function excelCell(value) {
   const text = String(value ?? '');
-  return `"${text.replace(/"/g, '""')}"`;
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
-function buildCsv(headers, rows) {
-  const headerLine = headers.map((header) => csvCell(header.label)).join(',');
-  const bodyLines = rows.map((row) => headers.map((header) => csvCell(header.value(row))).join(','));
-  return ['\uFEFF' + headerLine, ...bodyLines].join('\r\n');
+function buildExcelWorkbook(sheetName, headers, rows) {
+  const headerCells = headers.map((header) => `<th>${excelCell(header.label)}</th>`).join('');
+  const bodyRows = rows.map((row) => (
+    `<tr>${headers.map((header) => `<td style="mso-number-format:'\\@';">${excelCell(header.value(row))}</td>`).join('')}</tr>`
+  )).join('');
+  return `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    table { border-collapse: collapse; }
+    th, td { border: 1px solid #9fb4cc; padding: 6px 10px; font-family: Microsoft YaHei, Arial, sans-serif; }
+    th { background: #eaf4ff; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <table>
+    <caption>${excelCell(sheetName)}</caption>
+    <thead><tr>${headerCells}</tr></thead>
+    <tbody>${bodyRows}</tbody>
+  </table>
+</body>
+</html>`;
 }
 
-function downloadCsv(filename, csvContent) {
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+function downloadExcel(filename, htmlContent) {
+  const blob = new Blob(['\uFEFF' + htmlContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
@@ -1809,9 +1832,9 @@ function DataExportPage({ orders, policies, vehicles }) {
   }, [keyword, rows]);
 
   function exportCurrentRows() {
-    const csv = buildCsv(config.columns, filteredRows);
+    const workbook = buildExcelWorkbook(config.title, config.columns, filteredRows);
     const today = '2026-07-21';
-    downloadCsv(`${config.filename}-${today}.csv`, csv);
+    downloadExcel(`${config.filename}-${today}.xls`, workbook);
   }
 
   return (
@@ -1829,7 +1852,7 @@ function DataExportPage({ orders, policies, vehicles }) {
       </div>
 
       <div className="history-summary">
-        <Metric icon="order" title="当前类型" value={config.title} trend="CSV 格式" tone="blue" />
+        <Metric icon="order" title="当前类型" value={config.title} trend="Excel 格式" tone="blue" />
         <Metric icon="car" title="筛选记录" value={`${filteredRows.length} 条`} trend="按关键词过滤" tone="green" />
         <Metric icon="shield" title="导出字段" value={`${config.columns.length} 项`} trend="含业务字段" tone="orange" />
         <Metric icon="yuan" title="数据来源" value="本地数据" trend="localStorage" tone="blue" />
@@ -1840,7 +1863,7 @@ function DataExportPage({ orders, policies, vehicles }) {
           <h2>{config.title}导出</h2>
           <div>
             <button onClick={() => setKeyword('')}>重置</button>
-            <button className="filter-primary" onClick={exportCurrentRows}>导出CSV</button>
+            <button className="filter-primary" onClick={exportCurrentRows}>导出Excel</button>
           </div>
         </div>
         <div className="customer-search-panel export-search">
@@ -1866,7 +1889,7 @@ function DataExportPage({ orders, policies, vehicles }) {
               </tbody>
             </table>
           </div>
-          <p>预览最多显示前 8 条、前 8 个字段；导出文件会包含当前筛选结果的全部字段。</p>
+          <p>预览最多显示前 8 条、前 8 个字段；导出的 Excel 文件会包含当前筛选结果的全部字段。</p>
         </div>
       </section>
     </section>
