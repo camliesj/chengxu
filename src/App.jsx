@@ -22,6 +22,8 @@ const metricIconMap = {
   shield: 'metric-shield.png',
 };
 
+const ORDER_STORAGE_KEY = 'chengxu-repair-orders';
+
 function AssetIcon({ name, alt = '', className = '' }) {
   return <img className={className} src={`${iconBase}${name}`} alt={alt} aria-hidden={alt ? undefined : 'true'} />;
 }
@@ -44,6 +46,11 @@ const repairOrders = [
     record: '常规保养',
     staff: '张工',
     delivery: '07-23 15:00',
+    vin: 'LFV3A24G6N30***21',
+    claimNo: 'PIC20260723003',
+    accidentType: '常规维修',
+    paymentMethod: '待确认',
+    remark: '客户要求交车前清洗外观。',
   },
   {
     id: 'RO20260723002',
@@ -62,6 +69,11 @@ const repairOrders = [
     record: '更换刹车片',
     staff: '王工',
     delivery: '待交车',
+    vin: 'LBV8W3109P0***82',
+    claimNo: 'PA20260723002',
+    accidentType: '保险维修',
+    paymentMethod: '保险直赔',
+    remark: '完工后通知客户验车。',
   },
   {
     id: 'RO20260723001',
@@ -80,6 +92,11 @@ const repairOrders = [
     record: '机油更换',
     staff: '张工',
     delivery: '07-23 10:30',
+    vin: 'LC0CE4CD8N0***47',
+    claimNo: 'CPIC20260723001',
+    accidentType: '常规维修',
+    paymentMethod: '现金',
+    remark: '待客户确认结算。',
   },
   {
     id: 'RO20260722008',
@@ -98,6 +115,11 @@ const repairOrders = [
     record: '空调清洗',
     staff: '李工',
     delivery: '07-22 17:00',
+    vin: 'LGBH52E05NY0***18',
+    claimNo: '',
+    accidentType: '常规维修',
+    paymentMethod: '微信',
+    remark: '已结清。',
   },
   {
     id: 'RO20260722007',
@@ -116,6 +138,11 @@ const repairOrders = [
     record: '前轮定位',
     staff: '王工',
     delivery: '07-22 15:50',
+    vin: 'LSGKE5418NW0***33',
+    claimNo: 'PIC20260722007',
+    accidentType: '小事故',
+    paymentMethod: '保险直赔',
+    remark: '客户已取车。',
   },
   {
     id: 'RO20260721006',
@@ -134,6 +161,11 @@ const repairOrders = [
     record: '更换火花塞',
     staff: '张工',
     delivery: '07-21 16:00',
+    vin: 'LFV3A28K8P30***76',
+    claimNo: '',
+    accidentType: '常规维修',
+    paymentMethod: '待确认',
+    remark: '配件已到，安排下午施工。',
   },
 ];
 
@@ -142,6 +174,17 @@ const orderRepository = {
     return [...sourceOrders];
   },
 };
+
+function readStoredOrders() {
+  try {
+    const rawOrders = localStorage.getItem(ORDER_STORAGE_KEY);
+    if (!rawOrders) return repairOrders;
+    const parsedOrders = JSON.parse(rawOrders);
+    return Array.isArray(parsedOrders) && parsedOrders.length > 0 ? parsedOrders : repairOrders;
+  } catch {
+    return repairOrders;
+  }
+}
 
 const insuranceReminders = [
   { plate: '粤B·5J999', car: '丰田 RAV4', customer: '王女士', phone: '137****2222', traffic: '2026-07-25', commercial: '2026-07-25', remaining: '剩余4天' },
@@ -202,11 +245,15 @@ function App() {
   const [isUnlocked, setIsUnlocked] = useState(() => localStorage.getItem('shop-access-granted') === 'true');
   const [activePage, setActivePage] = useState('首页看板');
   const [query, setQuery] = useState('');
-  const [orders, setOrders] = useState(repairOrders);
+  const [orders, setOrders] = useState(readStoredOrders);
   const [createRequest, setCreateRequest] = useState(0);
   const [receptionFocus, setReceptionFocus] = useState(null);
 
   const orderData = useMemo(() => orderRepository.listOrders(orders), [orders]);
+
+  useEffect(() => {
+    localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(orders));
+  }, [orders]);
 
   const filteredOrders = useMemo(() => {
     const keyword = query.trim().toLowerCase();
@@ -537,6 +584,11 @@ function createOrderDraft(order) {
       record: order.record,
       staff: order.staff,
       delivery: order.delivery,
+      vin: order.vin || '',
+      claimNo: order.claimNo || '',
+      accidentType: order.accidentType || '常规维修',
+      paymentMethod: order.paymentMethod || '待确认',
+      remark: order.remark || '',
     };
   }
 
@@ -558,6 +610,11 @@ function createOrderDraft(order) {
     record: '',
     staff: '张工',
     delivery: '待确认',
+    vin: '',
+    claimNo: '',
+    accidentType: '常规维修',
+    paymentMethod: '待确认',
+    remark: '',
   };
 }
 
@@ -579,6 +636,9 @@ function draftToOrder(draft) {
     phone: draft.phone.trim(),
     car: draft.car.trim(),
     record: draft.record.trim(),
+    vin: draft.vin.trim(),
+    claimNo: draft.claimNo.trim(),
+    remark: draft.remark.trim(),
   };
 }
 
@@ -816,9 +876,14 @@ function RepairReception({ orders, createRequest, focusRequest, onSaveOrder, onS
               <div><dt>工单号</dt><dd>{selected.id}</dd></div>
               <div><dt>进厂时间</dt><dd>{selected.date} {selected.time}</dd></div>
               <div><dt>车型</dt><dd>{selected.car}</dd></div>
+              <div><dt>车架号</dt><dd>{selected.vin || '未填写'}</dd></div>
               <div><dt>保险公司</dt><dd>{selected.insurer}</dd></div>
               <div><dt>车辆类型</dt><dd>{selected.type}</dd></div>
+              <div><dt>案件号</dt><dd>{selected.claimNo || '未填写'}</dd></div>
+              <div><dt>事故类型</dt><dd>{selected.accidentType || '常规维修'}</dd></div>
+              <div><dt>付款方式</dt><dd>{selected.paymentMethod || '待确认'}</dd></div>
               <div><dt>维修项目</dt><dd>{selected.record}</dd></div>
+              <div><dt>接待备注</dt><dd>{selected.remark || '暂无备注'}</dd></div>
             </dl>
             <div className="fee-list">
               <div><span>工时费</span><strong>{formatMoney(selected.labor)}</strong></div>
@@ -882,6 +947,14 @@ function OrderForm({ draft, mode, onChange, onCancel, onSubmit }) {
           <input required value={draft.car} onChange={(event) => updateField('car', event.target.value)} placeholder="本田 凯美瑞" />
         </label>
         <label>
+          车架号
+          <input value={draft.vin} onChange={(event) => updateField('vin', event.target.value)} placeholder="LFV3A24G6N30***21" />
+        </label>
+        <label>
+          保险案件号
+          <input value={draft.claimNo} onChange={(event) => updateField('claimNo', event.target.value)} placeholder="可选，保险维修时填写" />
+        </label>
+        <label>
           保险公司
           <select value={draft.insurer} onChange={(event) => updateField('insurer', event.target.value)}>
             <option>人保财险</option>
@@ -895,6 +968,26 @@ function OrderForm({ draft, mode, onChange, onCancel, onSubmit }) {
           <select value={draft.type} onChange={(event) => updateField('type', event.target.value)}>
             <option>标的车</option>
             <option>三者车</option>
+          </select>
+        </label>
+        <label>
+          事故类型
+          <select value={draft.accidentType} onChange={(event) => updateField('accidentType', event.target.value)}>
+            <option>常规维修</option>
+            <option>小事故</option>
+            <option>保险维修</option>
+            <option>钣喷维修</option>
+          </select>
+        </label>
+        <label>
+          付款方式
+          <select value={draft.paymentMethod} onChange={(event) => updateField('paymentMethod', event.target.value)}>
+            <option>待确认</option>
+            <option>现金</option>
+            <option>微信</option>
+            <option>支付宝</option>
+            <option>保险直赔</option>
+            <option>挂账</option>
           </select>
         </label>
         <label>
@@ -937,6 +1030,10 @@ function OrderForm({ draft, mode, onChange, onCancel, onSubmit }) {
         <label className="full-field">
           预计交车
           <input value={draft.delivery} onChange={(event) => updateField('delivery', event.target.value)} placeholder="07-23 15:00" />
+        </label>
+        <label className="full-field">
+          接待备注
+          <textarea value={draft.remark} onChange={(event) => updateField('remark', event.target.value)} placeholder="记录客户要求、定损说明、取车提醒等信息" />
         </label>
       </div>
 
