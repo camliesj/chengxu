@@ -500,7 +500,14 @@ function App() {
             onSaveVehicle={saveCustomerVehicle}
           />
         )}
-        {!['首页看板', '维修接待', '历史查询', '车辆保险', '客户车辆'].includes(activePage) && (
+        {activePage === '数据导出' && (
+          <DataExportPage
+            orders={orderData}
+            policies={insurancePolicies}
+            vehicles={customerVehicles}
+          />
+        )}
+        {!['首页看板', '维修接待', '历史查询', '车辆保险', '客户车辆', '数据导出'].includes(activePage) && (
           <PlaceholderPage title={activePage} orders={filteredOrders} />
         )}
       </main>
@@ -1519,6 +1526,29 @@ function draftToCustomerVehicle(draft) {
   });
 }
 
+function csvCell(value) {
+  const text = String(value ?? '');
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function buildCsv(headers, rows) {
+  const headerLine = headers.map((header) => csvCell(header.label)).join(',');
+  const bodyLines = rows.map((row) => headers.map((header) => csvCell(header.value(row))).join(','));
+  return ['\uFEFF' + headerLine, ...bodyLines].join('\r\n');
+}
+
+function downloadCsv(filename, csvContent) {
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 function CustomerVehiclesPage({ vehicles, orders, policies, onSaveVehicle }) {
   const [keyword, setKeyword] = useState('');
   const [activeFilter, setActiveFilter] = useState('全部车辆');
@@ -1696,6 +1726,149 @@ function CustomerVehiclesPage({ vehicles, orders, policies, onSaveVehicle }) {
           <p>当前筛选或搜索条件下没有客户车辆档案，可以清空搜索或新增车辆。</p>
         </section>
       ) : null}
+    </section>
+  );
+}
+
+const exportConfigs = {
+  orders: {
+    title: '维修工单',
+    filename: '维修工单',
+    icon: 'order',
+    columns: [
+      { label: '工单号', value: (row) => row.id },
+      { label: '进厂日期', value: (row) => row.date },
+      { label: '进厂时间', value: (row) => row.time },
+      { label: '车牌号', value: (row) => row.plate },
+      { label: '客户名称', value: (row) => row.customer },
+      { label: '手机号', value: (row) => row.phone },
+      { label: '车型', value: (row) => row.car },
+      { label: '保险公司', value: (row) => row.insurer },
+      { label: '车辆类型', value: (row) => row.type },
+      { label: '维修状态', value: (row) => row.status },
+      { label: '维修项目', value: (row) => row.record },
+      { label: '工时费', value: (row) => row.labor },
+      { label: '材料费', value: (row) => row.material },
+      { label: '工单金额', value: (row) => row.amount },
+      { label: '业务员', value: (row) => row.staff },
+      { label: '预计交车', value: (row) => row.delivery },
+    ],
+  },
+  insurance: {
+    title: '保险记录',
+    filename: '保险记录',
+    icon: 'shield',
+    columns: [
+      { label: '保险编号', value: (row) => row.id },
+      { label: '车牌号', value: (row) => row.plate },
+      { label: '客户名称', value: (row) => row.customer },
+      { label: '手机号', value: (row) => row.phone },
+      { label: '车型', value: (row) => row.car },
+      { label: '车架号', value: (row) => row.vin },
+      { label: '保险公司', value: (row) => row.insurer },
+      { label: '到期日期', value: (row) => row.expiry },
+      { label: '到期状态', value: (row) => insuranceState(row) },
+      { label: '投保金额', value: (row) => row.amount },
+      { label: '险种', value: (row) => row.type },
+    ],
+  },
+  vehicles: {
+    title: '客户车辆',
+    filename: '客户车辆',
+    icon: 'car',
+    columns: [
+      { label: '档案编号', value: (row) => row.id },
+      { label: '客户名称', value: (row) => row.customer },
+      { label: '手机号', value: (row) => row.phone },
+      { label: '车牌号', value: (row) => row.plate },
+      { label: '车型', value: (row) => row.car },
+      { label: '车架号', value: (row) => row.vin },
+      { label: '保险公司', value: (row) => row.insurer },
+      { label: '车辆类型', value: (row) => row.vehicleType },
+      { label: '档案来源', value: (row) => row.source },
+      { label: '备注', value: (row) => row.remark },
+    ],
+  },
+};
+
+function DataExportPage({ orders, policies, vehicles }) {
+  const [activeType, setActiveType] = useState('orders');
+  const [keyword, setKeyword] = useState('');
+
+  const exportData = {
+    orders,
+    insurance: policies,
+    vehicles,
+  };
+  const config = exportConfigs[activeType];
+  const rows = exportData[activeType];
+  const filteredRows = useMemo(() => {
+    const normalizedKeyword = keyword.trim().toLowerCase();
+    if (!normalizedKeyword) return rows;
+    return rows.filter((row) => Object.values(row).join(' ').toLowerCase().includes(normalizedKeyword));
+  }, [keyword, rows]);
+
+  function exportCurrentRows() {
+    const csv = buildCsv(config.columns, filteredRows);
+    const today = '2026-07-21';
+    downloadCsv(`${config.filename}-${today}.csv`, csv);
+  }
+
+  return (
+    <section className="export-layout">
+      <div className="export-type-grid">
+        {Object.entries(exportConfigs).map(([key, item]) => (
+          <button key={key} className={activeType === key ? 'export-type-card active' : 'export-type-card'} onClick={() => setActiveType(key)}>
+            <span className={`metric-icon ${key === 'insurance' ? 'red' : 'blue'}`}><AssetIcon name={metricIconMap[item.icon]} /></span>
+            <div>
+              <strong>{item.title}</strong>
+              <small>{exportData[key].length} 条可导出</small>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      <div className="history-summary">
+        <Metric icon="order" title="当前类型" value={config.title} trend="CSV 格式" tone="blue" />
+        <Metric icon="car" title="筛选记录" value={`${filteredRows.length} 条`} trend="按关键词过滤" tone="green" />
+        <Metric icon="shield" title="导出字段" value={`${config.columns.length} 项`} trend="含业务字段" tone="orange" />
+        <Metric icon="yuan" title="数据来源" value="本地数据" trend="localStorage" tone="blue" />
+      </div>
+
+      <section className="table-panel">
+        <div className="table-titlebar">
+          <h2>{config.title}导出</h2>
+          <div>
+            <button onClick={() => setKeyword('')}>重置</button>
+            <button className="filter-primary" onClick={exportCurrentRows}>导出CSV</button>
+          </div>
+        </div>
+        <div className="customer-search-panel export-search">
+          <AssetIcon name="action-search.png" className="field-icon" />
+          <input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="按客户、车牌、手机号、编号等关键词筛选导出内容" />
+        </div>
+        <div className="export-preview">
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  {config.columns.slice(0, 8).map((column) => <th key={column.label}>{column.label}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredRows.length === 0 ? (
+                  <tr><td colSpan={Math.min(config.columns.length, 8)} className="empty-table-cell">暂无可导出数据</td></tr>
+                ) : filteredRows.slice(0, 8).map((row) => (
+                  <tr key={row.id || row.plate}>
+                    {config.columns.slice(0, 8).map((column) => <td key={column.label}>{column.value(row)}</td>)}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p>预览最多显示前 8 条、前 8 个字段；导出文件会包含当前筛选结果的全部字段。</p>
+        </div>
+      </section>
     </section>
   );
 }

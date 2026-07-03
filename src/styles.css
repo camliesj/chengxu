@@ -1346,6 +1346,57 @@ dd {
   gap: 14px;
 }
 
+.export-layout {
+  display: grid;
+  gap: 14px;
+}
+
+.export-type-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.export-type-card {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  align-items: center;
+  gap: 12px;
+  min-height: 86px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.92);
+  text-align: left;
+  box-shadow: var(--shadow-soft);
+}
+
+.export-type-card.active {
+  border-color: #8fc7ff;
+  background: linear-gradient(90deg, rgba(232, 243, 255, 0.96), rgba(255, 255, 255, 0.94));
+  box-shadow: inset 3px 0 0 var(--blue), var(--shadow-soft);
+}
+
+.export-type-card .metric-icon {
+  width: 42px;
+  height: 42px;
+}
+
+.export-type-card strong {
+  display: block;
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.export-type-card small {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
 .insurance-toolbar {
   display: flex;
   align-items: center;
@@ -1397,6 +1448,23 @@ dd {
   outline: 0;
   color: var(--text);
   background: transparent;
+}
+
+.export-search {
+  margin-bottom: 12px;
+  box-shadow: none;
+}
+
+.export-preview {
+  display: grid;
+  gap: 10px;
+}
+
+.export-preview p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .insurance-cards {
@@ -1641,6 +1709,7 @@ dd {
   .workflow-grid,
   .insurance-cards,
   .customer-vehicle-list,
+  .export-type-grid,
   .history-filter-grid,
   .history-summary,
   .modal-summary-strip,
