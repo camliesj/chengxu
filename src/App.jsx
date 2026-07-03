@@ -795,6 +795,7 @@ function RepairReception({ orders, createRequest, focusRequest, onSaveOrder, onS
   const [selectedId, setSelectedId] = useState(() => orders[0]?.id || repairOrders[0].id);
   const [formMode, setFormMode] = useState('view');
   const [draft, setDraft] = useState(() => createOrderDraft(orders[0] || repairOrders[0]));
+  const [detailOrder, setDetailOrder] = useState(null);
 
   useEffect(() => {
     if (createRequest > 0) {
@@ -818,18 +819,23 @@ function RepairReception({ orders, createRequest, focusRequest, onSaveOrder, onS
     setSelectedId(focusedOrder.id);
     setFormMode(focusRequest.mode);
     setDraft(createOrderDraft(focusedOrder));
+    if (focusRequest.mode === 'view') {
+      setDetailOrder(focusedOrder);
+    }
   }, [focusRequest, orders]);
 
   function openView(order) {
     setSelectedId(order.id);
     setFormMode('view');
     setDraft(createOrderDraft(order));
+    setDetailOrder(order);
   }
 
   function openEdit(order) {
     setSelectedId(order.id);
     setFormMode('edit');
     setDraft(createOrderDraft(order));
+    setDetailOrder(null);
   }
 
   function saveDraft(event) {
@@ -847,70 +853,125 @@ function RepairReception({ orders, createRequest, focusRequest, onSaveOrder, onS
   }
 
   return (
-    <section className="split-view">
-      <div className="table-panel">
-        <div className="table-titlebar">
-          <h2>维修接待工单</h2>
-          <div>
-            <button onClick={() => {
-              setFormMode('create');
-              setDraft(createOrderDraft());
-            }}
-            >
-              新增工单
-            </button>
-            <button>批量导出</button>
+    <>
+      <section className="split-view">
+        <div className="table-panel">
+          <div className="table-titlebar">
+            <h2>维修接待工单</h2>
+            <div>
+              <button onClick={() => {
+                setFormMode('create');
+                setDetailOrder(null);
+                setDraft(createOrderDraft());
+              }}
+              >
+                新增工单
+              </button>
+              <button>批量导出</button>
+            </div>
           </div>
+          <OrderTable orders={orders} onView={openView} onEdit={openEdit} />
         </div>
-        <OrderTable orders={orders} onView={openView} onEdit={openEdit} />
-      </div>
-      <aside className="detail-panel">
-        {formMode === 'view' ? (
-          <>
-            <div className="detail-heading">
-              <span className={`status-chip ${statusClass(selected.status)}`}>{selected.status}</span>
-              <h2>{selected.plate}</h2>
-              <p>{selected.customer} · {selected.phone}</p>
-            </div>
-            <dl>
-              <div><dt>工单号</dt><dd>{selected.id}</dd></div>
-              <div><dt>进厂时间</dt><dd>{selected.date} {selected.time}</dd></div>
-              <div><dt>车型</dt><dd>{selected.car}</dd></div>
-              <div><dt>车架号</dt><dd>{selected.vin || '未填写'}</dd></div>
-              <div><dt>保险公司</dt><dd>{selected.insurer}</dd></div>
-              <div><dt>车辆类型</dt><dd>{selected.type}</dd></div>
-              <div><dt>案件号</dt><dd>{selected.claimNo || '未填写'}</dd></div>
-              <div><dt>事故类型</dt><dd>{selected.accidentType || '常规维修'}</dd></div>
-              <div><dt>付款方式</dt><dd>{selected.paymentMethod || '待确认'}</dd></div>
-              <div><dt>维修项目</dt><dd>{selected.record}</dd></div>
-              <div><dt>接待备注</dt><dd>{selected.remark || '暂无备注'}</dd></div>
-            </dl>
-            <div className="fee-list">
-              <div><span>工时费</span><strong>{formatMoney(selected.labor)}</strong></div>
-              <div><span>材料费</span><strong>{formatMoney(selected.material)}</strong></div>
-              <div className="total"><span>工单金额</span><strong>{formatMoney(selected.amount)}</strong></div>
-            </div>
-            <div className="state-actions">
-              <button onClick={() => changeStatus('在修中')}>切为在修</button>
-              <button onClick={() => changeStatus('已完工')}>切为完工</button>
-              <button onClick={() => changeStatus('已结算')}>完成结算</button>
-            </div>
-            <button className="wide-edit-button" onClick={() => openEdit(selected)}>编辑当前工单</button>
-          </>
-        ) : (
-          <OrderForm
-            draft={draft}
-            mode={formMode}
-            onChange={setDraft}
-            onCancel={() => {
-              setFormMode('view');
-              setDraft(createOrderDraft(selected));
-            }}
-            onSubmit={saveDraft}
-          />
-        )}
-      </aside>
-    </section>
+        <aside className="detail-panel">
+          {formMode === 'view' ? (
+            <>
+              <div className="detail-heading">
+                <span className={`status-chip ${statusClass(selected.status)}`}>{selected.status}</span>
+                <h2>{selected.plate}</h2>
+                <p>{selected.customer} · {selected.phone}</p>
+              </div>
+              <dl>
+                <div><dt>工单号</dt><dd>{selected.id}</dd></div>
+                <div><dt>进厂时间</dt><dd>{selected.date} {selected.time}</dd></div>
+                <div><dt>车型</dt><dd>{selected.car}</dd></div>
+                <div><dt>车架号</dt><dd>{selected.vin || '未填写'}</dd></div>
+                <div><dt>保险公司</dt><dd>{selected.insurer}</dd></div>
+                <div><dt>车辆类型</dt><dd>{selected.type}</dd></div>
+                <div><dt>案件号</dt><dd>{selected.claimNo || '未填写'}</dd></div>
+                <div><dt>事故类型</dt><dd>{selected.accidentType || '常规维修'}</dd></div>
+                <div><dt>付款方式</dt><dd>{selected.paymentMethod || '待确认'}</dd></div>
+                <div><dt>维修项目</dt><dd>{selected.record}</dd></div>
+                <div><dt>接待备注</dt><dd>{selected.remark || '暂无备注'}</dd></div>
+              </dl>
+              <div className="fee-list">
+                <div><span>工时费</span><strong>{formatMoney(selected.labor)}</strong></div>
+                <div><span>材料费</span><strong>{formatMoney(selected.material)}</strong></div>
+                <div className="total"><span>工单金额</span><strong>{formatMoney(selected.amount)}</strong></div>
+              </div>
+              <div className="state-actions">
+                <button onClick={() => changeStatus('在修中')}>切为在修</button>
+                <button onClick={() => changeStatus('已完工')}>切为完工</button>
+                <button onClick={() => changeStatus('已结算')}>完成结算</button>
+              </div>
+              <button className="wide-edit-button" onClick={() => openEdit(selected)}>编辑当前工单</button>
+            </>
+          ) : (
+            <OrderForm
+              draft={draft}
+              mode={formMode}
+              onChange={setDraft}
+              onCancel={() => {
+                setFormMode('view');
+                setDraft(createOrderDraft(selected));
+              }}
+              onSubmit={saveDraft}
+            />
+          )}
+        </aside>
+      </section>
+
+      {detailOrder ? (
+        <OrderDetailDialog
+          order={detailOrder}
+          onClose={() => setDetailOrder(null)}
+          onEdit={() => openEdit(detailOrder)}
+        />
+      ) : null}
+    </>
+  );
+}
+
+function OrderDetailDialog({ order, onClose, onEdit }) {
+  return (
+    <div className="modal-backdrop" role="presentation" onClick={onClose}>
+      <section className="order-detail-modal" role="dialog" aria-modal="true" aria-labelledby="order-detail-title" onClick={(event) => event.stopPropagation()}>
+        <header className="modal-heading">
+          <div>
+            <span className={`status-chip ${statusClass(order.status)}`}>{order.status}</span>
+            <h2 id="order-detail-title">{order.plate} 工单详情</h2>
+            <p>{order.id} · {order.date} {order.time}</p>
+          </div>
+          <button type="button" aria-label="关闭详情" onClick={onClose}>×</button>
+        </header>
+
+        <div className="modal-summary-strip">
+          <div><span>客户</span><strong>{order.customer}</strong></div>
+          <div><span>手机号</span><strong>{order.phone}</strong></div>
+          <div><span>业务员</span><strong>{order.staff}</strong></div>
+          <div><span>金额</span><strong>{formatMoney(order.amount)}</strong></div>
+        </div>
+
+        <div className="modal-detail-grid">
+          <div><dt>车型</dt><dd>{order.car}</dd></div>
+          <div><dt>车架号</dt><dd>{order.vin || '未填写'}</dd></div>
+          <div><dt>保险公司</dt><dd>{order.insurer}</dd></div>
+          <div><dt>车辆类型</dt><dd>{order.type}</dd></div>
+          <div><dt>案件号</dt><dd>{order.claimNo || '未填写'}</dd></div>
+          <div><dt>事故类型</dt><dd>{order.accidentType || '常规维修'}</dd></div>
+          <div><dt>付款方式</dt><dd>{order.paymentMethod || '待确认'}</dd></div>
+          <div><dt>预计交车</dt><dd>{order.delivery}</dd></div>
+          <div><dt>工时费</dt><dd>{formatMoney(order.labor)}</dd></div>
+          <div><dt>材料费</dt><dd>{formatMoney(order.material)}</dd></div>
+          <div className="modal-wide"><dt>维修项目</dt><dd>{order.record}</dd></div>
+          <div className="modal-wide"><dt>接待备注</dt><dd>{order.remark || '暂无备注'}</dd></div>
+        </div>
+
+        <footer className="modal-actions">
+          <button type="button" onClick={() => window.print()}>打印工单</button>
+          <button type="button" onClick={onEdit}>编辑工单</button>
+        </footer>
+      </section>
+    </div>
   );
 }
 
