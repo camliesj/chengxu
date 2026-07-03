@@ -24,6 +24,7 @@ const metricIconMap = {
 
 const ORDER_STORAGE_KEY = 'chengxu-repair-orders';
 const INSURANCE_STORAGE_KEY = 'chengxu-insurance-policies';
+const CUSTOMER_VEHICLE_STORAGE_KEY = 'chengxu-customer-vehicles';
 const INSURANCE_BASE_DATE = '2026-07-21';
 
 function AssetIcon({ name, alt = '', className = '' }) {
@@ -230,6 +231,34 @@ function insuranceState(policy) {
   return '正常';
 }
 
+function normalizeCustomerVehicle(vehicle, index = 0) {
+  return {
+    id: vehicle.id || `CV${Date.now()}${index}`,
+    customer: vehicle.customer || '',
+    phone: vehicle.phone || '',
+    plate: vehicle.plate || '',
+    car: vehicle.car || '',
+    vin: vehicle.vin || '',
+    insurer: vehicle.insurer || '人保财险',
+    vehicleType: vehicle.vehicleType || '标的车',
+    source: vehicle.source || '手动录入',
+    remark: vehicle.remark || '',
+  };
+}
+
+function readStoredCustomerVehicles() {
+  try {
+    const rawVehicles = localStorage.getItem(CUSTOMER_VEHICLE_STORAGE_KEY);
+    if (!rawVehicles) return customerVehicleRows;
+    const parsedVehicles = JSON.parse(rawVehicles);
+    return Array.isArray(parsedVehicles) && parsedVehicles.length > 0
+      ? parsedVehicles.map(normalizeCustomerVehicle)
+      : customerVehicleRows;
+  } catch {
+    return customerVehicleRows;
+  }
+}
+
 const insuranceReminders = [
   { plate: '粤B·5J999', car: '丰田 RAV4', customer: '王女士', phone: '137****2222', traffic: '2026-07-25', commercial: '2026-07-25', remaining: '剩余4天' },
   { plate: '粤A·8K321', car: '本田 雅阁', customer: '赵先生', phone: '139****6666', traffic: '2026-07-27', commercial: '2026-07-27', remaining: '剩余6天' },
@@ -239,6 +268,13 @@ const insuranceRows = [
   { id: 'IP20260725001', plate: '粤B·8A123', customer: '陈先生', phone: '138****5678', car: '本田 凯美瑞', vin: 'LFV3A24G6N30***21', expiry: '2026-07-25', amount: 6520, type: '交强险 / 商业险', insurer: '人保财险' },
   { id: 'IP20260811002', plate: '粤A·3C789', customer: '李女士', phone: '139****1234', car: '大众 迈腾', vin: 'LBV8W3109P0***82', expiry: '2026-08-11', amount: 7340, type: '车损 / 三者 / 座位', insurer: '平安保险' },
   { id: 'IP20260629003', plate: '粤B·7D555', customer: '刘先生', phone: '137****8888', car: '大众 迈腾', vin: 'LC0CE4CD8N0***47', expiry: '2026-06-29', amount: 5100, type: '交强险 / 三者', insurer: '太平洋保险' },
+];
+
+const customerVehicleRows = [
+  { id: 'CV20260723001', customer: '陈先生', phone: '138****5678', plate: '粤B·8A123', car: '本田 凯美瑞', vin: 'LFV3A24G6N30***21', insurer: '人保财险', vehicleType: '标的车', source: '维修接待', remark: '常规保养客户，保险即将到期。' },
+  { id: 'CV20260723002', customer: '李女士', phone: '139****1234', plate: '粤A·3C789', car: '大众 迈腾', vin: 'LBV8W3109P0***82', insurer: '平安保险', vehicleType: '三者车', source: '维修接待', remark: '已完工，待交车。' },
+  { id: 'CV20260723003', customer: '刘先生', phone: '137****8888', plate: '粤B·7D555', car: '大众 迈腾', vin: 'LC0CE4CD8N0***47', insurer: '太平洋保险', vehicleType: '标的车', source: '保险台账', remark: '保险已过期，需优先跟进。' },
+  { id: 'CV20260722004', customer: '周女士', phone: '135****8766', plate: '粤B·2F333', car: '别克 英朗', vin: 'LSGKE5418NW0***33', insurer: '人保财险', vehicleType: '标的车', source: '历史维修', remark: '已结算客户。' },
 ];
 
 const productionTrend = [68, 68, 82, 92, 125, 112, 132, 158, 98, 92, 112, 108, 152, 158, 120, 98, 70, 138];
@@ -291,6 +327,7 @@ function App() {
   const [query, setQuery] = useState('');
   const [orders, setOrders] = useState(readStoredOrders);
   const [insurancePolicies, setInsurancePolicies] = useState(readStoredInsurancePolicies);
+  const [customerVehicles, setCustomerVehicles] = useState(readStoredCustomerVehicles);
   const [createRequest, setCreateRequest] = useState(0);
   const [receptionFocus, setReceptionFocus] = useState(null);
 
@@ -303,6 +340,10 @@ function App() {
   useEffect(() => {
     localStorage.setItem(INSURANCE_STORAGE_KEY, JSON.stringify(insurancePolicies));
   }, [insurancePolicies]);
+
+  useEffect(() => {
+    localStorage.setItem(CUSTOMER_VEHICLE_STORAGE_KEY, JSON.stringify(customerVehicles));
+  }, [customerVehicles]);
 
   const filteredOrders = useMemo(() => {
     const keyword = query.trim().toLowerCase();
@@ -345,6 +386,17 @@ function App() {
         return currentPolicies.map((policy) => (policy.id === normalizedPolicy.id ? normalizedPolicy : policy));
       }
       return [normalizedPolicy, ...currentPolicies];
+    });
+  }
+
+  function saveCustomerVehicle(nextVehicle) {
+    setCustomerVehicles((currentVehicles) => {
+      const normalizedVehicle = normalizeCustomerVehicle(nextVehicle);
+      const exists = currentVehicles.some((vehicle) => vehicle.id === normalizedVehicle.id);
+      if (exists) {
+        return currentVehicles.map((vehicle) => (vehicle.id === normalizedVehicle.id ? normalizedVehicle : vehicle));
+      }
+      return [normalizedVehicle, ...currentVehicles];
     });
   }
 
@@ -440,7 +492,15 @@ function App() {
         {activePage === '车辆保险' && (
           <InsuranceLedger policies={insurancePolicies} onSavePolicy={saveInsurancePolicy} />
         )}
-        {!['首页看板', '维修接待', '历史查询', '车辆保险'].includes(activePage) && (
+        {activePage === '客户车辆' && (
+          <CustomerVehiclesPage
+            vehicles={customerVehicles}
+            orders={orderData}
+            policies={insurancePolicies}
+            onSaveVehicle={saveCustomerVehicle}
+          />
+        )}
+        {!['首页看板', '维修接待', '历史查询', '车辆保险', '客户车辆'].includes(activePage) && (
           <PlaceholderPage title={activePage} orders={filteredOrders} />
         )}
       </main>
@@ -1411,6 +1471,229 @@ function InsuranceLedger({ policies, onSavePolicy }) {
         <section className="placeholder-panel">
           <h2>暂无匹配保险</h2>
           <p>当前筛选条件下没有保险记录，可以切换筛选或新增保险。</p>
+        </section>
+      ) : null}
+    </section>
+  );
+}
+
+function createCustomerVehicleDraft(vehicle) {
+  if (vehicle) {
+    return {
+      id: vehicle.id,
+      customer: vehicle.customer,
+      phone: vehicle.phone,
+      plate: vehicle.plate,
+      car: vehicle.car,
+      vin: vehicle.vin,
+      insurer: vehicle.insurer,
+      vehicleType: vehicle.vehicleType,
+      source: vehicle.source,
+      remark: vehicle.remark,
+    };
+  }
+
+  return {
+    id: `CV${Date.now()}`,
+    customer: '',
+    phone: '',
+    plate: '',
+    car: '',
+    vin: '',
+    insurer: '人保财险',
+    vehicleType: '标的车',
+    source: '手动录入',
+    remark: '',
+  };
+}
+
+function draftToCustomerVehicle(draft) {
+  return normalizeCustomerVehicle({
+    ...draft,
+    customer: draft.customer.trim(),
+    phone: draft.phone.trim(),
+    plate: draft.plate.trim(),
+    car: draft.car.trim(),
+    vin: draft.vin.trim(),
+    remark: draft.remark.trim(),
+  });
+}
+
+function CustomerVehiclesPage({ vehicles, orders, policies, onSaveVehicle }) {
+  const [keyword, setKeyword] = useState('');
+  const [activeFilter, setActiveFilter] = useState('全部车辆');
+  const [formMode, setFormMode] = useState('create');
+  const [draft, setDraft] = useState(createCustomerVehicleDraft);
+
+  const filteredVehicles = useMemo(() => {
+    const normalizedKeyword = keyword.trim().toLowerCase();
+    return vehicles.filter((vehicle) => {
+      const matchesKeyword = !normalizedKeyword || [vehicle.customer, vehicle.phone, vehicle.plate, vehicle.car, vehicle.vin]
+        .join(' ')
+        .toLowerCase()
+        .includes(normalizedKeyword);
+      const matchesFilter = activeFilter === '全部车辆' || vehicle.vehicleType === activeFilter || vehicle.source === activeFilter;
+      return matchesKeyword && matchesFilter;
+    });
+  }, [activeFilter, keyword, vehicles]);
+
+  const insuredCount = vehicles.filter((vehicle) => policies.some((policy) => policy.plate === vehicle.plate)).length;
+  const repairedCount = vehicles.filter((vehicle) => orders.some((order) => order.plate === vehicle.plate)).length;
+  const customerCount = new Set(vehicles.map((vehicle) => vehicle.phone || vehicle.customer)).size;
+
+  function updateField(field, value) {
+    setDraft((current) => ({ ...current, [field]: value }));
+  }
+
+  function startCreate() {
+    setFormMode('create');
+    setDraft(createCustomerVehicleDraft());
+  }
+
+  function startEdit(vehicle) {
+    setFormMode('edit');
+    setDraft(createCustomerVehicleDraft(vehicle));
+  }
+
+  function saveVehicle(event) {
+    event.preventDefault();
+    const nextVehicle = draftToCustomerVehicle(draft);
+    onSaveVehicle(nextVehicle);
+    setFormMode('edit');
+    setDraft(createCustomerVehicleDraft(nextVehicle));
+  }
+
+  function relatedCounts(vehicle) {
+    return {
+      repairs: orders.filter((order) => order.plate === vehicle.plate).length,
+      policies: policies.filter((policy) => policy.plate === vehicle.plate).length,
+    };
+  }
+
+  return (
+    <section className="customer-vehicle-layout">
+      <div className="insurance-toolbar">
+        <div className="quick-filters">
+          {['全部车辆', '标的车', '三者车', '手动录入'].map((filter) => (
+            <button key={filter} className={activeFilter === filter ? 'active' : ''} onClick={() => setActiveFilter(filter)}>
+              {filter}
+            </button>
+          ))}
+        </div>
+        <button className="wide-edit-button insurance-add-button" onClick={startCreate}>新增客户车辆</button>
+      </div>
+
+      <div className="history-summary">
+        <Metric icon="car" title="车辆档案" value={`${vehicles.length} 台`} trend="本地保存" tone="blue" />
+        <Metric icon="order" title="客户数量" value={`${customerCount} 位`} trend="按手机号统计" tone="green" />
+        <Metric icon="shield" title="已关联保险" value={`${insuredCount} 台`} trend="按车牌匹配" tone="orange" />
+        <Metric icon="yuan" title="有维修记录" value={`${repairedCount} 台`} trend="按车牌匹配" tone="blue" />
+      </div>
+
+      <div className="customer-search-panel">
+        <AssetIcon name="action-search.png" className="field-icon" />
+        <input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="搜索客户 / 手机号 / 车牌 / 车型 / 车架号" />
+      </div>
+
+      <div className="customer-vehicle-workspace">
+        <div className="customer-vehicle-list">
+          {filteredVehicles.map((vehicle) => {
+            const counts = relatedCounts(vehicle);
+            const policy = policies.find((item) => item.plate === vehicle.plate);
+            return (
+              <article key={vehicle.id} className="customer-vehicle-card">
+                <div className="customer-card-heading">
+                  <span className={`status-chip ${vehicle.vehicleType === '标的车' ? 'repairing' : 'pending'}`}>{vehicle.vehicleType}</span>
+                  <button onClick={() => startEdit(vehicle)}>编辑</button>
+                </div>
+                <h2>{vehicle.plate}</h2>
+                <p>{vehicle.customer} · {vehicle.phone || '未填写手机号'}</p>
+                <dl>
+                  <div><dt>车型</dt><dd>{vehicle.car}</dd></div>
+                  <div><dt>车架号</dt><dd>{vehicle.vin || '未填写'}</dd></div>
+                  <div><dt>保险公司</dt><dd>{vehicle.insurer}</dd></div>
+                  <div><dt>来源</dt><dd>{vehicle.source}</dd></div>
+                  <div><dt>维修记录</dt><dd>{counts.repairs} 单</dd></div>
+                  <div><dt>保险记录</dt><dd>{counts.policies} 条</dd></div>
+                  <div><dt>保险到期</dt><dd>{policy ? `${policy.expiry} / ${insuranceState(policy)}` : '未关联'}</dd></div>
+                  <div><dt>备注</dt><dd>{vehicle.remark || '暂无备注'}</dd></div>
+                </dl>
+              </article>
+            );
+          })}
+        </div>
+
+        <form className="insurance-editor" onSubmit={saveVehicle}>
+          <div className="form-heading">
+            <span>{formMode === 'create' ? '新增客户车辆' : '编辑客户车辆'}</span>
+            <strong>{draft.id}</strong>
+          </div>
+          <div className="form-grid">
+            <label>
+              客户名称
+              <input required value={draft.customer} onChange={(event) => updateField('customer', event.target.value)} placeholder="陈先生" />
+            </label>
+            <label>
+              手机号
+              <input value={draft.phone} onChange={(event) => updateField('phone', event.target.value)} placeholder="138****5678" />
+            </label>
+            <label>
+              车牌号
+              <input required value={draft.plate} onChange={(event) => updateField('plate', event.target.value)} placeholder="粤B·8A123" />
+            </label>
+            <label>
+              车型
+              <input required value={draft.car} onChange={(event) => updateField('car', event.target.value)} placeholder="本田 凯美瑞" />
+            </label>
+            <label>
+              车架号
+              <input value={draft.vin} onChange={(event) => updateField('vin', event.target.value)} placeholder="LFV3A24G6N30***21" />
+            </label>
+            <label>
+              保险公司
+              <select value={draft.insurer} onChange={(event) => updateField('insurer', event.target.value)}>
+                <option>人保财险</option>
+                <option>平安保险</option>
+                <option>太平洋保险</option>
+                <option>阳光保险</option>
+              </select>
+            </label>
+            <label>
+              车辆类型
+              <select value={draft.vehicleType} onChange={(event) => updateField('vehicleType', event.target.value)}>
+                <option>标的车</option>
+                <option>三者车</option>
+              </select>
+            </label>
+            <label>
+              档案来源
+              <select value={draft.source} onChange={(event) => updateField('source', event.target.value)}>
+                <option>手动录入</option>
+                <option>维修接待</option>
+                <option>保险台账</option>
+                <option>历史维修</option>
+              </select>
+            </label>
+            <label className="full-field">
+              备注
+              <textarea value={draft.remark} onChange={(event) => updateField('remark', event.target.value)} placeholder="记录客户偏好、续保提醒、车辆情况等信息" />
+            </label>
+          </div>
+          <div className="form-total">
+            <span>关联提示</span>
+            <strong>{relatedCounts(draft).repairs} 单维修 / {relatedCounts(draft).policies} 条保险</strong>
+          </div>
+          <div className="form-actions">
+            <button type="button" onClick={startCreate}>清空新增</button>
+            <button type="submit">保存档案</button>
+          </div>
+        </form>
+      </div>
+
+      {filteredVehicles.length === 0 ? (
+        <section className="placeholder-panel">
+          <h2>暂无匹配车辆</h2>
+          <p>当前筛选或搜索条件下没有客户车辆档案，可以清空搜索或新增车辆。</p>
         </section>
       ) : null}
     </section>
