@@ -116,17 +116,52 @@ async function fetchOperationLogs(session) {
   return Array.isArray(data.logs) ? data.logs : [];
 }
 
-async function updateAccessCode(role, code, session) {
+async function updateAccessCode(role, code, session, id = '') {
   const response = await fetch('/api/access-code', {
     method: 'POST',
     headers: { 'content-type': 'application/json', ...authHeaders(session) },
-    body: JSON.stringify({ role, code }),
+    body: JSON.stringify({ id, role, code }),
   });
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
-    throw new Error(data.error || `访问码修改失败：${response.status}`);
+    const messageMap = {
+      CANNOT_REMOVE_LAST_ADMIN_CODE: '不能移除最后一个启用的管理员访问码',
+      CODE_MUST_BE_4_TO_12_DIGITS: '访问码需为4-12位数字',
+    };
+    throw new Error(messageMap[data.error] || data.error || `访问码修改失败：${response.status}`);
   }
   return response.json();
+}
+
+async function deleteAccessCode(id, session) {
+  const response = await fetch('/api/access-code', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...authHeaders(session) },
+    body: JSON.stringify({ action: 'delete', id }),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    const messageMap = {
+      CANNOT_DELETE_LAST_ADMIN_CODE: '不能删除最后一个启用的管理员访问码',
+      ACCESS_CODE_NOT_FOUND: '访问码不存在或已删除',
+    };
+    throw new Error(messageMap[data.error] || data.error || `访问码删除失败：${response.status}`);
+  }
+  return response.json();
+}
+
+async function unlockAccessCodePanel(adminCode, session) {
+  const response = await fetch('/api/access-code', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...authHeaders(session) },
+    body: JSON.stringify({ action: 'unlock', adminCode }),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error === 'INVALID_ADMIN_CODE' ? '管理员访问码不正确' : data.error || `访问码信息读取失败：${response.status}`);
+  }
+  const data = await response.json();
+  return Array.isArray(data.codes) ? data.codes : [];
 }
 
 function normalizeInsurancePolicy(policy, index = 0) {
@@ -2483,8 +2518,12 @@ function ReportRanking({ title, rows, maxAmount }) {
 function SystemSettingsPage({ session, cloudState, orders, onRefreshOrders }) {
   const [logs, setLogs] = useState([]);
   const [logState, setLogState] = useState({ loading: false, error: '' });
-  const [accessDraft, setAccessDraft] = useState({ role: 'staff', code: '' });
+  const [accessDraft, setAccessDraft] = useState({ id: '', role: 'staff', code: '' });
   const [accessCodeState, setAccessCodeState] = useState({ loading: false, message: '', error: '' });
+  const [accessUnlockCode, setAccessUnlockCode] = useState('');
+  const [accessUnlocked, setAccessUnlocked] = useState(false);
+  const [accessCodeRows, setAccessCodeRows] = useState([]);
+  const [accessUnlockState, setAccessUnlockState] = useState({ loading: false, error: '' });
   const isAdmin = session?.role === 'admin';
 
   function loadLogs() {
@@ -2500,15 +2539,53 @@ function SystemSettingsPage({ session, cloudState, orders, onRefreshOrders }) {
 
   function submitAccessCode(event) {
     event.preventDefault();
-    if (!isAdmin) return;
+    if (!isAdmin || !accessUnlocked) return;
     setAccessCodeState({ loading: true, message: '', error: '' });
-    updateAccessCode(accessDraft.role, accessDraft.code, session)
+    updateAccessCode(accessDraft.role, accessDraft.code, session, accessDraft.id)
       .then((result) => {
-        setAccessDraft((current) => ({ ...current, code: '' }));
+        setAccessDraft({ id: '', role: result.role || 'staff', code: '' });
         setAccessCodeState({ loading: false, message: `${result.label}访问码已更新`, error: '' });
+        if (accessUnlockCode) {
+          unlockAccessCodePanel(accessUnlockCode, session).then(setAccessCodeRows).catch(() => {});
+        }
         loadLogs();
       })
       .catch((error) => setAccessCodeState({ loading: false, message: '', error: error.message || '访问码修改失败' }));
+  }
+
+  function unlockAccessCodes(event) {
+    event.preventDefault();
+    if (!isAdmin) return;
+    setAccessUnlockState({ loading: true, error: '' });
+    unlockAccessCodePanel(accessUnlockCode, session)
+      .then((codes) => {
+        setAccessCodeRows(codes);
+        setAccessUnlocked(true);
+        setAccessUnlockState({ loading: false, error: '' });
+      })
+      .catch((error) => {
+        setAccessUnlocked(false);
+        setAccessCodeRows([]);
+        setAccessUnlockState({ loading: false, error: error.message || '管理员访问码不正确' });
+      });
+  }
+
+  function editAccessCode(code) {
+    setAccessDraft({ id: code.id, role: code.role, code: code.code || '' });
+    setAccessCodeState({ loading: false, message: '', error: '' });
+  }
+
+  function removeAccessCode(code) {
+    if (!isAdmin || !accessUnlocked) return;
+    setAccessCodeState({ loading: true, message: '', error: '' });
+    deleteAccessCode(code.id, session)
+      .then(() => {
+        setAccessCodeRows((rows) => rows.filter((row) => row.id !== code.id));
+        setAccessDraft((current) => (current.id === code.id ? { id: '', role: 'staff', code: '' } : current));
+        setAccessCodeState({ loading: false, message: `${code.label}访问码已删除`, error: '' });
+        loadLogs();
+      })
+      .catch((error) => setAccessCodeState({ loading: false, message: '', error: error.message || '访问码删除失败' }));
   }
 
   useEffect(() => {
@@ -2559,26 +2636,71 @@ function SystemSettingsPage({ session, cloudState, orders, onRefreshOrders }) {
 
       {isAdmin ? (
         <section className="settings-card settings-access-card">
-          <h3>修改访问码</h3>
-          <form className="settings-access-form" onSubmit={submitAccessCode}>
+          <div className="settings-access-heading">
+            <div>
+              <h3>访问码管理</h3>
+              <p>输入管理员访问码后查看已有访问码信息，并进入编辑。</p>
+            </div>
+            {accessUnlocked ? <span>已解锁</span> : <span className="locked">未解锁</span>}
+          </div>
+          <form className="settings-unlock-form" onSubmit={unlockAccessCodes}>
             <label>
-              修改角色
-              <select value={accessDraft.role} onChange={(event) => setAccessDraft((current) => ({ ...current, role: event.target.value }))}>
-                <option value="admin">管理员</option>
-                <option value="staff">员工</option>
-              </select>
-            </label>
-            <label>
-              新访问码
+              管理员访问码
               <input
-                value={accessDraft.code}
-                onChange={(event) => setAccessDraft((current) => ({ ...current, code: event.target.value }))}
-                placeholder="4-12位数字"
+                value={accessUnlockCode}
+                onChange={(event) => setAccessUnlockCode(event.target.value)}
+                placeholder="请输入管理员访问码"
                 inputMode="numeric"
+                autoComplete="current-password"
               />
             </label>
-            <button type="submit" disabled={accessCodeState.loading}>{accessCodeState.loading ? '保存中...' : '保存访问码'}</button>
+            <button type="submit" disabled={accessUnlockState.loading}>{accessUnlockState.loading ? '验证中...' : '进入编辑'}</button>
           </form>
+          {accessUnlockState.error ? <div className="cloud-banner error">{accessUnlockState.error}</div> : null}
+          {accessUnlocked ? (
+            <>
+              <div className="access-code-list">
+                {accessCodeRows.map((code) => (
+                  <article key={code.id} className={`${code.isActive ? 'active' : ''} ${accessDraft.id === code.id ? 'selected' : ''}`}>
+                    <div>
+                      <strong>{code.label}</strong>
+                      <p>{code.role === 'admin' ? '管理员权限' : '员工权限'}</p>
+                    </div>
+                    <dl>
+                      <div><dt>访问码</dt><dd>{code.code || '需重设'}</dd></div>
+                      <div><dt>状态</dt><dd>{code.isActive ? '启用中' : '已停用'}</dd></div>
+                      <div><dt>创建时间</dt><dd>{code.createdAt || '未知'}</dd></div>
+                      <div><dt>安全指纹</dt><dd>末尾 {code.fingerprint}</dd></div>
+                    </dl>
+                    <div className="access-code-actions">
+                      <button type="button" onClick={() => editAccessCode(code)}>编辑</button>
+                      <button type="button" className="danger" onClick={() => removeAccessCode(code)}>删除</button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+              <p className="settings-note">当前版本已启用明文管理；旧版本修改过且未记录明文的访问码会显示“需重设”。</p>
+              <form className="settings-access-form" onSubmit={submitAccessCode}>
+                <label>
+                  权限角色
+                  <select value={accessDraft.role} onChange={(event) => setAccessDraft((current) => ({ ...current, role: event.target.value }))}>
+                    <option value="admin">管理员</option>
+                    <option value="staff">员工</option>
+                  </select>
+                </label>
+                <label>
+                  新访问码
+                  <input
+                    value={accessDraft.code}
+                    onChange={(event) => setAccessDraft((current) => ({ ...current, code: event.target.value }))}
+                    placeholder="4-12位数字"
+                    inputMode="numeric"
+                  />
+                </label>
+                <button type="submit" disabled={accessCodeState.loading}>{accessCodeState.loading ? '保存中...' : accessDraft.id ? '保存修改' : '新增访问码'}</button>
+              </form>
+            </>
+          ) : null}
           {accessCodeState.message ? <div className="cloud-banner">{accessCodeState.message}</div> : null}
           {accessCodeState.error ? <div className="cloud-banner error">{accessCodeState.error}</div> : null}
         </section>
