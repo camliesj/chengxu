@@ -18,6 +18,8 @@ npm run deploy
 - Build output directory: `dist`
 - Root directory: 留空或使用仓库根目录
 
+当前 Cloudflare Pages 项目 `chengxu` 已按以上规则配置，后续推送 `main` 分支会自动构建并发布 `dist`。
+
 ## 第一次部署前
 
 如果命令行提示没有登录 Cloudflare，先执行：
