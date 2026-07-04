@@ -104,6 +104,18 @@ async function voidCloudOrder(orderId, reason, session) {
   return response.json();
 }
 
+async function fetchOperationLogs(session) {
+  const response = await fetch('/api/operation-logs', {
+    headers: authHeaders(session),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `日志读取失败：${response.status}`);
+  }
+  const data = await response.json();
+  return Array.isArray(data.logs) ? data.logs : [];
+}
+
 function normalizeInsurancePolicy(policy, index = 0) {
   return {
     id: policy.id || `IP${Date.now()}${index}`,
@@ -254,6 +266,7 @@ function App() {
   const [isUnlocked, setIsUnlocked] = useState(() => localStorage.getItem('shop-access-granted') === 'true' && !!localStorage.getItem(ACCESS_SESSION_KEY));
   const [activePage, setActivePage] = useState('首页看板');
   const [query, setQuery] = useState('');
+  const [dateRange, setDateRange] = useState({ start: '2026-07-01', end: '2026-07-31' });
   const [orders, setOrders] = useState(readStoredOrders);
   const [insurancePolicies, setInsurancePolicies] = useState(readStoredInsurancePolicies);
   const [customerVehicles, setCustomerVehicles] = useState(readStoredCustomerVehicles);
@@ -297,14 +310,28 @@ function App() {
 
   const filteredOrders = useMemo(() => {
     const keyword = query.trim().toLowerCase();
-    if (!keyword) return orderData;
-    return orderData.filter((order) =>
-      [order.id, order.plate, order.customer, order.phone, order.status, order.insurer]
+    return orderData.filter((order) => {
+      const orderDate = orderDateValue(order.date);
+      const inDateRange = (!dateRange.start || orderDate >= dateRange.start) && (!dateRange.end || orderDate <= dateRange.end);
+      const inKeyword = !keyword || [order.id, order.plate, order.customer, order.phone, order.status, order.insurer, order.car, order.staff]
         .join(' ')
         .toLowerCase()
-        .includes(keyword),
-    );
-  }, [orderData, query]);
+        .includes(keyword);
+      return inDateRange && inKeyword;
+    });
+  }, [orderData, query, dateRange]);
+
+  function refreshOrders() {
+    if (!accessSession?.token) return;
+    setOrdersCloudState({ loading: true, error: '' });
+    fetchCloudOrders(accessSession)
+      .then((cloudOrders) => {
+        setOrders(cloudOrders);
+        localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(cloudOrders));
+        setOrdersCloudState({ loading: false, error: '' });
+      })
+      .catch((error) => setOrdersCloudState({ loading: false, error: error.message || '云端刷新失败' }));
+  }
 
   function upsertOrder(nextOrder) {
     setOrders((currentOrders) => {
@@ -416,9 +443,9 @@ function App() {
         <header className="topbar">
           <button className="menu-button" aria-label="展开菜单">☰</button>
           <div className="date-range">
-            <input type="date" defaultValue="2026-07-01" aria-label="开始日期" />
+            <input type="date" value={dateRange.start} onChange={(event) => setDateRange((current) => ({ ...current, start: event.target.value }))} aria-label="开始日期" />
             <span>至</span>
-            <input type="date" defaultValue="2026-07-31" aria-label="结束日期" />
+            <input type="date" value={dateRange.end} onChange={(event) => setDateRange((current) => ({ ...current, end: event.target.value }))} aria-label="结束日期" />
           </div>
           <div className="search-wrap">
             <AssetIcon name="action-search.png" className="field-icon" />
@@ -446,7 +473,7 @@ function App() {
           </div>
         </header>
 
-        {activePage === '首页看板' && <Dashboard filteredOrders={filteredOrders} />}
+        {activePage === '首页看板' && <Dashboard filteredOrders={filteredOrders} onRefreshOrders={refreshOrders} />}
         {activePage === '维修接待' && (
           <RepairReception
             orders={filteredOrders}
@@ -484,7 +511,15 @@ function App() {
             vehicles={customerVehicles}
           />
         )}
-        {!['首页看板', '维修接待', '历史查询', '车辆保险', '客户车辆', '数据导出'].includes(activePage) && (
+        {activePage === '系统设置' && (
+          <SystemSettingsPage
+            session={accessSession}
+            cloudState={ordersCloudState}
+            orders={orderData}
+            onRefreshOrders={refreshOrders}
+          />
+        )}
+        {!['首页看板', '维修接待', '历史查询', '车辆保险', '客户车辆', '数据导出', '系统设置'].includes(activePage) && (
           <PlaceholderPage title={activePage} orders={filteredOrders} />
         )}
       </main>
@@ -494,7 +529,7 @@ function App() {
   );
 }
 
-function Dashboard({ filteredOrders }) {
+function Dashboard({ filteredOrders, onRefreshOrders }) {
   const total = filteredOrders.reduce((sum, order) => sum + order.amount, 0);
   const activeOrders = filteredOrders.filter((order) => order.status !== REPAIR_STATUS.settled);
   const pendingAmount = activeOrders.reduce((sum, order) => sum + order.amount, 0);
@@ -562,7 +597,7 @@ function Dashboard({ filteredOrders }) {
       </div>
 
       <InsuranceReminder />
-      <RecentOrders orders={filteredOrders} />
+      <RecentOrders orders={filteredOrders} onRefreshOrders={onRefreshOrders} />
     </section>
   );
 }
@@ -669,21 +704,50 @@ function InsuranceReminder() {
   );
 }
 
-function RecentOrders({ orders }) {
+function RecentOrders({ orders, onRefreshOrders }) {
+  const [status, setStatus] = useState('全部状态');
+  const [pageSize, setPageSize] = useState(20);
+  const [page, setPage] = useState(1);
+
+  const visibleOrders = useMemo(
+    () => (status === '全部状态' ? orders : orders.filter((order) => order.status === status)),
+    [orders, status],
+  );
+  const totalPages = Math.max(1, Math.ceil(visibleOrders.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pageOrders = visibleOrders.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  useEffect(() => {
+    setPage(1);
+  }, [status, pageSize, orders.length]);
+
   return (
     <section className="table-panel recent-orders">
       <div className="table-titlebar">
         <h2>最近维修工单</h2>
         <div>
-          <button>全部状态⌄</button>
-          <button>⟳ 刷新</button>
+          <select value={status} onChange={(event) => setStatus(event.target.value)} aria-label="最近工单状态筛选">
+            <option>全部状态</option>
+            {statusOptions.map((option) => <option key={option}>{option}</option>)}
+          </select>
+          <button onClick={onRefreshOrders}>⟳ 刷新</button>
         </div>
       </div>
-      <OrderTable orders={orders} />
+      <OrderTable orders={pageOrders} />
       <footer className="table-footer">
-        <span>共 23 条</span>
-        <button>20条/页⌄</button>
-        <div className="pagination"><button>‹</button><button className="active">1</button><button>2</button><button>3</button><button>›</button></div>
+        <span>共 {visibleOrders.length} 条</span>
+        <select value={pageSize} onChange={(event) => setPageSize(Number(event.target.value))} aria-label="每页条数">
+          <option value={10}>10条/页</option>
+          <option value={20}>20条/页</option>
+          <option value={50}>50条/页</option>
+        </select>
+        <div className="pagination">
+          <button disabled={currentPage <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>‹</button>
+          {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
+            <button key={pageNumber} className={currentPage === pageNumber ? 'active' : ''} onClick={() => setPage(pageNumber)}>{pageNumber}</button>
+          ))}
+          <button disabled={currentPage >= totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))}>›</button>
+        </div>
       </footer>
     </section>
   );
@@ -2294,6 +2358,113 @@ function ReportRanking({ title, rows, maxAmount }) {
           </article>
         ))}
       </div>
+    </section>
+  );
+}
+
+function SystemSettingsPage({ session, cloudState, orders, onRefreshOrders }) {
+  const [logs, setLogs] = useState([]);
+  const [logState, setLogState] = useState({ loading: false, error: '' });
+  const isAdmin = session?.role === 'admin';
+
+  function loadLogs() {
+    if (!isAdmin) return;
+    setLogState({ loading: true, error: '' });
+    fetchOperationLogs(session)
+      .then((nextLogs) => {
+        setLogs(nextLogs);
+        setLogState({ loading: false, error: '' });
+      })
+      .catch((error) => setLogState({ loading: false, error: error.message || '日志读取失败' }));
+  }
+
+  useEffect(() => {
+    if (isAdmin) {
+      loadLogs();
+    }
+  }, [isAdmin]);
+
+  return (
+    <section className="settings-layout">
+      <div className="settings-hero">
+        <div>
+          <span>系统设置</span>
+          <h2>权限、云端状态与操作记录</h2>
+          <p>当前系统已启用云端访问码校验和 D1 数据库存储。</p>
+        </div>
+        <button onClick={onRefreshOrders}>刷新云端数据</button>
+      </div>
+
+      <div className="settings-grid">
+        <article className="settings-card">
+          <h3>当前登录</h3>
+          <dl>
+            <div><dt>角色</dt><dd>{session?.role === 'admin' ? '管理员' : '员工'}</dd></div>
+            <div><dt>身份</dt><dd>{session?.label || '未识别'}</dd></div>
+            <div><dt>权限</dt><dd>{isAdmin ? '可作废工单、查看操作日志' : '可新增、编辑、结算工单'}</dd></div>
+          </dl>
+        </article>
+
+        <article className="settings-card">
+          <h3>云端数据库</h3>
+          <dl>
+            <div><dt>数据库</dt><dd>chengxu-db</dd></div>
+            <div><dt>工单数量</dt><dd>{orders.length} 条</dd></div>
+            <div><dt>连接状态</dt><dd>{cloudState?.loading ? '同步中' : cloudState?.error ? cloudState.error : '正常'}</dd></div>
+          </dl>
+        </article>
+
+        <article className="settings-card">
+          <h3>访问码</h3>
+          <dl>
+            <div><dt>管理员</dt><dd>888888</dd></div>
+            <div><dt>员工</dt><dd>666666</dd></div>
+            <div><dt>校验方式</dt><dd>云端校验</dd></div>
+          </dl>
+        </article>
+      </div>
+
+      <section className="table-panel">
+        <div className="table-titlebar">
+          <h2>操作日志</h2>
+          <div>
+            {logState.loading ? <span className="settings-note">读取中...</span> : null}
+            {isAdmin ? <button onClick={loadLogs}>刷新日志</button> : null}
+          </div>
+        </div>
+        {!isAdmin ? (
+          <div className="settings-empty">员工账号无权查看操作日志。</div>
+        ) : logState.error ? (
+          <div className="cloud-banner error">{logState.error}</div>
+        ) : (
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>时间</th>
+                  <th>操作</th>
+                  <th>对象</th>
+                  <th>角色</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                {logs.length === 0 ? (
+                  <tr><td colSpan="5" className="empty-table-cell">暂无操作记录</td></tr>
+                ) : logs.map((log) => (
+                  <tr key={log.id}>
+                    <td>{log.created_at}</td>
+                    <td>{log.action}</td>
+                    <td>{log.target_id}</td>
+                    <td>{log.label || log.role}</td>
+                    <td>{log.detail}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </section>
   );
 }

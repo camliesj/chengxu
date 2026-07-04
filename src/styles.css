@@ -634,7 +634,8 @@ button {
 }
 
 .panel-header button,
-.table-titlebar button {
+.table-titlebar button,
+.table-titlebar select {
   min-height: 30px;
   border: 1px solid var(--line-strong);
   border-radius: 6px;
@@ -883,6 +884,7 @@ tbody tr:hover {
 }
 
 .table-footer button,
+.table-footer select,
 .pagination button {
   min-width: 34px;
   height: 34px;
@@ -1581,6 +1583,12 @@ dd {
   font-weight: 800;
 }
 
+.table-footer button:disabled,
+.pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 .report-layout {
   display: grid;
   gap: 14px;
@@ -1855,6 +1863,99 @@ dd {
   background: #ffe6e3;
 }
 
+.settings-layout {
+  display: grid;
+  gap: 14px;
+}
+
+.settings-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(248, 252, 255, 0.92)),
+    url("/assets/ui/backgrounds/dashboard-flow-header.png") center / cover no-repeat;
+  box-shadow: var(--shadow-soft);
+}
+
+.settings-hero span {
+  color: var(--blue);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.settings-hero h2 {
+  margin: 6px 0;
+  color: var(--text);
+  font-size: 24px;
+}
+
+.settings-hero p {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.settings-hero button {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 6px;
+  color: #fff;
+  background: linear-gradient(180deg, #087bef, #0067d6);
+  font-weight: 900;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.settings-card {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: var(--shadow-soft);
+}
+
+.settings-card h3 {
+  margin: 0 0 12px;
+  color: var(--text);
+  font-size: 17px;
+}
+
+.settings-card dl {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.settings-card dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.settings-note,
+.settings-empty {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.settings-empty {
+  padding: 18px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
 .placeholder-panel p {
   color: var(--muted);
 }
@@ -2002,6 +2103,7 @@ dd {
   .history-filter-grid,
   .history-summary,
   .reception-summary,
+  .settings-grid,
   .modal-summary-strip,
   .modal-detail-grid,
   .settlement-grid,
@@ -2014,6 +2116,11 @@ dd {
   }
 
   .insurance-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .settings-hero {
     align-items: stretch;
     flex-direction: column;
   }
