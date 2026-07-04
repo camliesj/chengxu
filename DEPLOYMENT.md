@@ -8,7 +8,7 @@
 npm run deploy
 ```
 
-这个命令会先执行生产构建，然后把 `dist` 发布到 Cloudflare Pages 项目 `chengxu`。
+这个命令会先执行生产构建，然后把 `dist` 发布到 Cloudflare Pages 项目 `chengxu`。项目名通过命令参数指定，避免影响 Cloudflare Pages 后台已经配置好的 Git 自动部署。
 
 ## Cloudflare Pages 后台配置
 
