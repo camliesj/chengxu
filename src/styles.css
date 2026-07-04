@@ -399,11 +399,32 @@ button {
 }
 
 .topbar-user {
+  position: relative;
   display: grid;
-  grid-template-columns: 28px 38px 1fr;
+  grid-template-columns: 34px minmax(132px, 1fr);
   column-gap: 10px;
   align-items: center;
   min-width: 0;
+}
+
+.notice-button,
+.user-button {
+  border: 0;
+  background: transparent;
+}
+
+.notice-button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 38px;
+  border-radius: 8px;
+}
+
+.notice-button:hover,
+.user-button:hover {
+  background: #f3f8ff;
 }
 
 .notice-dot {
@@ -420,6 +441,18 @@ button {
   font-weight: 900;
 }
 
+.user-button {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 46px;
+  border-radius: 8px;
+  padding: 4px 8px;
+  text-align: left;
+}
+
 .avatar {
   width: 36px;
   height: 36px;
@@ -431,15 +464,77 @@ button {
 }
 
 .topbar-user strong {
+  display: block;
   color: var(--text);
   font-size: 15px;
   line-height: 1.1;
 }
 
 .topbar-user small {
-  grid-column: 3;
+  display: block;
+  margin-top: 5px;
   color: var(--muted);
   font-size: 12px;
+}
+
+.topbar-popover {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  z-index: 20;
+  display: grid;
+  gap: 8px;
+  width: min(320px, calc(100vw - 32px));
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 22px 48px rgba(38, 92, 150, 0.14);
+}
+
+.topbar-popover h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.topbar-popover p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.topbar-popover button {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--text);
+  background: #f8fbff;
+  text-align: left;
+}
+
+.topbar-popover button:hover {
+  border-color: #b9d7f8;
+  background: #eef7ff;
+}
+
+.topbar-popover button b {
+  font-size: 13px;
+}
+
+.topbar-popover button span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.user-popover button:last-child {
+  color: var(--red);
+  background: #fff7f5;
 }
 
 .dashboard-grid {
@@ -823,6 +918,20 @@ button {
   color: var(--blue);
   background: #f6fbff;
   font-weight: 900;
+}
+
+.reminder-row button:hover {
+  border-color: #9fc5f1;
+  background: #eaf5ff;
+}
+
+.reminder-empty {
+  display: grid;
+  place-items: center;
+  min-height: 92px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .recent-orders {

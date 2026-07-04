@@ -171,6 +171,10 @@ function insuranceState(policy) {
   return '正常';
 }
 
+function isInsuranceUrgent(policy) {
+  return ['已过期', '7天内到期'].includes(insuranceState(policy));
+}
+
 function normalizeCustomerVehicle(vehicle, index = 0) {
   return {
     id: vehicle.id || `CV${Date.now()}${index}`,
@@ -198,11 +202,6 @@ function readStoredCustomerVehicles() {
     return customerVehicleRows;
   }
 }
-
-const insuranceReminders = [
-  { plate: '粤B·5J999', car: '丰田 RAV4', customer: '王女士', phone: '137****2222', traffic: '2026-07-25', commercial: '2026-07-25', remaining: '剩余4天' },
-  { plate: '粤A·8K321', car: '本田 雅阁', customer: '赵先生', phone: '139****6666', traffic: '2026-07-27', commercial: '2026-07-27', remaining: '剩余6天' },
-];
 
 const insuranceRows = [
   { id: 'IP20260725001', plate: '粤B·8A123', customer: '陈先生', phone: '138****5678', car: '本田 凯美瑞', vin: 'LFV3A24G6N30***21', expiry: '2026-07-25', amount: 6520, type: '交强险 / 商业险', insurer: '人保财险' },
@@ -288,6 +287,9 @@ function App() {
   const [customerVehicles, setCustomerVehicles] = useState(readStoredCustomerVehicles);
   const [createRequest, setCreateRequest] = useState(0);
   const [receptionFocus, setReceptionFocus] = useState(null);
+  const [insuranceFocusRequest, setInsuranceFocusRequest] = useState(null);
+  const [noticeOpen, setNoticeOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [ordersCloudState, setOrdersCloudState] = useState({ loading: false, error: '' });
 
   const orderData = useMemo(() => orderRepository.listOrders(orders), [orders]);
@@ -390,6 +392,19 @@ function App() {
     setActivePage('维修接待');
   }
 
+  function openInsurancePolicy(policy) {
+    setQuery('');
+    setInsuranceFocusRequest({ id: policy.id, requestId: Date.now() });
+    setActivePage('车辆保险');
+  }
+
+  function logout() {
+    localStorage.removeItem('shop-access-granted');
+    localStorage.removeItem(ACCESS_SESSION_KEY);
+    setAccessSession(null);
+    setIsUnlocked(false);
+  }
+
   function saveInsurancePolicy(nextPolicy) {
     setInsurancePolicies((currentPolicies) => {
       const normalizedPolicy = normalizeInsurancePolicy(nextPolicy);
@@ -444,12 +459,7 @@ function App() {
         </nav>
         <button
           className="logout-button"
-          onClick={() => {
-            localStorage.removeItem('shop-access-granted');
-            localStorage.removeItem(ACCESS_SESSION_KEY);
-            setAccessSession(null);
-            setIsUnlocked(false);
-          }}
+          onClick={logout}
         >
           ‹‹ 收起菜单
         </button>
@@ -482,14 +492,90 @@ function App() {
           </button>
           <button className="secondary-action" onClick={() => setActivePage('数据导出')}><AssetIcon name="action-excel.png" className="button-icon" />导出Excel</button>
           <div className="topbar-user">
-            <span className="notice-dot">8</span>
-            <span className="avatar" />
-            <strong>陈先生</strong>
-            <small>门店管理员</small>
+            <button
+              type="button"
+              className="notice-button"
+              onClick={() => {
+                setNoticeOpen((open) => !open);
+                setUserMenuOpen(false);
+              }}
+              aria-label="查看待处理提醒"
+            >
+              <span className="notice-dot">
+                {insurancePolicies.filter(isInsuranceUrgent).length + orderData.filter((order) => order.status !== REPAIR_STATUS.settled).length}
+              </span>
+            </button>
+            <button
+              type="button"
+              className="user-button"
+              onClick={() => {
+                setUserMenuOpen((open) => !open);
+                setNoticeOpen(false);
+              }}
+              aria-label="打开账号菜单"
+            >
+              <span className="avatar" />
+              <span>
+                <strong>{accessSession?.role === 'admin' ? '管理员' : '员工'}</strong>
+                <small>{accessSession?.label || '门店账号'}</small>
+              </span>
+            </button>
+            {noticeOpen ? (
+              <div className="topbar-popover notice-popover">
+                <h3>待处理提醒</h3>
+                {insurancePolicies.filter(isInsuranceUrgent).slice(0, 4).map((policy) => (
+                  <button
+                    key={policy.id}
+                    type="button"
+                    onClick={() => {
+                      openInsurancePolicy(policy);
+                      setNoticeOpen(false);
+                    }}
+                  >
+                    <b>{policy.plate} 保险到期</b>
+                    <span>{policy.customer} · {insuranceState(policy)} · {policy.expiry}</span>
+                  </button>
+                ))}
+                {orderData.filter((order) => order.status !== REPAIR_STATUS.settled).slice(0, 3).map((order) => (
+                  <button
+                    key={order.id}
+                    type="button"
+                    onClick={() => {
+                      openOrderInReception(order, 'view');
+                      setNoticeOpen(false);
+                    }}
+                  >
+                    <b>{order.plate} 未结算工单</b>
+                    <span>{order.customer} · {order.status} · {formatMoney(order.amount)}</span>
+                  </button>
+                ))}
+                {insurancePolicies.filter(isInsuranceUrgent).length === 0 && orderData.filter((order) => order.status !== REPAIR_STATUS.settled).length === 0 ? (
+                  <p>暂无待处理事项</p>
+                ) : null}
+              </div>
+            ) : null}
+            {userMenuOpen ? (
+              <div className="topbar-popover user-popover">
+                <h3>{accessSession?.role === 'admin' ? '门店管理员' : '门店员工'}</h3>
+                <p>{accessSession?.label || '已登录账号'}</p>
+                <button type="button" onClick={() => {
+                  setActivePage('系统设置');
+                  setUserMenuOpen(false);
+                }}>系统设置</button>
+                <button type="button" onClick={logout}>退出登录</button>
+              </div>
+            ) : null}
           </div>
         </header>
 
-        {activePage === '首页看板' && <Dashboard filteredOrders={filteredOrders} onRefreshOrders={refreshOrders} />}
+        {activePage === '首页看板' && (
+          <Dashboard
+            filteredOrders={filteredOrders}
+            policies={insurancePolicies}
+            onRefreshOrders={refreshOrders}
+            onViewInsurance={openInsurancePolicy}
+          />
+        )}
         {activePage === '维修接待' && (
           <RepairReception
             orders={filteredOrders}
@@ -510,7 +596,7 @@ function App() {
           />
         )}
         {activePage === '车辆保险' && (
-          <InsuranceLedger policies={insurancePolicies} onSavePolicy={saveInsurancePolicy} />
+          <InsuranceLedger policies={insurancePolicies} onSavePolicy={saveInsurancePolicy} focusPolicyRequest={insuranceFocusRequest} />
         )}
         {activePage === '客户车辆' && (
           <CustomerVehiclesPage
@@ -545,7 +631,7 @@ function App() {
   );
 }
 
-function Dashboard({ filteredOrders, onRefreshOrders }) {
+function Dashboard({ filteredOrders, policies, onRefreshOrders, onViewInsurance }) {
   const total = filteredOrders.reduce((sum, order) => sum + order.amount, 0);
   const activeOrders = filteredOrders.filter((order) => order.status !== REPAIR_STATUS.settled);
   const pendingAmount = activeOrders.reduce((sum, order) => sum + order.amount, 0);
@@ -560,6 +646,7 @@ function Dashboard({ filteredOrders, onRefreshOrders }) {
   const costTotal = laborTotal + materialTotal;
   const laborPercent = costTotal > 0 ? Math.round((laborTotal / costTotal) * 100) : 0;
   const materialPercent = costTotal > 0 ? 100 - laborPercent : 0;
+  const urgentPolicies = policies.filter(isInsuranceUrgent);
 
   return (
     <section className="dashboard-grid">
@@ -570,7 +657,7 @@ function Dashboard({ filteredOrders, onRefreshOrders }) {
         <Metric icon="car" title="在修车辆（台）" value={repairingOrders.length.toString()} trend="待处理" tone="green" />
         <Metric icon="yuan" title="本月产值（元）" value={formatMoney(total)} trend="云端累计" tone="blue" />
         <Metric icon="car" title="本月台次（台）" value={filteredOrders.length.toString()} trend="月累计" tone="blue" />
-        <Metric icon="shield" title="即将保险到期（台）" value="2" trend="7天内到期" tone="red" />
+        <Metric icon="shield" title="即将保险到期（台）" value={urgentPolicies.length.toString()} trend="需跟进" tone="red" />
       </div>
 
       <section className="workflow-panel">
@@ -612,7 +699,7 @@ function Dashboard({ filteredOrders, onRefreshOrders }) {
         </div>
       </div>
 
-      <InsuranceReminder />
+      <InsuranceReminder policies={urgentPolicies} onViewInsurance={onViewInsurance} />
       <RecentOrders orders={filteredOrders} onRefreshOrders={onRefreshOrders} />
     </section>
   );
@@ -699,22 +786,29 @@ function LineChart({ values }) {
   );
 }
 
-function InsuranceReminder() {
+function InsuranceReminder({ policies, onViewInsurance }) {
   return (
     <section className="chart-panel reminder-panel">
-      <PanelHeader title="保险到期提醒" action="7天内到期 2 台" />
+      <PanelHeader title="保险到期提醒" action={`需跟进 ${policies.length} 台`} />
       <div className="reminder-list">
-        {insuranceReminders.map((item) => (
-          <article key={item.plate} className="reminder-row">
+        {policies.length === 0 ? (
+          <div className="reminder-empty">暂无临近到期保险</div>
+        ) : null}
+        {policies.map((policy) => {
+          const remainingDays = daysUntilExpiry(policy.expiry);
+          const remainingText = remainingDays < 0 ? `已过期${Math.abs(remainingDays)}天` : `剩余${remainingDays}天`;
+          return (
+          <article key={policy.id} className="reminder-row">
             <div>
-              <b>{item.plate}　{item.car}</b>
-              <p>{item.customer}　{item.phone}</p>
-              <p>交强险到期：{item.traffic} <em>（{item.remaining}）</em></p>
-              <p>商业险到期：{item.commercial} <em>（{item.remaining}）</em></p>
+              <b>{policy.plate}　{policy.car}</b>
+              <p>{policy.customer}　{policy.phone}</p>
+              <p>保险公司：{policy.insurer}</p>
+              <p>保险到期：{policy.expiry} <em>（{remainingText}）</em></p>
             </div>
-            <button>查看</button>
+            <button type="button" onClick={() => onViewInsurance(policy)}>查看</button>
           </article>
-        ))}
+          );
+        })}
       </div>
     </section>
   );
@@ -1653,7 +1747,7 @@ function draftToInsurancePolicy(draft) {
   });
 }
 
-function InsuranceLedger({ policies, onSavePolicy }) {
+function InsuranceLedger({ policies, onSavePolicy, focusPolicyRequest }) {
   const [activeFilter, setActiveFilter] = useState('7天内到期');
   const [formMode, setFormMode] = useState('create');
   const [draft, setDraft] = useState(createInsuranceDraft);
@@ -1680,6 +1774,14 @@ function InsuranceLedger({ policies, onSavePolicy }) {
     setFormMode('edit');
     setDraft(createInsuranceDraft(policy));
   }
+
+  useEffect(() => {
+    if (!focusPolicyRequest?.id) return;
+    const policy = policies.find((item) => item.id === focusPolicyRequest.id);
+    if (!policy) return;
+    setActiveFilter('全部保险');
+    startEdit(policy);
+  }, [focusPolicyRequest, policies]);
 
   function savePolicy(event) {
     event.preventDefault();
