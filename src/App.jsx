@@ -116,6 +116,19 @@ async function fetchOperationLogs(session) {
   return Array.isArray(data.logs) ? data.logs : [];
 }
 
+async function updateAccessCode(role, code, session) {
+  const response = await fetch('/api/access-code', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...authHeaders(session) },
+    body: JSON.stringify({ role, code }),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `访问码修改失败：${response.status}`);
+  }
+  return response.json();
+}
+
 function normalizeInsurancePolicy(policy, index = 0) {
   return {
     id: policy.id || `IP${Date.now()}${index}`,
@@ -2365,6 +2378,8 @@ function ReportRanking({ title, rows, maxAmount }) {
 function SystemSettingsPage({ session, cloudState, orders, onRefreshOrders }) {
   const [logs, setLogs] = useState([]);
   const [logState, setLogState] = useState({ loading: false, error: '' });
+  const [accessDraft, setAccessDraft] = useState({ role: 'staff', code: '' });
+  const [accessCodeState, setAccessCodeState] = useState({ loading: false, message: '', error: '' });
   const isAdmin = session?.role === 'admin';
 
   function loadLogs() {
@@ -2376,6 +2391,19 @@ function SystemSettingsPage({ session, cloudState, orders, onRefreshOrders }) {
         setLogState({ loading: false, error: '' });
       })
       .catch((error) => setLogState({ loading: false, error: error.message || '日志读取失败' }));
+  }
+
+  function submitAccessCode(event) {
+    event.preventDefault();
+    if (!isAdmin) return;
+    setAccessCodeState({ loading: true, message: '', error: '' });
+    updateAccessCode(accessDraft.role, accessDraft.code, session)
+      .then((result) => {
+        setAccessDraft((current) => ({ ...current, code: '' }));
+        setAccessCodeState({ loading: false, message: `${result.label}访问码已更新`, error: '' });
+        loadLogs();
+      })
+      .catch((error) => setAccessCodeState({ loading: false, message: '', error: error.message || '访问码修改失败' }));
   }
 
   useEffect(() => {
@@ -2417,12 +2445,39 @@ function SystemSettingsPage({ session, cloudState, orders, onRefreshOrders }) {
         <article className="settings-card">
           <h3>访问码</h3>
           <dl>
-            <div><dt>管理员</dt><dd>888888</dd></div>
-            <div><dt>员工</dt><dd>666666</dd></div>
+            <div><dt>管理员默认码</dt><dd>888888</dd></div>
+            <div><dt>员工默认码</dt><dd>666666</dd></div>
             <div><dt>校验方式</dt><dd>云端校验</dd></div>
           </dl>
         </article>
       </div>
+
+      {isAdmin ? (
+        <section className="settings-card settings-access-card">
+          <h3>修改访问码</h3>
+          <form className="settings-access-form" onSubmit={submitAccessCode}>
+            <label>
+              修改角色
+              <select value={accessDraft.role} onChange={(event) => setAccessDraft((current) => ({ ...current, role: event.target.value }))}>
+                <option value="admin">管理员</option>
+                <option value="staff">员工</option>
+              </select>
+            </label>
+            <label>
+              新访问码
+              <input
+                value={accessDraft.code}
+                onChange={(event) => setAccessDraft((current) => ({ ...current, code: event.target.value }))}
+                placeholder="4-12位数字"
+                inputMode="numeric"
+              />
+            </label>
+            <button type="submit" disabled={accessCodeState.loading}>{accessCodeState.loading ? '保存中...' : '保存访问码'}</button>
+          </form>
+          {accessCodeState.message ? <div className="cloud-banner">{accessCodeState.message}</div> : null}
+          {accessCodeState.error ? <div className="cloud-banner error">{accessCodeState.error}</div> : null}
+        </section>
+      ) : null}
 
       <section className="table-panel">
         <div className="table-titlebar">

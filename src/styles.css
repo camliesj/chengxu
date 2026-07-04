@@ -1956,6 +1956,46 @@ dd {
   background: #f8fbff;
 }
 
+.settings-access-card {
+  display: grid;
+  gap: 12px;
+}
+
+.settings-access-form {
+  display: grid;
+  grid-template-columns: 180px minmax(180px, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.settings-access-form label {
+  display: grid;
+  gap: 6px;
+  color: #425466;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.settings-access-form input,
+.settings-access-form select {
+  min-height: 38px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  padding: 0 10px;
+  color: var(--text);
+  background: #fff;
+}
+
+.settings-access-form button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 6px;
+  padding: 0 14px;
+  color: #fff;
+  background: linear-gradient(180deg, #087bef, #0067d6);
+  font-weight: 900;
+}
+
 .placeholder-panel p {
   color: var(--muted);
 }
@@ -2123,6 +2163,10 @@ dd {
   .settings-hero {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .settings-access-form {
+    grid-template-columns: 1fr;
   }
 
   .insurance-add-button {
