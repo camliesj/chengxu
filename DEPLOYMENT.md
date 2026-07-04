@@ -20,6 +20,22 @@ npm run deploy
 
 当前 Cloudflare Pages 项目 `chengxu` 已按以上规则配置，后续推送 `main` 分支会自动构建并发布 `dist`。
 
+## 云端数据库
+
+维修工单已接入 Cloudflare D1：
+
+- Database: `chengxu-db`
+- Binding: `DB`
+- Schema: `migrations/0001_create_repair_orders.sql`
+- Test data: `seed/repair-orders-test-data.sql`
+
+线上接口：
+
+```text
+GET /api/orders
+POST /api/orders
+```
+
 ## 第一次部署前
 
 如果命令行提示没有登录 Cloudflare，先执行：

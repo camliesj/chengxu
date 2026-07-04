@@ -31,146 +31,7 @@ function AssetIcon({ name, alt = '', className = '' }) {
   return <img className={className} src={`${iconBase}${name}`} alt={alt} aria-hidden={alt ? undefined : 'true'} />;
 }
 
-const repairOrders = [
-  {
-    id: 'RO20260723003',
-    date: '07-23',
-    time: '10:25',
-    plate: '粤B·8A123',
-    customer: '陈先生',
-    phone: '138****5678',
-    car: '本田 凯美瑞',
-    insurer: '人保财险',
-    type: '标的车',
-    status: '在修中',
-    labor: 160,
-    material: 320,
-    amount: 480,
-    record: '常规保养',
-    staff: '张工',
-    delivery: '07-23 15:00',
-    vin: 'LFV3A24G6N30***21',
-    claimNo: 'PIC20260723003',
-    accidentType: '常规维修',
-    paymentMethod: '待确认',
-    remark: '客户要求交车前清洗外观。',
-  },
-  {
-    id: 'RO20260723002',
-    date: '07-23',
-    time: '09:40',
-    plate: '粤A·3C789',
-    customer: '李女士',
-    phone: '139****1234',
-    car: '大众 迈腾',
-    insurer: '平安保险',
-    type: '三者车',
-    status: '已完工',
-    labor: 240,
-    material: 740,
-    amount: 980,
-    record: '更换刹车片',
-    staff: '王工',
-    delivery: '待交车',
-    vin: 'LBV8W3109P0***82',
-    claimNo: 'PA20260723002',
-    accidentType: '保险维修',
-    paymentMethod: '保险直赔',
-    remark: '完工后通知客户验车。',
-  },
-  {
-    id: 'RO20260723001',
-    date: '07-23',
-    time: '08:30',
-    plate: '粤B·7D555',
-    customer: '刘先生',
-    phone: '137****8888',
-    car: '大众 迈腾',
-    insurer: '太平洋保险',
-    type: '标的车',
-    status: '待结算',
-    labor: 120,
-    material: 230,
-    amount: 350,
-    record: '机油更换',
-    staff: '张工',
-    delivery: '07-23 10:30',
-    vin: 'LC0CE4CD8N0***47',
-    claimNo: 'CPIC20260723001',
-    accidentType: '常规维修',
-    paymentMethod: '现金',
-    remark: '待客户确认结算。',
-  },
-  {
-    id: 'RO20260722008',
-    date: '07-22',
-    time: '16:20',
-    plate: '粤A·1E222',
-    customer: '黄先生',
-    phone: '136****2468',
-    car: '日产 轩逸',
-    insurer: '阳光保险',
-    type: '三者车',
-    status: '已结算',
-    labor: 80,
-    material: 200,
-    amount: 280,
-    record: '空调清洗',
-    staff: '李工',
-    delivery: '07-22 17:00',
-    vin: 'LGBH52E05NY0***18',
-    claimNo: '',
-    accidentType: '常规维修',
-    paymentMethod: '微信',
-    remark: '已结清。',
-  },
-  {
-    id: 'RO20260722007',
-    date: '07-22',
-    time: '15:10',
-    plate: '粤B·2F333',
-    customer: '周女士',
-    phone: '135****8766',
-    car: '别克 英朗',
-    insurer: '人保财险',
-    type: '标的车',
-    status: '已结算',
-    labor: 200,
-    material: 360,
-    amount: 560,
-    record: '前轮定位',
-    staff: '王工',
-    delivery: '07-22 15:50',
-    vin: 'LSGKE5418NW0***33',
-    claimNo: 'PIC20260722007',
-    accidentType: '小事故',
-    paymentMethod: '保险直赔',
-    remark: '客户已取车。',
-  },
-  {
-    id: 'RO20260721006',
-    date: '07-21',
-    time: '10:15',
-    plate: '粤A·6G777',
-    customer: '吴先生',
-    phone: '132****9981',
-    car: '奥迪 A4L',
-    insurer: '太平洋保险',
-    type: '标的车',
-    status: '在修中',
-    labor: 240,
-    material: 520,
-    amount: 760,
-    record: '更换火花塞',
-    staff: '张工',
-    delivery: '07-21 16:00',
-    vin: 'LFV3A28K8P30***76',
-    claimNo: '',
-    accidentType: '常规维修',
-    paymentMethod: '待确认',
-    remark: '配件已到，安排下午施工。',
-  },
-];
+const repairOrders = [];
 
 const orderRepository = {
   listOrders(sourceOrders) {
@@ -181,12 +42,34 @@ const orderRepository = {
 function readStoredOrders() {
   try {
     const rawOrders = localStorage.getItem(ORDER_STORAGE_KEY);
-    if (!rawOrders) return repairOrders;
+    if (!rawOrders) return [];
     const parsedOrders = JSON.parse(rawOrders);
-    return Array.isArray(parsedOrders) && parsedOrders.length > 0 ? parsedOrders : repairOrders;
+    return Array.isArray(parsedOrders) ? parsedOrders : [];
   } catch {
-    return repairOrders;
+    return [];
   }
+}
+
+async function fetchCloudOrders() {
+  const response = await fetch('/api/orders');
+  if (!response.ok) {
+    throw new Error(`云端读取失败：${response.status}`);
+  }
+  const data = await response.json();
+  return Array.isArray(data.orders) ? data.orders : [];
+}
+
+async function saveCloudOrder(order) {
+  const response = await fetch('/api/orders', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ order }),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `云端保存失败：${response.status}`);
+  }
+  return response.json();
 }
 
 function normalizeInsurancePolicy(policy, index = 0) {
@@ -330,12 +213,33 @@ function App() {
   const [customerVehicles, setCustomerVehicles] = useState(readStoredCustomerVehicles);
   const [createRequest, setCreateRequest] = useState(0);
   const [receptionFocus, setReceptionFocus] = useState(null);
+  const [ordersCloudState, setOrdersCloudState] = useState({ loading: false, error: '' });
 
   const orderData = useMemo(() => orderRepository.listOrders(orders), [orders]);
 
   useEffect(() => {
     localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(orders));
   }, [orders]);
+
+  useEffect(() => {
+    if (!isUnlocked) return undefined;
+    let isCancelled = false;
+    setOrdersCloudState({ loading: true, error: '' });
+    fetchCloudOrders()
+      .then((cloudOrders) => {
+        if (isCancelled) return;
+        setOrders(cloudOrders);
+        localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(cloudOrders));
+        setOrdersCloudState({ loading: false, error: '' });
+      })
+      .catch((error) => {
+        if (isCancelled) return;
+        setOrdersCloudState({ loading: false, error: error.message || '云端连接失败' });
+      });
+    return () => {
+      isCancelled = true;
+    };
+  }, [isUnlocked]);
 
   useEffect(() => {
     localStorage.setItem(INSURANCE_STORAGE_KEY, JSON.stringify(insurancePolicies));
@@ -356,7 +260,7 @@ function App() {
     );
   }, [orderData, query]);
 
-  function saveOrder(nextOrder) {
+  function upsertOrder(nextOrder) {
     setOrders((currentOrders) => {
       const exists = currentOrders.some((order) => order.id === nextOrder.id);
       if (exists) {
@@ -364,12 +268,19 @@ function App() {
       }
       return [nextOrder, ...currentOrders];
     });
+    saveCloudOrder(nextOrder)
+      .then(() => setOrdersCloudState({ loading: false, error: '' }))
+      .catch((error) => setOrdersCloudState({ loading: false, error: error.message || '云端保存失败' }));
+  }
+
+  function saveOrder(nextOrder) {
+    upsertOrder(nextOrder);
   }
 
   function updateOrderStatus(orderId, status) {
-    setOrders((currentOrders) =>
-      currentOrders.map((order) => (order.id === orderId ? { ...order, status } : order)),
-    );
+    const currentOrder = orders.find((order) => order.id === orderId);
+    if (!currentOrder) return;
+    upsertOrder({ ...currentOrder, status });
   }
 
   function openOrderInReception(order, mode) {
@@ -480,6 +391,7 @@ function App() {
             focusRequest={receptionFocus}
             onSaveOrder={saveOrder}
             onStatusChange={updateOrderStatus}
+            cloudState={ordersCloudState}
           />
         )}
         {activePage === '历史查询' && (
@@ -519,32 +431,39 @@ function App() {
 
 function Dashboard({ filteredOrders }) {
   const total = filteredOrders.reduce((sum, order) => sum + order.amount, 0);
-  const pendingAmount = filteredOrders.filter((order) => order.status === '待结算').reduce((sum, order) => sum + order.amount, 0);
-  const repairing = filteredOrders.filter((order) => order.status === '在修中').length;
+  const activeOrders = filteredOrders.filter((order) => order.status !== REPAIR_STATUS.settled);
+  const pendingAmount = activeOrders.reduce((sum, order) => sum + order.amount, 0);
+  const repairingOrders = filteredOrders.filter((order) => order.status === REPAIR_STATUS.repairing);
+  const completedOrders = filteredOrders.filter((order) => order.status === REPAIR_STATUS.completed);
+  const pendingSettlementOrders = filteredOrders.filter((order) => order.status === REPAIR_STATUS.pendingSettlement);
+  const settledOrders = filteredOrders.filter((order) => order.status === REPAIR_STATUS.settled);
+  const todayOrders = filteredOrders.filter((order) => order.date === '07-04');
+  const todayAmount = todayOrders.reduce((sum, order) => sum + order.amount, 0);
+  const laborTotal = filteredOrders.reduce((sum, order) => sum + order.labor, 0);
+  const materialTotal = filteredOrders.reduce((sum, order) => sum + order.material, 0);
+  const costTotal = laborTotal + materialTotal;
+  const laborPercent = costTotal > 0 ? Math.round((laborTotal / costTotal) * 100) : 0;
+  const materialPercent = costTotal > 0 ? 100 - laborPercent : 0;
 
   return (
     <section className="dashboard-grid">
       <div className="metric-strip">
-        <Metric icon="yuan" title="今日产值（元）" value={formatMoney(5260)} trend="较昨日 +12.8%" tone="blue" />
-        <Metric icon="car" title="今日台次（台）" value="2" trend="较昨日 +1" tone="blue" />
-        <Metric icon="order" title="未结算（元）" value={formatMoney(pendingAmount + 8100)} trend="待处理 1 单" tone="orange" />
-        <Metric icon="car" title="在修车辆（台）" value={repairing.toString()} trend="待处理" tone="green" />
-        <Metric icon="yuan" title="本月产值（元）" value={formatMoney(total + 89430)} trend="较上月 +18.6%" tone="blue" />
-        <Metric icon="car" title="本月台次（台）" value="126" trend="月累计" tone="blue" />
+        <Metric icon="yuan" title="今日产值（元）" value={formatMoney(todayAmount)} trend="云端实时" tone="blue" />
+        <Metric icon="car" title="今日台次（台）" value={todayOrders.length.toString()} trend="云端实时" tone="blue" />
+        <Metric icon="order" title="未结算（元）" value={formatMoney(pendingAmount)} trend={`待处理 ${activeOrders.length} 单`} tone="orange" />
+        <Metric icon="car" title="在修车辆（台）" value={repairingOrders.length.toString()} trend="待处理" tone="green" />
+        <Metric icon="yuan" title="本月产值（元）" value={formatMoney(total)} trend="云端累计" tone="blue" />
+        <Metric icon="car" title="本月台次（台）" value={filteredOrders.length.toString()} trend="月累计" tone="blue" />
         <Metric icon="shield" title="即将保险到期（台）" value="2" trend="7天内到期" tone="red" />
       </div>
 
       <section className="workflow-panel">
         <h2>维修流程概览</h2>
         <div className="workflow-grid">
-          <WorkflowColumn tone="blue" title="在修（1）" order={repairOrders[0]} footer="预计交车：07-23 15:00" />
-          <WorkflowColumn tone="green" title="完工（1）" order={repairOrders[1]} footer="待交车" />
-          <WorkflowColumn tone="orange" title="未结算（1）" order={repairOrders[2]} footer="请及时结算" />
-          <article className="workflow-card empty">
-            <header><strong>结算（0）</strong><span>→</span></header>
-            <div className="empty-clipboard"><AssetIcon name="empty-table.png" /></div>
-            <p>暂无数据</p>
-          </article>
+          <WorkflowColumn tone="blue" title={`在修（${repairingOrders.length}）`} order={repairingOrders[0]} footer="预计交车" />
+          <WorkflowColumn tone="green" title={`完工（${completedOrders.length}）`} order={completedOrders[0]} footer="待交车" />
+          <WorkflowColumn tone="orange" title={`未结算（${pendingSettlementOrders.length}）`} order={pendingSettlementOrders[0]} footer="请及时结算" />
+          <WorkflowColumn tone="gray" title={`结算（${settledOrders.length}）`} order={settledOrders[0]} footer="已归档" />
         </div>
       </section>
 
@@ -556,12 +475,12 @@ function Dashboard({ filteredOrders }) {
       <div className="chart-panel status-panel">
         <PanelHeader title="维修状态分布" />
         <div className="status-donut">
-          <div className="donut-ring"><strong>共 3 台</strong></div>
+          <div className="donut-ring"><strong>共 {filteredOrders.length} 台</strong></div>
           <ul>
-            <li><span className="dot blue" />在修 <em>28%（1）</em></li>
-            <li><span className="dot green" />完工 <em>46%（1）</em></li>
-            <li><span className="dot orange" />未结算 <em>18%（1）</em></li>
-            <li><span className="dot gray" />结算 <em>8%（0）</em></li>
+            <li><span className="dot blue" />在修 <em>{repairingOrders.length} 台</em></li>
+            <li><span className="dot green" />完工 <em>{completedOrders.length} 台</em></li>
+            <li><span className="dot orange" />未结算 <em>{pendingSettlementOrders.length} 台</em></li>
+            <li><span className="dot gray" />结算 <em>{settledOrders.length} 台</em></li>
           </ul>
         </div>
       </div>
@@ -569,10 +488,10 @@ function Dashboard({ filteredOrders }) {
       <div className="chart-panel cost-panel">
         <PanelHeader title="工时费 / 材料费占比" action="收入结构" />
         <div className="cost-donut">
-          <div className="cost-ring"><strong>{formatMoney(5260)}</strong></div>
+          <div className="donut-ring blue-green"><strong>{formatMoney(costTotal)}</strong></div>
           <ul>
-            <li><span className="dot blue" />工时费 <em>35% ¥1,841</em></li>
-            <li><span className="dot green" />材料费 <em>65% ¥3,419</em></li>
+            <li><span className="dot blue" />工时费 <em>{laborPercent}%</em><small>{formatMoney(laborTotal)}</small></li>
+            <li><span className="dot green" />材料费 <em>{materialPercent}%</em><small>{formatMoney(materialTotal)}</small></li>
           </ul>
         </div>
       </div>
@@ -597,6 +516,16 @@ function Metric({ icon, title, value, trend, tone }) {
 }
 
 function WorkflowColumn({ tone, title, order, footer }) {
+  if (!order) {
+    return (
+      <article className="workflow-card empty">
+        <header><strong>{title}</strong><span>→</span></header>
+        <div className="empty-clipboard"><AssetIcon name="empty-table.png" /></div>
+        <p>暂无数据</p>
+      </article>
+    );
+  }
+
   return (
     <article className={`workflow-card ${tone}`}>
       <header><strong>{title}</strong><span>→</span></header>
@@ -965,10 +894,10 @@ function HistoryQueryPage({ orders, onView, onEdit }) {
   );
 }
 
-function RepairReception({ orders, createRequest, focusRequest, onSaveOrder, onStatusChange }) {
-  const [selectedId, setSelectedId] = useState(() => orders[0]?.id || repairOrders[0].id);
+function RepairReception({ orders, createRequest, focusRequest, onSaveOrder, onStatusChange, cloudState }) {
+  const [selectedId, setSelectedId] = useState(() => orders[0]?.id || '');
   const [formMode, setFormMode] = useState('view');
-  const [draft, setDraft] = useState(() => createOrderDraft(orders[0] || repairOrders[0]));
+  const [draft, setDraft] = useState(() => createOrderDraft(orders[0]));
   const [detailOrder, setDetailOrder] = useState(null);
   const [settlementOrder, setSettlementOrder] = useState(null);
   const [activeStatus, setActiveStatus] = useState('全部');
@@ -1004,7 +933,7 @@ function RepairReception({ orders, createRequest, focusRequest, onSaveOrder, onS
     }
   }, [selectedId, visibleOrders]);
 
-  const selected = visibleOrders.find((order) => order.id === selectedId) || visibleOrders[0] || orders[0] || repairOrders[0];
+  const selected = visibleOrders.find((order) => order.id === selectedId) || visibleOrders[0] || orders[0] || null;
 
   useEffect(() => {
     if (!focusRequest) return;
@@ -1043,6 +972,7 @@ function RepairReception({ orders, createRequest, focusRequest, onSaveOrder, onS
   }
 
   function changeStatus(status) {
+    if (!selected) return;
     if (status === REPAIR_STATUS.settled) {
       setSettlementOrder(selected);
       return;
@@ -1084,6 +1014,8 @@ function RepairReception({ orders, createRequest, focusRequest, onSaveOrder, onS
               <button>批量导出</button>
             </div>
           </div>
+          {cloudState?.loading ? <div className="cloud-banner">正在从云端加载维修工单...</div> : null}
+          {cloudState?.error ? <div className="cloud-banner error">{cloudState.error}</div> : null}
           <div className="reception-toolbar">
             <div className="quick-filters">
               {statusFilters.map((item) => (
@@ -1111,7 +1043,7 @@ function RepairReception({ orders, createRequest, focusRequest, onSaveOrder, onS
           />
         </div>
         <aside className="detail-panel">
-          {formMode === 'view' ? (
+          {formMode === 'view' && selected ? (
             <>
               <div className="detail-heading">
                 <span className={`status-chip ${statusClass(selected.status)}`}>{selected.status}</span>

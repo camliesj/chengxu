@@ -954,6 +954,23 @@ tbody tr:hover {
   background: rgba(247, 250, 253, 0.88);
 }
 
+.cloud-banner {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid #b8dcff;
+  border-radius: 7px;
+  color: #0f63bd;
+  background: #eef7ff;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.cloud-banner.error {
+  color: #d73b2f;
+  border-color: #ffd3cf;
+  background: #fff2f0;
+}
+
 .reception-toolbar .quick-filters {
   display: flex;
   flex-wrap: wrap;

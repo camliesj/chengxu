@@ -1,0 +1,14 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "chengxu",
+  "compatibility_date": "2026-07-04",
+  "pages_build_output_dir": "dist",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "chengxu-db",
+      "database_id": "c0b99f82-1930-4e17-9be8-47c98448aa67",
+      "migrations_dir": "migrations"
+    }
+  ]
+}
