@@ -1467,6 +1467,169 @@ dd {
   font-weight: 800;
 }
 
+.report-layout {
+  display: grid;
+  gap: 14px;
+}
+
+.report-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 138px;
+  padding: 22px 24px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.96), rgba(236, 247, 255, 0.86)),
+    url("/assets/ui/backgrounds/dashboard-flow-header.png") right center / auto 160px no-repeat;
+  box-shadow: var(--shadow-soft);
+}
+
+.report-hero span {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  padding: 0 9px;
+  border-radius: 999px;
+  color: var(--blue);
+  background: #e8f3ff;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.report-hero h2 {
+  margin: 10px 0 8px;
+  color: var(--text);
+  font-size: 28px;
+  line-height: 1.15;
+  font-weight: 900;
+}
+
+.report-hero p {
+  max-width: 720px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.7;
+  font-weight: 800;
+}
+
+.report-hero button {
+  min-height: 38px;
+  border: 1px solid #cfe0f4;
+  border-radius: 7px;
+  padding: 0 14px;
+  color: var(--blue);
+  background: #fff;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.report-filter-panel {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(150px, 1fr));
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--shadow-soft);
+}
+
+.report-filter-panel label {
+  display: grid;
+  gap: 7px;
+  color: #40536a;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.report-filter-panel input,
+.report-filter-panel select {
+  height: 38px;
+  min-width: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  padding: 0 10px;
+  color: var(--text);
+  background: #fff;
+  outline: 0;
+}
+
+.report-metrics {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(130px, 1fr));
+  gap: 10px;
+}
+
+.report-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.report-ranking {
+  min-height: 276px;
+}
+
+.report-ranking-list {
+  display: grid;
+  gap: 13px;
+}
+
+.report-rank-row {
+  display: grid;
+  gap: 8px;
+}
+
+.report-rank-row div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.report-rank-row strong {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.report-rank-row span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.report-rank-bar {
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #eaf1f8;
+}
+
+.report-rank-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--blue), var(--cyan));
+}
+
+.report-empty {
+  margin: 0;
+  padding: 28px 0;
+  color: var(--muted);
+  text-align: center;
+  font-weight: 800;
+}
+
+.report-table-panel {
+  overflow: hidden;
+}
+
 .insurance-cards {
   display: grid;
   grid-template-columns: repeat(2, minmax(220px, 1fr));
@@ -1611,8 +1774,14 @@ dd {
   }
 
   .history-filter-grid,
-  .history-summary {
+  .history-summary,
+  .report-filter-panel,
+  .report-metrics {
     grid-template-columns: repeat(2, minmax(150px, 1fr));
+  }
+
+  .report-grid {
+    grid-template-columns: 1fr;
   }
 
   .workflow-grid {
@@ -1648,11 +1817,14 @@ dd {
   }
 
   .dashboard-grid,
-  .split-view {
+  .split-view,
+  .report-grid {
     grid-template-columns: 1fr;
   }
 
-  .history-summary {
+  .history-summary,
+  .report-filter-panel,
+  .report-metrics {
     grid-template-columns: repeat(2, minmax(150px, 1fr));
   }
 
@@ -1710,6 +1882,9 @@ dd {
   .insurance-cards,
   .customer-vehicle-list,
   .export-type-grid,
+  .report-filter-panel,
+  .report-metrics,
+  .report-grid,
   .history-filter-grid,
   .history-summary,
   .modal-summary-strip,
@@ -1755,6 +1930,16 @@ dd {
   .placeholder-panel,
   .workflow-panel {
     padding: 14px;
+  }
+
+  .report-hero {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 18px;
+  }
+
+  .report-hero h2 {
+    font-size: 24px;
   }
 
   .status-donut,

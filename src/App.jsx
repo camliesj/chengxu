@@ -1896,7 +1896,231 @@ function DataExportPage({ orders, policies, vehicles }) {
   );
 }
 
+function SummaryReportsPage({ orders, policies = [] }) {
+  const [filters, setFilters] = useState({
+    start: '2026-07-01',
+    end: '2026-07-31',
+    staff: '全部业务员',
+    insurer: '全部保险公司',
+    status: '全部状态',
+  });
+
+  const staffOptions = useMemo(() => ['全部业务员', ...uniqueValues(orders.map((order) => order.staff))], [orders]);
+  const insurerOptions = useMemo(() => ['全部保险公司', ...uniqueValues(orders.map((order) => order.insurer))], [orders]);
+  const statusOptions = useMemo(() => ['全部状态', ...uniqueValues(orders.map((order) => order.status))], [orders]);
+
+  const filteredReportOrders = useMemo(() => {
+    return orders.filter((order) => {
+      const orderDate = normalizeOrderDate(order.date);
+      const inDateRange = orderDate >= filters.start && orderDate <= filters.end;
+      const inStaff = filters.staff === '全部业务员' || order.staff === filters.staff;
+      const inInsurer = filters.insurer === '全部保险公司' || order.insurer === filters.insurer;
+      const inStatus = filters.status === '全部状态' || order.status === filters.status;
+      return inDateRange && inStaff && inInsurer && inStatus;
+    });
+  }, [filters, orders]);
+
+  const reportTotals = useMemo(() => summarizeOrders(filteredReportOrders), [filteredReportOrders]);
+  const staffRows = useMemo(() => groupReportRows(filteredReportOrders, 'staff'), [filteredReportOrders]);
+  const insurerRows = useMemo(() => groupReportRows(filteredReportOrders, 'insurer'), [filteredReportOrders]);
+  const statusRows = useMemo(() => groupReportRows(filteredReportOrders, 'status'), [filteredReportOrders]);
+  const maxGroupAmount = Math.max(1, ...[...staffRows, ...insurerRows, ...statusRows].map((row) => row.amount));
+  const expiringPolicies = policies.filter((policy) => {
+    const state = insuranceState(policy);
+    return state.includes('到期') || state.includes('过期');
+  }).length;
+
+  function updateFilter(field, value) {
+    setFilters((current) => ({ ...current, [field]: value }));
+  }
+
+  return (
+    <section className="report-layout">
+      <div className="report-hero">
+        <div>
+          <span>经营汇总</span>
+          <h2>汇总报表</h2>
+          <p>按日期、业务员、保险公司和维修状态汇总产值、台次、工时费、材料费与结算金额。</p>
+        </div>
+        <button onClick={() => setFilters({ start: '2026-07-01', end: '2026-07-31', staff: '全部业务员', insurer: '全部保险公司', status: '全部状态' })}>
+          重置筛选
+        </button>
+      </div>
+
+      <div className="report-filter-panel">
+        <label>
+          开始日期
+          <input type="date" value={filters.start} onChange={(event) => updateFilter('start', event.target.value)} />
+        </label>
+        <label>
+          结束日期
+          <input type="date" value={filters.end} onChange={(event) => updateFilter('end', event.target.value)} />
+        </label>
+        <label>
+          业务员
+          <select value={filters.staff} onChange={(event) => updateFilter('staff', event.target.value)}>
+            {staffOptions.map((item) => <option key={item}>{item}</option>)}
+          </select>
+        </label>
+        <label>
+          保险公司
+          <select value={filters.insurer} onChange={(event) => updateFilter('insurer', event.target.value)}>
+            {insurerOptions.map((item) => <option key={item}>{item}</option>)}
+          </select>
+        </label>
+        <label>
+          维修状态
+          <select value={filters.status} onChange={(event) => updateFilter('status', event.target.value)}>
+            {statusOptions.map((item) => <option key={item}>{item}</option>)}
+          </select>
+        </label>
+      </div>
+
+      <div className="report-metrics">
+        <Metric icon="yuan" title="筛选产值（元）" value={formatMoney(reportTotals.amount)} trend={`${reportTotals.count} 台次`} tone="blue" />
+        <Metric icon="car" title="维修台次（台）" value={reportTotals.count.toString()} trend="按当前条件统计" tone="green" />
+        <Metric icon="order" title="已结算金额" value={formatMoney(reportTotals.settledAmount)} trend={`${reportTotals.settledCount} 单`} tone="blue" />
+        <Metric icon="order" title="未结算金额" value={formatMoney(reportTotals.pendingAmount)} trend={`${reportTotals.pendingCount} 单`} tone="orange" />
+        <Metric icon="yuan" title="工时费合计" value={formatMoney(reportTotals.labor)} trend="维修工时项目" tone="blue" />
+        <Metric icon="shield" title="保险提醒" value={`${expiringPolicies} 条`} trend="即将到期/已过期" tone="red" />
+      </div>
+
+      <div className="report-grid">
+        <ReportRanking title="按业务员统计" rows={staffRows} maxAmount={maxGroupAmount} />
+        <ReportRanking title="按保险公司统计" rows={insurerRows} maxAmount={maxGroupAmount} />
+        <ReportRanking title="按维修状态统计" rows={statusRows} maxAmount={maxGroupAmount} />
+      </div>
+
+      <section className="table-panel report-table-panel">
+        <div className="table-titlebar">
+          <h2>汇总明细</h2>
+          <div>
+            <button>{filteredReportOrders.length} 条记录</button>
+            <button>保持当前筛选</button>
+          </div>
+        </div>
+        <div className="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>分组维度</th>
+                <th>名称</th>
+                <th>台次</th>
+                <th>产值</th>
+                <th>工时费</th>
+                <th>材料费</th>
+                <th>已结算</th>
+                <th>未结算</th>
+                <th>占比</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[['业务员', staffRows], ['保险公司', insurerRows], ['维修状态', statusRows]].flatMap(([dimension, rows]) =>
+                rows.map((row) => (
+                  <tr key={`${dimension}-${row.name}`}>
+                    <td>{dimension}</td>
+                    <td><strong className="plate-link">{row.name}</strong></td>
+                    <td>{row.count}</td>
+                    <td>{formatMoney(row.amount)}</td>
+                    <td>{formatMoney(row.labor)}</td>
+                    <td>{formatMoney(row.material)}</td>
+                    <td>{formatMoney(row.settledAmount)}</td>
+                    <td>{formatMoney(row.pendingAmount)}</td>
+                    <td>{reportTotals.amount ? `${Math.round((row.amount / reportTotals.amount) * 100)}%` : '0%'}</td>
+                  </tr>
+                )),
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+  );
+}
+
+function ReportRanking({ title, rows, maxAmount }) {
+  return (
+    <section className="chart-panel report-ranking">
+      <PanelHeader title={title} action={`${rows.length} 组`} />
+      <div className="report-ranking-list">
+        {rows.length === 0 ? (
+          <p className="report-empty">当前筛选条件下暂无数据</p>
+        ) : rows.map((row) => (
+          <article key={row.name} className="report-rank-row">
+            <div>
+              <strong>{row.name}</strong>
+              <span>{row.count} 台次 · {formatMoney(row.amount)}</span>
+            </div>
+            <div className="report-rank-bar"><i style={{ width: `${Math.max(8, (row.amount / maxAmount) * 100)}%` }} /></div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function uniqueValues(values) {
+  return [...new Set(values.filter(Boolean))];
+}
+
+function normalizeOrderDate(date) {
+  const value = String(date || '');
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  if (/^\d{2}-\d{2}$/.test(value)) return `2026-${value}`;
+  return '2026-07-01';
+}
+
+function summarizeOrders(orders) {
+  return orders.reduce((summary, order) => {
+    const amount = Number(order.amount) || 0;
+    const labor = Number(order.labor) || 0;
+    const material = Number(order.material) || 0;
+    const status = String(order.status || '');
+    const isPending = status.includes('待') || status.includes('未');
+    const isSettled = status.includes('结算') && !isPending;
+    summary.count += 1;
+    summary.amount += amount;
+    summary.labor += labor;
+    summary.material += material;
+    if (isPending) {
+      summary.pendingCount += 1;
+      summary.pendingAmount += amount;
+    }
+    if (isSettled) {
+      summary.settledCount += 1;
+      summary.settledAmount += amount;
+    }
+    return summary;
+  }, {
+    count: 0,
+    amount: 0,
+    labor: 0,
+    material: 0,
+    pendingCount: 0,
+    pendingAmount: 0,
+    settledCount: 0,
+    settledAmount: 0,
+  });
+}
+
+function groupReportRows(orders, field) {
+  const grouped = new Map();
+  orders.forEach((order) => {
+    const key = order[field] || '未填写';
+    const current = grouped.get(key) || [];
+    current.push(order);
+    grouped.set(key, current);
+  });
+  return [...grouped.entries()]
+    .map(([name, groupedOrders]) => ({ name, ...summarizeOrders(groupedOrders) }))
+    .sort((a, b) => b.amount - a.amount);
+}
+
 function PlaceholderPage({ title, orders }) {
+  if (title === navItems[5]) {
+    return <SummaryReportsPage orders={orders} />;
+  }
+
   return (
     <section className="placeholder-panel">
       <h2>{title}</h2>
