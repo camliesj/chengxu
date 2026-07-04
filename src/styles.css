@@ -944,6 +944,70 @@ tbody tr:hover {
   gap: 14px;
 }
 
+.reception-toolbar {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: rgba(247, 250, 253, 0.88);
+}
+
+.reception-toolbar .quick-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.reception-toolbar .quick-filters button.active,
+.quick-filters button.active {
+  color: #fff;
+  border-color: var(--blue);
+  background: linear-gradient(180deg, #087bef, #0067d6);
+  box-shadow: 0 8px 18px rgba(8, 117, 222, 0.16);
+}
+
+.reception-toolbar .quick-filters span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  margin-left: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.34);
+  font-size: 12px;
+}
+
+.reception-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.reception-summary div {
+  display: grid;
+  gap: 4px;
+  min-height: 58px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fff;
+}
+
+.reception-summary span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.reception-summary strong {
+  color: #14243a;
+  font-size: 18px;
+  font-weight: 900;
+}
+
 .history-layout {
   display: grid;
   gap: 14px;
@@ -1060,7 +1124,7 @@ dd {
 
 .state-actions {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 8px;
   margin-top: 18px;
 }
@@ -1098,7 +1162,8 @@ dd {
   backdrop-filter: blur(8px);
 }
 
-.order-detail-modal {
+.order-detail-modal,
+.settlement-modal {
   width: min(860px, 100%);
   max-height: min(760px, calc(100vh - 44px));
   overflow: auto;
@@ -1109,6 +1174,10 @@ dd {
     linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.92)),
     url("/assets/ui/backgrounds/modal-flow-overlay.png") center / cover no-repeat;
   box-shadow: 0 24px 70px rgba(16, 46, 78, 0.24);
+}
+
+.settlement-modal {
+  width: min(620px, 100%);
 }
 
 .modal-heading {
@@ -1210,7 +1279,7 @@ dd {
   font-weight: 900;
 }
 
-.modal-actions button:first-child {
+.modal-actions button:not(:last-child) {
   border: 1px solid var(--line-strong);
   color: #40536a;
   background: #fff;
@@ -1221,6 +1290,34 @@ dd {
   color: #fff;
   background: linear-gradient(180deg, #087bef, #0067d6);
   box-shadow: 0 8px 18px rgba(8, 117, 222, 0.18);
+}
+
+.settlement-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 14px 0;
+  padding: 16px;
+  border: 1px solid #cfe0f4;
+  border-radius: 7px;
+  background: linear-gradient(180deg, #f6fbff, #ffffff);
+}
+
+.settlement-total span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.settlement-total strong {
+  color: var(--blue);
+  font-size: 26px;
+  font-weight: 900;
+}
+
+.settlement-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .order-form {
@@ -1887,8 +1984,10 @@ dd {
   .report-grid,
   .history-filter-grid,
   .history-summary,
+  .reception-summary,
   .modal-summary-strip,
   .modal-detail-grid,
+  .settlement-grid,
   .placeholder-summary {
     grid-template-columns: 1fr;
   }
@@ -1985,5 +2084,44 @@ dd {
   .mobile-tabs button.active {
     color: var(--blue);
     background: #e7f3ff;
+  }
+}
+
+@media print {
+  body {
+    background: #fff;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .modal-backdrop,
+  .modal-backdrop *,
+  .order-detail-modal,
+  .order-detail-modal * {
+    visibility: visible;
+  }
+
+  .modal-backdrop {
+    position: static;
+    display: block;
+    padding: 0;
+    background: #fff;
+    backdrop-filter: none;
+  }
+
+  .order-detail-modal {
+    width: 100%;
+    max-height: none;
+    overflow: visible;
+    border: 0;
+    box-shadow: none;
+    background: #fff;
+  }
+
+  .modal-heading button,
+  .modal-actions {
+    display: none;
   }
 }

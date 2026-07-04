@@ -717,6 +717,9 @@ function createOrderDraft(order) {
       claimNo: order.claimNo || '',
       accidentType: order.accidentType || '常规维修',
       paymentMethod: order.paymentMethod || '待确认',
+      settlementDate: order.settlementDate || '',
+      settlementTime: order.settlementTime || '',
+      settlementRemark: order.settlementRemark || '',
       remark: order.remark || '',
     };
   }
@@ -743,6 +746,9 @@ function createOrderDraft(order) {
     claimNo: '',
     accidentType: '常规维修',
     paymentMethod: '待确认',
+    settlementDate: '',
+    settlementTime: '',
+    settlementRemark: '',
     remark: '',
   };
 }
@@ -767,6 +773,7 @@ function draftToOrder(draft) {
     record: draft.record.trim(),
     vin: draft.vin.trim(),
     claimNo: draft.claimNo.trim(),
+    settlementRemark: draft.settlementRemark?.trim() || '',
     remark: draft.remark.trim(),
   };
 }
@@ -783,8 +790,46 @@ const historyInitialFilters = {
 };
 
 const statusOptions = ['在修中', '已完工', '待结算', '已结算'];
+const REPAIR_STATUS = {
+  repairing: statusOptions[0],
+  completed: statusOptions[1],
+  pendingSettlement: statusOptions[2],
+  settled: statusOptions[3],
+};
 const insurerOptions = ['人保财险', '平安保险', '太平洋保险', '阳光保险'];
 const vehicleTypeOptions = ['标的车', '三者车'];
+
+function todayDateTimeParts() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return {
+    date: `${year}-${month}-${day}`,
+    time: now.toTimeString().slice(0, 5),
+  };
+}
+
+function createSettlementDraft(order) {
+  const current = todayDateTimeParts();
+  return {
+    paymentMethod: order?.paymentMethod && order.paymentMethod !== '待确认' ? order.paymentMethod : '微信',
+    settlementDate: order?.settlementDate || current.date,
+    settlementTime: order?.settlementTime || current.time,
+    settlementRemark: order?.settlementRemark || '',
+  };
+}
+
+function settleOrder(order, settlementDraft) {
+  return {
+    ...order,
+    status: REPAIR_STATUS.settled,
+    paymentMethod: settlementDraft.paymentMethod,
+    settlementDate: settlementDraft.settlementDate,
+    settlementTime: settlementDraft.settlementTime,
+    settlementRemark: settlementDraft.settlementRemark.trim(),
+  };
+}
 
 function normalizeQueryText(value) {
   return String(value || '').trim().toLowerCase();
@@ -925,6 +970,26 @@ function RepairReception({ orders, createRequest, focusRequest, onSaveOrder, onS
   const [formMode, setFormMode] = useState('view');
   const [draft, setDraft] = useState(() => createOrderDraft(orders[0] || repairOrders[0]));
   const [detailOrder, setDetailOrder] = useState(null);
+  const [settlementOrder, setSettlementOrder] = useState(null);
+  const [activeStatus, setActiveStatus] = useState('全部');
+
+  const visibleOrders = useMemo(
+    () => (activeStatus === '全部' ? orders : orders.filter((order) => order.status === activeStatus)),
+    [activeStatus, orders],
+  );
+
+  const statusFilters = useMemo(
+    () => ['全部', ...statusOptions].map((status) => ({
+      status,
+      count: status === '全部' ? orders.length : orders.filter((order) => order.status === status).length,
+    })),
+    [orders],
+  );
+
+  const visibleAmount = visibleOrders.reduce((sum, order) => sum + order.amount, 0);
+  const visiblePendingAmount = visibleOrders
+    .filter((order) => order.status !== REPAIR_STATUS.settled)
+    .reduce((sum, order) => sum + order.amount, 0);
 
   useEffect(() => {
     if (createRequest > 0) {
@@ -934,17 +999,18 @@ function RepairReception({ orders, createRequest, focusRequest, onSaveOrder, onS
   }, [createRequest]);
 
   useEffect(() => {
-    if (!orders.some((order) => order.id === selectedId) && orders[0]) {
-      setSelectedId(orders[0].id);
+    if (!visibleOrders.some((order) => order.id === selectedId) && visibleOrders[0]) {
+      setSelectedId(visibleOrders[0].id);
     }
-  }, [orders, selectedId]);
+  }, [selectedId, visibleOrders]);
 
-  const selected = orders.find((order) => order.id === selectedId) || orders[0] || repairOrders[0];
+  const selected = visibleOrders.find((order) => order.id === selectedId) || visibleOrders[0] || orders[0] || repairOrders[0];
 
   useEffect(() => {
     if (!focusRequest) return;
     const focusedOrder = orders.find((order) => order.id === focusRequest.id);
     if (!focusedOrder) return;
+    setActiveStatus('全部');
     setSelectedId(focusedOrder.id);
     setFormMode(focusRequest.mode);
     setDraft(createOrderDraft(focusedOrder));
@@ -977,8 +1043,27 @@ function RepairReception({ orders, createRequest, focusRequest, onSaveOrder, onS
   }
 
   function changeStatus(status) {
+    if (status === REPAIR_STATUS.settled) {
+      setSettlementOrder(selected);
+      return;
+    }
     onStatusChange(selected.id, status);
     setDraft(createOrderDraft({ ...selected, status }));
+  }
+
+  function printOrder(order) {
+    setDetailOrder(order);
+    window.setTimeout(() => window.print(), 120);
+  }
+
+  function completeSettlement(settlementDraft) {
+    if (!settlementOrder) return;
+    const nextOrder = settleOrder(settlementOrder, settlementDraft);
+    onSaveOrder(nextOrder);
+    setSelectedId(nextOrder.id);
+    setDraft(createOrderDraft(nextOrder));
+    setDetailOrder(nextOrder);
+    setSettlementOrder(null);
   }
 
   return (
@@ -999,7 +1084,31 @@ function RepairReception({ orders, createRequest, focusRequest, onSaveOrder, onS
               <button>批量导出</button>
             </div>
           </div>
-          <OrderTable orders={orders} onView={openView} onEdit={openEdit} />
+          <div className="reception-toolbar">
+            <div className="quick-filters">
+              {statusFilters.map((item) => (
+                <button
+                  key={item.status}
+                  className={activeStatus === item.status ? 'active' : ''}
+                  onClick={() => setActiveStatus(item.status)}
+                >
+                  {item.status} <span>{item.count}</span>
+                </button>
+              ))}
+            </div>
+            <div className="reception-summary">
+              <div><span>当前台次</span><strong>{visibleOrders.length}</strong></div>
+              <div><span>当前产值</span><strong>{formatMoney(visibleAmount)}</strong></div>
+              <div><span>未结金额</span><strong>{formatMoney(visiblePendingAmount)}</strong></div>
+            </div>
+          </div>
+          <OrderTable
+            orders={visibleOrders}
+            onView={openView}
+            onEdit={openEdit}
+            onPrint={printOrder}
+            onSettle={(order) => setSettlementOrder(order)}
+          />
         </div>
         <aside className="detail-panel">
           {formMode === 'view' ? (
@@ -1019,8 +1128,10 @@ function RepairReception({ orders, createRequest, focusRequest, onSaveOrder, onS
                 <div><dt>案件号</dt><dd>{selected.claimNo || '未填写'}</dd></div>
                 <div><dt>事故类型</dt><dd>{selected.accidentType || '常规维修'}</dd></div>
                 <div><dt>付款方式</dt><dd>{selected.paymentMethod || '待确认'}</dd></div>
+                <div><dt>结算时间</dt><dd>{selected.settlementDate ? `${selected.settlementDate} ${selected.settlementTime || ''}` : '未结算'}</dd></div>
                 <div><dt>维修项目</dt><dd>{selected.record}</dd></div>
                 <div><dt>接待备注</dt><dd>{selected.remark || '暂无备注'}</dd></div>
+                <div><dt>结算备注</dt><dd>{selected.settlementRemark || '暂无备注'}</dd></div>
               </dl>
               <div className="fee-list">
                 <div><span>工时费</span><strong>{formatMoney(selected.labor)}</strong></div>
@@ -1028,9 +1139,10 @@ function RepairReception({ orders, createRequest, focusRequest, onSaveOrder, onS
                 <div className="total"><span>工单金额</span><strong>{formatMoney(selected.amount)}</strong></div>
               </div>
               <div className="state-actions">
-                <button onClick={() => changeStatus('在修中')}>切为在修</button>
-                <button onClick={() => changeStatus('已完工')}>切为完工</button>
-                <button onClick={() => changeStatus('已结算')}>完成结算</button>
+                <button onClick={() => changeStatus(REPAIR_STATUS.repairing)}>切为在修</button>
+                <button onClick={() => changeStatus(REPAIR_STATUS.completed)}>切为完工</button>
+                <button onClick={() => changeStatus(REPAIR_STATUS.pendingSettlement)}>待结算</button>
+                <button onClick={() => changeStatus(REPAIR_STATUS.settled)}>完成结算</button>
               </div>
               <button className="wide-edit-button" onClick={() => openEdit(selected)}>编辑当前工单</button>
             </>
@@ -1054,13 +1166,22 @@ function RepairReception({ orders, createRequest, focusRequest, onSaveOrder, onS
           order={detailOrder}
           onClose={() => setDetailOrder(null)}
           onEdit={() => openEdit(detailOrder)}
+          onPrint={() => printOrder(detailOrder)}
+          onSettle={() => setSettlementOrder(detailOrder)}
+        />
+      ) : null}
+      {settlementOrder ? (
+        <SettlementDialog
+          order={settlementOrder}
+          onClose={() => setSettlementOrder(null)}
+          onSubmit={completeSettlement}
         />
       ) : null}
     </>
   );
 }
 
-function OrderDetailDialog({ order, onClose, onEdit }) {
+function OrderDetailDialog({ order, onClose, onEdit, onPrint, onSettle }) {
   return (
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
       <section className="order-detail-modal" role="dialog" aria-modal="true" aria-labelledby="order-detail-title" onClick={(event) => event.stopPropagation()}>
@@ -1089,6 +1210,8 @@ function OrderDetailDialog({ order, onClose, onEdit }) {
           <div><dt>事故类型</dt><dd>{order.accidentType || '常规维修'}</dd></div>
           <div><dt>付款方式</dt><dd>{order.paymentMethod || '待确认'}</dd></div>
           <div><dt>预计交车</dt><dd>{order.delivery}</dd></div>
+          <div><dt>结算时间</dt><dd>{order.settlementDate ? `${order.settlementDate} ${order.settlementTime || ''}` : '未结算'}</dd></div>
+          <div><dt>结算备注</dt><dd>{order.settlementRemark || '暂无备注'}</dd></div>
           <div><dt>工时费</dt><dd>{formatMoney(order.labor)}</dd></div>
           <div><dt>材料费</dt><dd>{formatMoney(order.material)}</dd></div>
           <div className="modal-wide"><dt>维修项目</dt><dd>{order.record}</dd></div>
@@ -1096,10 +1219,74 @@ function OrderDetailDialog({ order, onClose, onEdit }) {
         </div>
 
         <footer className="modal-actions">
-          <button type="button" onClick={() => window.print()}>打印工单</button>
+          <button type="button" onClick={onPrint}>打印工单</button>
+          {order.status !== REPAIR_STATUS.settled ? <button type="button" onClick={onSettle}>结算工单</button> : null}
           <button type="button" onClick={onEdit}>编辑工单</button>
         </footer>
       </section>
+    </div>
+  );
+}
+
+function SettlementDialog({ order, onClose, onSubmit }) {
+  const [draft, setDraft] = useState(() => createSettlementDraft(order));
+
+  function updateField(field, value) {
+    setDraft((current) => ({ ...current, [field]: value }));
+  }
+
+  function submitSettlement(event) {
+    event.preventDefault();
+    onSubmit(draft);
+  }
+
+  return (
+    <div className="modal-backdrop" role="presentation" onClick={onClose}>
+      <form className="settlement-modal" role="dialog" aria-modal="true" aria-labelledby="settlement-title" onClick={(event) => event.stopPropagation()} onSubmit={submitSettlement}>
+        <header className="modal-heading">
+          <div>
+            <span className={`status-chip ${statusClass(order.status)}`}>{order.status}</span>
+            <h2 id="settlement-title">工单结算</h2>
+            <p>{order.id} · {order.plate} · {order.customer}</p>
+          </div>
+          <button type="button" aria-label="关闭结算" onClick={onClose}>×</button>
+        </header>
+
+        <div className="settlement-total">
+          <span>应结金额</span>
+          <strong>{formatMoney(order.amount)}</strong>
+        </div>
+
+        <div className="form-grid settlement-grid">
+          <label>
+            付款方式
+            <select value={draft.paymentMethod} onChange={(event) => updateField('paymentMethod', event.target.value)}>
+              <option>现金</option>
+              <option>微信</option>
+              <option>支付宝</option>
+              <option>保险直赔</option>
+              <option>挂账</option>
+            </select>
+          </label>
+          <label>
+            结算日期
+            <input type="date" required value={draft.settlementDate} onChange={(event) => updateField('settlementDate', event.target.value)} />
+          </label>
+          <label>
+            结算时间
+            <input type="time" required value={draft.settlementTime} onChange={(event) => updateField('settlementTime', event.target.value)} />
+          </label>
+          <label className="full-field">
+            结算备注
+            <textarea value={draft.settlementRemark} onChange={(event) => updateField('settlementRemark', event.target.value)} placeholder="记录收款说明、优惠、挂账原因或保险直赔备注" />
+          </label>
+        </div>
+
+        <footer className="modal-actions">
+          <button type="button" onClick={onClose}>取消</button>
+          <button type="submit">确认结算</button>
+        </footer>
+      </form>
     </div>
   );
 }
@@ -1239,7 +1426,7 @@ function OrderForm({ draft, mode, onChange, onCancel, onSubmit }) {
   );
 }
 
-function OrderTable({ orders, onView, onEdit }) {
+function OrderTable({ orders, onView, onEdit, onPrint, onSettle }) {
   return (
     <div className="table-scroll">
       <table>
@@ -1279,8 +1466,12 @@ function OrderTable({ orders, onView, onEdit }) {
                 <span className="table-actions">
                   <button onClick={() => onView?.(order)}>查看</button>
                   <button onClick={() => onEdit?.(order)}>编辑</button>
-                  <button>打印</button>
-                  <button>更多⌄</button>
+                  <button onClick={() => onPrint?.(order)}>打印</button>
+                  {order.status !== REPAIR_STATUS.settled ? (
+                    <button onClick={() => onSettle?.(order)}>结算</button>
+                  ) : (
+                    <button onClick={() => onView?.(order)}>已结</button>
+                  )}
                 </span>
               </td>
             </tr>
