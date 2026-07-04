@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
-    "preview": "vite preview --host 0.0.0.0"
+    "preview": "vite preview --host 0.0.0.0",
+    "cf:deploy": "wrangler pages deploy dist --project-name chengxu",
+    "deploy": "npm run build && npm run cf:deploy"
   },
   "dependencies": {
     "react": "^19.0.0",
