@@ -36,6 +36,29 @@ GET /api/orders
 POST /api/orders
 ```
 
+## 访问权限
+
+访问码已改为云端校验：
+
+- 管理员：`888888`
+- 员工：`666666`
+
+接口：
+
+```text
+POST /api/access
+GET /api/access
+GET /api/operation-logs
+POST /api/orders/:id/void
+```
+
+说明：
+
+- `GET /api/orders` 和 `POST /api/orders` 需要携带访问码登录后返回的 Bearer token。
+- 员工可以查看、新增、编辑、结算工单。
+- 管理员额外可以作废工单、查看最近 100 条操作记录。
+- 作废不会物理删除数据，工单会标记为 `voided = 1` 并保留操作日志。
+
 ## 第一次部署前
 
 如果命令行提示没有登录 Cloudflare，先执行：

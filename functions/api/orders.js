@@ -1,3 +1,5 @@
+import { json, requireSession, writeOperationLog } from '../_shared/auth.js';
+
 const ORDER_COLUMNS = [
   'id',
   'date',
@@ -23,17 +25,10 @@ const ORDER_COLUMNS = [
   'settlement_date',
   'settlement_time',
   'settlement_remark',
+  'voided',
+  'voided_at',
+  'void_reason',
 ];
-
-function json(data, init = {}) {
-  return new Response(JSON.stringify(data), {
-    ...init,
-    headers: {
-      'content-type': 'application/json; charset=utf-8',
-      ...(init.headers || {}),
-    },
-  });
-}
 
 function toOrder(row) {
   return {
@@ -61,6 +56,9 @@ function toOrder(row) {
     settlementDate: row.settlement_date || '',
     settlementTime: row.settlement_time || '',
     settlementRemark: row.settlement_remark || '',
+    voided: Number(row.voided) === 1,
+    voidedAt: row.voided_at || '',
+    voidReason: row.void_reason || '',
   };
 }
 
@@ -103,6 +101,9 @@ function normalizeOrder(input) {
     settlement_date: cleanText(input.settlementDate),
     settlement_time: cleanText(input.settlementTime),
     settlement_remark: cleanText(input.settlementRemark),
+    voided: input.voided ? 1 : 0,
+    voided_at: cleanText(input.voidedAt),
+    void_reason: cleanText(input.voidReason),
   };
 }
 
@@ -115,14 +116,20 @@ function validateOrder(order) {
   return '';
 }
 
-export async function onRequestGet({ env }) {
+export async function onRequestGet({ request, env }) {
+  const { error } = await requireSession(request, env);
+  if (error) return error;
+
   const result = await env.DB.prepare(
-    'SELECT * FROM repair_orders ORDER BY date DESC, time DESC, created_at DESC',
+    'SELECT * FROM repair_orders WHERE voided = 0 ORDER BY date DESC, time DESC, created_at DESC',
   ).all();
   return json({ orders: result.results.map(toOrder) });
 }
 
 export async function onRequestPost({ request, env }) {
+  const { session, error } = await requireSession(request, env);
+  if (error) return error;
+
   const payload = await request.json();
   const order = normalizeOrder(payload.order || payload);
   const validationError = validateOrder(order);
@@ -136,11 +143,16 @@ export async function onRequestPost({ request, env }) {
     .map((column) => `${column} = excluded.${column}`)
     .join(', ');
 
+  const existing = await env.DB.prepare('SELECT id, status FROM repair_orders WHERE id = ?').bind(order.id).first();
+
   await env.DB.prepare(`
     INSERT INTO repair_orders (${ORDER_COLUMNS.join(', ')}, updated_at)
     VALUES (${placeholders}, CURRENT_TIMESTAMP)
     ON CONFLICT(id) DO UPDATE SET ${updates}, updated_at = CURRENT_TIMESTAMP
   `).bind(...ORDER_COLUMNS.map((column) => order[column])).run();
+
+  const action = !existing ? 'create_order' : order.status === '已结算' && existing.status !== '已结算' ? 'settle_order' : 'update_order';
+  await writeOperationLog(env, session, action, 'repair_order', order.id, `${order.plate} ${order.customer}`);
 
   return json({ order: toOrder(order) });
 }

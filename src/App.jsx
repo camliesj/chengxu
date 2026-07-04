@@ -25,6 +25,7 @@ const metricIconMap = {
 const ORDER_STORAGE_KEY = 'chengxu-repair-orders';
 const INSURANCE_STORAGE_KEY = 'chengxu-insurance-policies';
 const CUSTOMER_VEHICLE_STORAGE_KEY = 'chengxu-customer-vehicles';
+const ACCESS_SESSION_KEY = 'chengxu-access-session';
 const INSURANCE_BASE_DATE = '2026-07-21';
 
 function AssetIcon({ name, alt = '', className = '' }) {
@@ -50,8 +51,26 @@ function readStoredOrders() {
   }
 }
 
-async function fetchCloudOrders() {
-  const response = await fetch('/api/orders');
+function authHeaders(session) {
+  return session?.token ? { authorization: `Bearer ${session.token}` } : {};
+}
+
+async function validateAccessCode(code) {
+  const response = await fetch('/api/access', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ code }),
+  });
+  if (!response.ok) {
+    throw new Error('访问码不正确');
+  }
+  return response.json();
+}
+
+async function fetchCloudOrders(session) {
+  const response = await fetch('/api/orders', {
+    headers: authHeaders(session),
+  });
   if (!response.ok) {
     throw new Error(`云端读取失败：${response.status}`);
   }
@@ -59,15 +78,28 @@ async function fetchCloudOrders() {
   return Array.isArray(data.orders) ? data.orders : [];
 }
 
-async function saveCloudOrder(order) {
+async function saveCloudOrder(order, session) {
   const response = await fetch('/api/orders', {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', ...authHeaders(session) },
     body: JSON.stringify({ order }),
   });
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
     throw new Error(data.error || `云端保存失败：${response.status}`);
+  }
+  return response.json();
+}
+
+async function voidCloudOrder(orderId, reason, session) {
+  const response = await fetch(`/api/orders/${encodeURIComponent(orderId)}/void`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...authHeaders(session) },
+    body: JSON.stringify({ reason }),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `作废失败：${response.status}`);
   }
   return response.json();
 }
@@ -167,15 +199,22 @@ const formatMoney = (value) => `¥${value.toLocaleString('zh-CN')}`;
 function AccessGate({ onUnlock }) {
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function submitAccess(event) {
+  async function submitAccess(event) {
     event.preventDefault();
-    if (code.trim() === '888888') {
+    setIsSubmitting(true);
+    setError('');
+    try {
+      const data = await validateAccessCode(code.trim());
       localStorage.setItem('shop-access-granted', 'true');
-      onUnlock();
-      return;
+      localStorage.setItem(ACCESS_SESSION_KEY, JSON.stringify(data.session));
+      onUnlock(data.session);
+    } catch (accessError) {
+      setError(accessError.message || '访问码不正确');
+    } finally {
+      setIsSubmitting(false);
     }
-    setError('访问码不正确，请输入演示访问码 888888');
   }
 
   return (
@@ -197,7 +236,7 @@ function AccessGate({ onUnlock }) {
             inputMode="numeric"
           />
           {error ? <span className="form-error">{error}</span> : null}
-          <button type="submit">进入系统</button>
+          <button type="submit" disabled={isSubmitting}>{isSubmitting ? '校验中...' : '进入系统'}</button>
         </form>
       </section>
     </main>
@@ -205,7 +244,14 @@ function AccessGate({ onUnlock }) {
 }
 
 function App() {
-  const [isUnlocked, setIsUnlocked] = useState(() => localStorage.getItem('shop-access-granted') === 'true');
+  const [accessSession, setAccessSession] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(ACCESS_SESSION_KEY) || 'null');
+    } catch {
+      return null;
+    }
+  });
+  const [isUnlocked, setIsUnlocked] = useState(() => localStorage.getItem('shop-access-granted') === 'true' && !!localStorage.getItem(ACCESS_SESSION_KEY));
   const [activePage, setActivePage] = useState('首页看板');
   const [query, setQuery] = useState('');
   const [orders, setOrders] = useState(readStoredOrders);
@@ -222,10 +268,10 @@ function App() {
   }, [orders]);
 
   useEffect(() => {
-    if (!isUnlocked) return undefined;
+    if (!isUnlocked || !accessSession?.token) return undefined;
     let isCancelled = false;
     setOrdersCloudState({ loading: true, error: '' });
-    fetchCloudOrders()
+    fetchCloudOrders(accessSession)
       .then((cloudOrders) => {
         if (isCancelled) return;
         setOrders(cloudOrders);
@@ -239,7 +285,7 @@ function App() {
     return () => {
       isCancelled = true;
     };
-  }, [isUnlocked]);
+  }, [isUnlocked, accessSession]);
 
   useEffect(() => {
     localStorage.setItem(INSURANCE_STORAGE_KEY, JSON.stringify(insurancePolicies));
@@ -268,7 +314,7 @@ function App() {
       }
       return [nextOrder, ...currentOrders];
     });
-    saveCloudOrder(nextOrder)
+    saveCloudOrder(nextOrder, accessSession)
       .then(() => setOrdersCloudState({ loading: false, error: '' }))
       .catch((error) => setOrdersCloudState({ loading: false, error: error.message || '云端保存失败' }));
   }
@@ -281,6 +327,18 @@ function App() {
     const currentOrder = orders.find((order) => order.id === orderId);
     if (!currentOrder) return;
     upsertOrder({ ...currentOrder, status });
+  }
+
+  function voidOrder(orderId, reason) {
+    const currentOrder = orders.find((order) => order.id === orderId);
+    if (!currentOrder) return;
+    setOrders((currentOrders) => currentOrders.filter((order) => order.id !== orderId));
+    voidCloudOrder(orderId, reason, accessSession)
+      .then(() => setOrdersCloudState({ loading: false, error: '' }))
+      .catch((error) => {
+        setOrders((currentOrders) => [currentOrder, ...currentOrders]);
+        setOrdersCloudState({ loading: false, error: error.message || '云端作废失败' });
+      });
   }
 
   function openOrderInReception(order, mode) {
@@ -312,7 +370,10 @@ function App() {
   }
 
   if (!isUnlocked) {
-    return <AccessGate onUnlock={() => setIsUnlocked(true)} />;
+    return <AccessGate onUnlock={(session) => {
+      setAccessSession(session);
+      setIsUnlocked(true);
+    }} />;
   }
 
   return (
@@ -342,6 +403,8 @@ function App() {
           className="logout-button"
           onClick={() => {
             localStorage.removeItem('shop-access-granted');
+            localStorage.removeItem(ACCESS_SESSION_KEY);
+            setAccessSession(null);
             setIsUnlocked(false);
           }}
         >
@@ -392,6 +455,8 @@ function App() {
             onSaveOrder={saveOrder}
             onStatusChange={updateOrderStatus}
             cloudState={ordersCloudState}
+            role={accessSession?.role || 'staff'}
+            onVoidOrder={voidOrder}
           />
         )}
         {activePage === '历史查询' && (
@@ -894,12 +959,13 @@ function HistoryQueryPage({ orders, onView, onEdit }) {
   );
 }
 
-function RepairReception({ orders, createRequest, focusRequest, onSaveOrder, onStatusChange, cloudState }) {
+function RepairReception({ orders, createRequest, focusRequest, onSaveOrder, onStatusChange, cloudState, role, onVoidOrder }) {
   const [selectedId, setSelectedId] = useState(() => orders[0]?.id || '');
   const [formMode, setFormMode] = useState('view');
   const [draft, setDraft] = useState(() => createOrderDraft(orders[0]));
   const [detailOrder, setDetailOrder] = useState(null);
   const [settlementOrder, setSettlementOrder] = useState(null);
+  const [voidOrderTarget, setVoidOrderTarget] = useState(null);
   const [activeStatus, setActiveStatus] = useState('全部');
 
   const visibleOrders = useMemo(
@@ -1040,6 +1106,7 @@ function RepairReception({ orders, createRequest, focusRequest, onSaveOrder, onS
             onEdit={openEdit}
             onPrint={printOrder}
             onSettle={(order) => setSettlementOrder(order)}
+            onVoid={role === 'admin' ? (order) => setVoidOrderTarget(order) : null}
           />
         </div>
         <aside className="detail-panel">
@@ -1100,6 +1167,7 @@ function RepairReception({ orders, createRequest, focusRequest, onSaveOrder, onS
           onEdit={() => openEdit(detailOrder)}
           onPrint={() => printOrder(detailOrder)}
           onSettle={() => setSettlementOrder(detailOrder)}
+          onVoid={role === 'admin' ? () => setVoidOrderTarget(detailOrder) : null}
         />
       ) : null}
       {settlementOrder ? (
@@ -1109,11 +1177,22 @@ function RepairReception({ orders, createRequest, focusRequest, onSaveOrder, onS
           onSubmit={completeSettlement}
         />
       ) : null}
+      {voidOrderTarget ? (
+        <VoidOrderDialog
+          order={voidOrderTarget}
+          onClose={() => setVoidOrderTarget(null)}
+          onSubmit={(reason) => {
+            onVoidOrder(voidOrderTarget.id, reason);
+            setDetailOrder(null);
+            setVoidOrderTarget(null);
+          }}
+        />
+      ) : null}
     </>
   );
 }
 
-function OrderDetailDialog({ order, onClose, onEdit, onPrint, onSettle }) {
+function OrderDetailDialog({ order, onClose, onEdit, onPrint, onSettle, onVoid }) {
   return (
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
       <section className="order-detail-modal" role="dialog" aria-modal="true" aria-labelledby="order-detail-title" onClick={(event) => event.stopPropagation()}>
@@ -1153,9 +1232,45 @@ function OrderDetailDialog({ order, onClose, onEdit, onPrint, onSettle }) {
         <footer className="modal-actions">
           <button type="button" onClick={onPrint}>打印工单</button>
           {order.status !== REPAIR_STATUS.settled ? <button type="button" onClick={onSettle}>结算工单</button> : null}
+          {onVoid ? <button type="button" onClick={onVoid}>作废工单</button> : null}
           <button type="button" onClick={onEdit}>编辑工单</button>
         </footer>
       </section>
+    </div>
+  );
+}
+
+function VoidOrderDialog({ order, onClose, onSubmit }) {
+  const [reason, setReason] = useState('');
+
+  function submitVoid(event) {
+    event.preventDefault();
+    onSubmit(reason);
+  }
+
+  return (
+    <div className="modal-backdrop" role="presentation" onClick={onClose}>
+      <form className="settlement-modal" role="dialog" aria-modal="true" aria-labelledby="void-title" onClick={(event) => event.stopPropagation()} onSubmit={submitVoid}>
+        <header className="modal-heading">
+          <div>
+            <span className={`status-chip ${statusClass(order.status)}`}>{order.status}</span>
+            <h2 id="void-title">作废工单</h2>
+            <p>{order.id} · {order.plate} · {order.customer}</p>
+          </div>
+          <button type="button" aria-label="关闭作废" onClick={onClose}>×</button>
+        </header>
+        <div className="cloud-banner error">作废后工单不会显示在日常列表中，但云端仍保留记录用于追溯。</div>
+        <div className="form-grid">
+          <label className="full-field">
+            作废原因
+            <textarea value={reason} onChange={(event) => setReason(event.target.value)} placeholder="例如：录入重复、客户取消维修、工单建错" />
+          </label>
+        </div>
+        <footer className="modal-actions">
+          <button type="button" onClick={onClose}>取消</button>
+          <button type="submit">确认作废</button>
+        </footer>
+      </form>
     </div>
   );
 }
@@ -1358,7 +1473,7 @@ function OrderForm({ draft, mode, onChange, onCancel, onSubmit }) {
   );
 }
 
-function OrderTable({ orders, onView, onEdit, onPrint, onSettle }) {
+function OrderTable({ orders, onView, onEdit, onPrint, onSettle, onVoid }) {
   return (
     <div className="table-scroll">
       <table>
@@ -1404,6 +1519,7 @@ function OrderTable({ orders, onView, onEdit, onPrint, onSettle }) {
                   ) : (
                     <button onClick={() => onView?.(order)}>已结</button>
                   )}
+                  {onVoid ? <button onClick={() => onVoid(order)}>作废</button> : null}
                 </span>
               </td>
             </tr>
