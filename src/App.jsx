@@ -246,8 +246,10 @@ function AccessGate({ onUnlock }) {
     <main className="access-page">
       <section className="access-panel">
         <div className="brand-mark">车</div>
-        <h1>汽修接待 & 保险管理系统</h1>
-        <p>请输入门店访问码后进入系统。正式上线后，访问码将由云端接口统一校验。</p>
+        <div className="access-copy">
+          <h1>汽修接待 & 保险管理系统</h1>
+          <p>门店数据已启用安全校验，请输入授权访问码进入工作台。</p>
+        </div>
         <form onSubmit={submitAccess} className="access-form">
           <label htmlFor="access-code">门店访问码</label>
           <input
@@ -257,8 +259,9 @@ function AccessGate({ onUnlock }) {
               setCode(event.target.value);
               setError('');
             }}
-            placeholder="请输入 888888"
+            placeholder="请输入访问码"
             inputMode="numeric"
+            autoComplete="current-password"
           />
           {error ? <span className="form-error">{error}</span> : null}
           <button type="submit" disabled={isSubmitting}>{isSubmitting ? '校验中...' : '进入系统'}</button>
@@ -2445,8 +2448,8 @@ function SystemSettingsPage({ session, cloudState, orders, onRefreshOrders }) {
         <article className="settings-card">
           <h3>访问码</h3>
           <dl>
-            <div><dt>管理员默认码</dt><dd>888888</dd></div>
-            <div><dt>员工默认码</dt><dd>666666</dd></div>
+            <div><dt>管理员访问码</dt><dd>由管理员维护</dd></div>
+            <div><dt>员工访问码</dt><dd>按门店授权发放</dd></div>
             <div><dt>校验方式</dt><dd>云端校验</dd></div>
           </dl>
         </article>
