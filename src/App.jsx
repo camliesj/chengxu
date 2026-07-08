@@ -763,6 +763,7 @@ function App() {
         {activePage === '维修接待' && (
           <RepairReception
             orders={filteredOrders}
+            company={currentCompany}
             createRequest={createRequest}
             focusRequest={receptionFocus}
             onSaveOrder={saveOrder}
@@ -1323,7 +1324,7 @@ function HistoryQueryPage({ orders, onView, onEdit }) {
   );
 }
 
-function RepairReception({ orders, createRequest, focusRequest, onSaveOrder, onStatusChange, cloudState, role, onVoidOrder }) {
+function RepairReception({ orders, company, createRequest, focusRequest, onSaveOrder, onStatusChange, cloudState, role, onVoidOrder }) {
   const [selectedId, setSelectedId] = useState(() => orders[0]?.id || '');
   const [formMode, setFormMode] = useState('view');
   const [draft, setDraft] = useState(() => createOrderDraft(orders[0]));
@@ -1413,7 +1414,7 @@ function RepairReception({ orders, createRequest, focusRequest, onSaveOrder, onS
 
   function printOrder(order) {
     setDetailOrder(order);
-    window.setTimeout(() => window.print(), 120);
+    window.setTimeout(() => window.print(), 180);
   }
 
   function completeSettlement(settlementDraft) {
@@ -1528,6 +1529,7 @@ function RepairReception({ orders, createRequest, focusRequest, onSaveOrder, onS
       {detailOrder ? (
         <OrderDetailDialog
           order={detailOrder}
+          company={company}
           onClose={() => setDetailOrder(null)}
           onEdit={() => openEdit(detailOrder)}
           onPrint={() => printOrder(detailOrder)}
@@ -1557,50 +1559,132 @@ function RepairReception({ orders, createRequest, focusRequest, onSaveOrder, onS
   );
 }
 
-function OrderDetailDialog({ order, onClose, onEdit, onPrint, onSettle, onVoid }) {
+function PrintField({ label, value, wide = false }) {
+  return (
+    <div className={wide ? 'print-field print-field-wide' : 'print-field'}>
+      <span>{label}</span>
+      <strong>{value || '未填写'}</strong>
+    </div>
+  );
+}
+
+function OrderDetailDialog({ order, company, onClose, onEdit, onPrint, onSettle, onVoid }) {
+  const printTime = new Date().toLocaleString('zh-CN', { hour12: false });
+  const settlementText = order.settlementDate ? `${order.settlementDate} ${order.settlementTime || ''}` : '未结算';
+
   return (
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
       <section className="order-detail-modal" role="dialog" aria-modal="true" aria-labelledby="order-detail-title" onClick={(event) => event.stopPropagation()}>
-        <header className="modal-heading">
-          <div>
-            <span className={`status-chip ${statusClass(order.status)}`}>{order.status}</span>
-            <h2 id="order-detail-title">{order.plate} 工单详情</h2>
-            <p>{order.id} · {order.date} {order.time}</p>
+        <div className="screen-order-detail">
+          <header className="modal-heading">
+            <div>
+              <span className={`status-chip ${statusClass(order.status)}`}>{order.status}</span>
+              <h2 id="order-detail-title">{order.plate} 工单详情</h2>
+              <p>{order.id} · {order.date} {order.time}</p>
+            </div>
+            <button type="button" aria-label="关闭详情" onClick={onClose}>×</button>
+          </header>
+
+          <div className="modal-summary-strip">
+            <div><span>客户</span><strong>{order.customer}</strong></div>
+            <div><span>手机号</span><strong>{order.phone}</strong></div>
+            <div><span>业务员</span><strong>{order.staff}</strong></div>
+            <div><span>金额</span><strong>{formatMoney(order.amount)}</strong></div>
           </div>
-          <button type="button" aria-label="关闭详情" onClick={onClose}>×</button>
-        </header>
 
-        <div className="modal-summary-strip">
-          <div><span>客户</span><strong>{order.customer}</strong></div>
-          <div><span>手机号</span><strong>{order.phone}</strong></div>
-          <div><span>业务员</span><strong>{order.staff}</strong></div>
-          <div><span>金额</span><strong>{formatMoney(order.amount)}</strong></div>
+          <div className="modal-detail-grid">
+            <div><dt>车型</dt><dd>{order.car}</dd></div>
+            <div><dt>车架号</dt><dd>{order.vin || '未填写'}</dd></div>
+            <div><dt>保险公司</dt><dd>{order.insurer}</dd></div>
+            <div><dt>保险到期日</dt><dd>{order.insuranceExpiry || '未填写'}</dd></div>
+            <div><dt>车辆类型</dt><dd>{order.type}</dd></div>
+            <div><dt>案件号</dt><dd>{order.claimNo || '未填写'}</dd></div>
+            <div><dt>事故类型</dt><dd>{order.accidentType || '常规维修'}</dd></div>
+            <div><dt>付款方式</dt><dd>{order.paymentMethod || '待确认'}</dd></div>
+            <div><dt>预计交车</dt><dd>{order.delivery}</dd></div>
+            <div><dt>结算时间</dt><dd>{settlementText}</dd></div>
+            <div><dt>结算备注</dt><dd>{order.settlementRemark || '暂无备注'}</dd></div>
+            <div><dt>工时费</dt><dd>{formatMoney(order.labor)}</dd></div>
+            <div><dt>材料费</dt><dd>{formatMoney(order.material)}</dd></div>
+            <div className="modal-wide"><dt>维修项目</dt><dd>{order.record}</dd></div>
+            <div className="modal-wide"><dt>接待备注</dt><dd>{order.remark || '暂无备注'}</dd></div>
+          </div>
+
+          <footer className="modal-actions">
+            <button type="button" onClick={onPrint}>打印工单</button>
+            {order.status !== REPAIR_STATUS.settled ? <button type="button" onClick={onSettle}>结算工单</button> : null}
+            {onVoid ? <button type="button" onClick={onVoid}>作废工单</button> : null}
+            <button type="button" onClick={onEdit}>编辑工单</button>
+          </footer>
         </div>
 
-        <div className="modal-detail-grid">
-          <div><dt>车型</dt><dd>{order.car}</dd></div>
-          <div><dt>车架号</dt><dd>{order.vin || '未填写'}</dd></div>
-          <div><dt>保险公司</dt><dd>{order.insurer}</dd></div>
-          <div><dt>保险到期日</dt><dd>{order.insuranceExpiry || '未填写'}</dd></div>
-          <div><dt>车辆类型</dt><dd>{order.type}</dd></div>
-          <div><dt>案件号</dt><dd>{order.claimNo || '未填写'}</dd></div>
-          <div><dt>事故类型</dt><dd>{order.accidentType || '常规维修'}</dd></div>
-          <div><dt>付款方式</dt><dd>{order.paymentMethod || '待确认'}</dd></div>
-          <div><dt>预计交车</dt><dd>{order.delivery}</dd></div>
-          <div><dt>结算时间</dt><dd>{order.settlementDate ? `${order.settlementDate} ${order.settlementTime || ''}` : '未结算'}</dd></div>
-          <div><dt>结算备注</dt><dd>{order.settlementRemark || '暂无备注'}</dd></div>
-          <div><dt>工时费</dt><dd>{formatMoney(order.labor)}</dd></div>
-          <div><dt>材料费</dt><dd>{formatMoney(order.material)}</dd></div>
-          <div className="modal-wide"><dt>维修项目</dt><dd>{order.record}</dd></div>
-          <div className="modal-wide"><dt>接待备注</dt><dd>{order.remark || '暂无备注'}</dd></div>
-        </div>
+        <section className="print-order-sheet" aria-hidden="true">
+          <header className="print-sheet-header">
+            <div>
+              <h1>{company?.fullName || '汽车服务有限公司'}</h1>
+              <p>维修接待与车辆保险管理工单</p>
+            </div>
+            <div className="print-sheet-meta">
+              <span>工单号：{order.id}</span>
+              <span>打印时间：{printTime}</span>
+            </div>
+          </header>
 
-        <footer className="modal-actions">
-          <button type="button" onClick={onPrint}>打印工单</button>
-          {order.status !== REPAIR_STATUS.settled ? <button type="button" onClick={onSettle}>结算工单</button> : null}
-          {onVoid ? <button type="button" onClick={onVoid}>作废工单</button> : null}
-          <button type="button" onClick={onEdit}>编辑工单</button>
-        </footer>
+          <div className="print-status-row">
+            <div><span>维修状态</span><strong>{order.status}</strong></div>
+            <div><span>进厂时间</span><strong>{order.date} {order.time}</strong></div>
+            <div><span>预计交车</span><strong>{order.delivery || '未填写'}</strong></div>
+            <div><span>业务员</span><strong>{order.staff || '未填写'}</strong></div>
+          </div>
+
+          <div className="print-section">
+            <h2>客户与车辆信息</h2>
+            <div className="print-field-grid">
+              <PrintField label="客户姓名" value={order.customer} />
+              <PrintField label="联系电话" value={order.phone} />
+              <PrintField label="车牌号" value={order.plate} />
+              <PrintField label="车型" value={order.car} />
+              <PrintField label="车架号" value={order.vin} wide />
+            </div>
+          </div>
+
+          <div className="print-section">
+            <h2>保险与事故信息</h2>
+            <div className="print-field-grid">
+              <PrintField label="保险公司" value={order.insurer} />
+              <PrintField label="保险到期日" value={order.insuranceExpiry} />
+              <PrintField label="车辆类型" value={order.type} />
+              <PrintField label="案件号" value={order.claimNo} />
+              <PrintField label="事故类型" value={order.accidentType || '常规维修'} wide />
+            </div>
+          </div>
+
+          <div className="print-section">
+            <h2>维修内容</h2>
+            <div className="print-textbox">{order.record || '未填写'}</div>
+            <div className="print-note-grid">
+              <PrintField label="接待备注" value={order.remark || '暂无备注'} />
+              <PrintField label="结算备注" value={order.settlementRemark || '暂无备注'} />
+            </div>
+          </div>
+
+          <div className="print-section">
+            <h2>费用与结算</h2>
+            <div className="print-cost-grid">
+              <div><span>工时费</span><strong>{formatMoney(order.labor)}</strong></div>
+              <div><span>材料费</span><strong>{formatMoney(order.material)}</strong></div>
+              <div><span>付款方式</span><strong>{order.paymentMethod || '待确认'}</strong></div>
+              <div><span>结算时间</span><strong>{settlementText}</strong></div>
+              <div className="print-total"><span>工单金额</span><strong>{formatMoney(order.amount)}</strong></div>
+            </div>
+          </div>
+
+          <footer className="print-signatures">
+            <div><span>客户确认签字</span></div>
+            <div><span>接待人员签字</span></div>
+            <div><span>结算确认签字</span></div>
+          </footer>
+        </section>
       </section>
     </div>
   );
