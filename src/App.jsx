@@ -1768,6 +1768,20 @@ function RepairReception({
           onEdit={() => openEdit(detailOrder)}
           onPrint={() => printOrder(detailOrder)}
           onSettle={() => setSettlementOrder(detailOrder)}
+          onUploadReceipt={(file, order) => onUploadReceipt(file, order.id).then((receipt) => {
+            const nextOrder = {
+              ...order,
+              settlementReceiptKey: receipt.key,
+              settlementReceiptName: receipt.name,
+              settlementReceiptType: receipt.type,
+              settlementReceiptSize: receipt.size,
+              settlementReceiptUploadedAt: receipt.uploadedAt,
+            };
+            onSaveOrder(nextOrder);
+            setDetailOrder(nextOrder);
+            setDraft(createOrderDraft(nextOrder));
+            return nextOrder;
+          })}
           onViewReceipt={onViewReceipt}
           onDeleteReceipt={(order) => onDeleteReceipt(order).then((nextOrder) => {
             setDetailOrder(nextOrder);
@@ -1808,8 +1822,9 @@ function PrintField({ label, value, wide = false }) {
   );
 }
 
-function OrderDetailDialog({ order, company, onClose, onEdit, onPrint, onSettle, onViewReceipt, onDeleteReceipt, onVoid }) {
+function OrderDetailDialog({ order, company, onClose, onEdit, onPrint, onSettle, onUploadReceipt, onViewReceipt, onDeleteReceipt, onVoid }) {
   const [receiptState, setReceiptState] = useState({ loading: false, error: '', previewUrl: '' });
+  const [receiptFile, setReceiptFile] = useState(null);
   const printTime = new Date().toLocaleString('zh-CN', { hour12: false });
   const settlementText = order.settlementDate ? `${order.settlementDate} ${order.settlementTime || ''}` : '未结算';
   const hasReceipt = Boolean(order.settlementReceiptKey);
@@ -1838,6 +1853,20 @@ function OrderDetailDialog({ order, company, onClose, onEdit, onPrint, onSettle,
         setReceiptState({ loading: false, error: '', previewUrl: '' });
       })
       .catch((error) => setReceiptState((current) => ({ ...current, loading: false, error: error.message || '回执删除失败' })));
+  }
+
+  function uploadReceipt() {
+    if (!receiptFile || receiptState.loading) {
+      setReceiptState((current) => ({ ...current, error: '请先选择到账回执截图' }));
+      return;
+    }
+    setReceiptState((current) => ({ ...current, loading: true, error: '' }));
+    onUploadReceipt(receiptFile, order)
+      .then(() => {
+        setReceiptFile(null);
+        setReceiptState({ loading: false, error: '', previewUrl: '' });
+      })
+      .catch((error) => setReceiptState((current) => ({ ...current, loading: false, error: error.message || '回执上传失败' })));
   }
 
   return (
@@ -1892,7 +1921,30 @@ function OrderDetailDialog({ order, company, onClose, onEdit, onPrint, onSettle,
               {receiptState.error ? <p className="form-error">{receiptState.error}</p> : null}
               {receiptState.previewUrl ? <img src={receiptState.previewUrl} alt="到账回执截图" /> : null}
             </section>
-          ) : null}
+          ) : (
+            <section className="receipt-panel">
+              <div>
+                <strong>补传到账回执</strong>
+                <span>{order.status === REPAIR_STATUS.settled ? '该工单已结算，可在这里补传回执截图。' : '可先补传回执，也可以在结算时上传。'}</span>
+              </div>
+              <label className="receipt-upload-field">
+                到账回执截图
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={(event) => {
+                    setReceiptFile(event.target.files?.[0] || null);
+                    setReceiptState((current) => ({ ...current, error: '' }));
+                  }}
+                />
+                <span>{receiptFile ? receiptFile.name : '请选择 JPG、PNG 或 WEBP 图片'}</span>
+              </label>
+              <div>
+                <button type="button" onClick={uploadReceipt} disabled={receiptState.loading}>{receiptState.loading ? '上传中...' : '上传回执'}</button>
+              </div>
+              {receiptState.error ? <p className="form-error">{receiptState.error}</p> : null}
+            </section>
+          )}
 
           <footer className="modal-actions">
             <button type="button" onClick={onPrint}>打印工单</button>
