@@ -496,6 +496,59 @@ function App() {
 
   function saveOrder(nextOrder) {
     upsertOrder(nextOrder);
+    syncCustomerVehicleFromOrder(nextOrder);
+    syncInsurancePolicyFromOrder(nextOrder);
+  }
+
+  function syncCustomerVehicleFromOrder(order) {
+    const normalizedVehicle = normalizeCustomerVehicle({
+      companyId: currentCompany.id,
+      customer: order.customer,
+      phone: order.phone,
+      plate: order.plate,
+      car: order.car,
+      vin: order.vin,
+      insurer: order.insurer,
+      vehicleType: order.type,
+      source: '维修接待',
+      remark: `最近工单：${order.id}`,
+    });
+
+    setCustomerVehicles((currentVehicles) => {
+      const existing = currentVehicles.find((vehicle) =>
+        (vehicle.companyId || 'tongda') === currentCompany.id &&
+        (vehicle.plate === order.plate || (vehicle.plate === order.plate && vehicle.phone === order.phone)),
+      );
+      if (!existing) return [normalizedVehicle, ...currentVehicles];
+      return currentVehicles.map((vehicle) => (
+        vehicle.id === existing.id ? { ...existing, ...normalizedVehicle, id: existing.id } : vehicle
+      ));
+    });
+  }
+
+  function syncInsurancePolicyFromOrder(order) {
+    if (!order.insuranceExpiry) return;
+    setInsurancePolicies((currentPolicies) => {
+      const existing = currentPolicies.find((policy) =>
+        (policy.companyId || 'tongda') === currentCompany.id && policy.plate === order.plate,
+      );
+      const normalizedPolicy = normalizeInsurancePolicy({
+        ...(existing || {}),
+        id: existing?.id || `IP${Date.now()}`,
+        companyId: currentCompany.id,
+        plate: order.plate,
+        customer: order.customer,
+        phone: order.phone,
+        car: order.car,
+        vin: order.vin,
+        expiry: order.insuranceExpiry,
+        amount: existing?.amount || 0,
+        type: existing?.type || '交强险 / 商业险',
+        insurer: order.insurer,
+      });
+      if (!existing) return [normalizedPolicy, ...currentPolicies];
+      return currentPolicies.map((policy) => (policy.id === existing.id ? normalizedPolicy : policy));
+    });
   }
 
   function updateOrderStatus(orderId, status) {
@@ -1006,6 +1059,7 @@ function createOrderDraft(order) {
       phone: order.phone,
       car: order.car,
       insurer: order.insurer,
+      insuranceExpiry: order.insuranceExpiry || '',
       type: order.type,
       status: order.status,
       labor: String(order.labor),
@@ -1015,7 +1069,7 @@ function createOrderDraft(order) {
       delivery: order.delivery,
       vin: order.vin || '',
       claimNo: order.claimNo || '',
-      accidentType: order.accidentType || '常规维修',
+      accidentType: order.accidentType || accidentTypeOptions[0],
       paymentMethod: order.paymentMethod || '待确认',
       settlementDate: order.settlementDate || '',
       settlementTime: order.settlementTime || '',
@@ -1026,15 +1080,17 @@ function createOrderDraft(order) {
 
   const now = new Date();
   const serial = String(now.getTime()).slice(-5);
+  const current = todayDateTimeParts();
   return {
     id: `RO202607${serial}`,
-    date: '07-23',
-    time: '11:30',
+    date: current.date.slice(5),
+    time: current.time,
     plate: '',
     customer: '',
     phone: '',
     car: '',
     insurer: '人保财险',
+    insuranceExpiry: '',
     type: '标的车',
     status: '在修中',
     labor: '0',
@@ -1044,7 +1100,7 @@ function createOrderDraft(order) {
     delivery: '待确认',
     vin: '',
     claimNo: '',
-    accidentType: '常规维修',
+    accidentType: accidentTypeOptions[0],
     paymentMethod: '待确认',
     settlementDate: '',
     settlementTime: '',
@@ -1070,6 +1126,7 @@ function draftToOrder(draft) {
     customer: draft.customer.trim(),
     phone: draft.phone.trim(),
     car: draft.car.trim(),
+    insuranceExpiry: draft.insuranceExpiry || '',
     record: draft.record.trim(),
     vin: draft.vin.trim(),
     claimNo: draft.claimNo.trim(),
@@ -1098,6 +1155,7 @@ const REPAIR_STATUS = {
 };
 const insurerOptions = ['人保财险', '平安保险', '太平洋保险', '阳光保险'];
 const vehicleTypeOptions = ['标的车', '三者车'];
+const accidentTypeOptions = ['喷漆维修（无换件）', '钣喷维修（有换件）', '机电维修保养', '数据修复'];
 
 function todayDateTimeParts() {
   const now = new Date();
@@ -1429,6 +1487,7 @@ function RepairReception({ orders, createRequest, focusRequest, onSaveOrder, onS
                 <div><dt>车型</dt><dd>{selected.car}</dd></div>
                 <div><dt>车架号</dt><dd>{selected.vin || '未填写'}</dd></div>
                 <div><dt>保险公司</dt><dd>{selected.insurer}</dd></div>
+                <div><dt>保险到期日</dt><dd>{selected.insuranceExpiry || '未填写'}</dd></div>
                 <div><dt>车辆类型</dt><dd>{selected.type}</dd></div>
                 <div><dt>案件号</dt><dd>{selected.claimNo || '未填写'}</dd></div>
                 <div><dt>事故类型</dt><dd>{selected.accidentType || '常规维修'}</dd></div>
@@ -1522,6 +1581,7 @@ function OrderDetailDialog({ order, onClose, onEdit, onPrint, onSettle, onVoid }
           <div><dt>车型</dt><dd>{order.car}</dd></div>
           <div><dt>车架号</dt><dd>{order.vin || '未填写'}</dd></div>
           <div><dt>保险公司</dt><dd>{order.insurer}</dd></div>
+          <div><dt>保险到期日</dt><dd>{order.insuranceExpiry || '未填写'}</dd></div>
           <div><dt>车辆类型</dt><dd>{order.type}</dd></div>
           <div><dt>案件号</dt><dd>{order.claimNo || '未填写'}</dd></div>
           <div><dt>事故类型</dt><dd>{order.accidentType || '常规维修'}</dd></div>
@@ -1687,26 +1747,23 @@ function OrderForm({ draft, mode, onChange, onCancel, onSubmit }) {
         <label>
           保险公司
           <select value={draft.insurer} onChange={(event) => updateField('insurer', event.target.value)}>
-            <option>人保财险</option>
-            <option>平安保险</option>
-            <option>太平洋保险</option>
-            <option>阳光保险</option>
+            {insurerOptions.map((insurer) => <option key={insurer}>{insurer}</option>)}
           </select>
+        </label>
+        <label>
+          保险到期日
+          <input required type="date" value={draft.insuranceExpiry} onChange={(event) => updateField('insuranceExpiry', event.target.value)} />
         </label>
         <label>
           车辆类型
           <select value={draft.type} onChange={(event) => updateField('type', event.target.value)}>
-            <option>标的车</option>
-            <option>三者车</option>
+            {vehicleTypeOptions.map((type) => <option key={type}>{type}</option>)}
           </select>
         </label>
         <label>
           事故类型
           <select value={draft.accidentType} onChange={(event) => updateField('accidentType', event.target.value)}>
-            <option>常规维修</option>
-            <option>小事故</option>
-            <option>保险维修</option>
-            <option>钣喷维修</option>
+            {accidentTypeOptions.map((type) => <option key={type}>{type}</option>)}
           </select>
         </label>
         <label>
@@ -1722,7 +1779,7 @@ function OrderForm({ draft, mode, onChange, onCancel, onSubmit }) {
         </label>
         <label>
           进厂日期
-          <input required value={draft.date} onChange={(event) => updateField('date', event.target.value)} placeholder="07-23" />
+          <input required value={draft.date} readOnly title="新增工单时自动锁定当天日期" />
         </label>
         <label>
           进厂时间
@@ -2320,7 +2377,9 @@ const exportConfigs = {
       { label: '手机号', value: (row) => row.phone },
       { label: '车型', value: (row) => row.car },
       { label: '保险公司', value: (row) => row.insurer },
+      { label: '保险到期日', value: (row) => row.insuranceExpiry || '' },
       { label: '车辆类型', value: (row) => row.type },
+      { label: '事故类型', value: (row) => row.accidentType || '' },
       { label: '维修状态', value: (row) => row.status },
       { label: '维修项目', value: (row) => row.record },
       { label: '工时费', value: (row) => row.labor },

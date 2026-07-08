@@ -10,6 +10,7 @@ const ORDER_COLUMNS = [
   'phone',
   'car',
   'insurer',
+  'insurance_expiry',
   'type',
   'status',
   'labor',
@@ -42,6 +43,7 @@ function toOrder(row) {
     phone: row.phone,
     car: row.car,
     insurer: row.insurer,
+    insuranceExpiry: row.insurance_expiry || '',
     type: row.type,
     status: row.status,
     labor: Number(row.labor) || 0,
@@ -88,6 +90,7 @@ function normalizeOrder(input, session) {
     phone: cleanText(input.phone),
     car: cleanText(input.car),
     insurer: cleanText(input.insurer) || '人保财险',
+    insurance_expiry: cleanText(input.insuranceExpiry),
     type: cleanText(input.type) || '标的车',
     status: cleanText(input.status) || '在修中',
     labor,
@@ -110,8 +113,11 @@ function normalizeOrder(input, session) {
   };
 }
 
-function validateOrder(order) {
+function validateOrder(order, existing) {
   const requiredFields = ['id', 'date', 'time', 'plate', 'customer', 'phone', 'car', 'record'];
+  if (!existing) {
+    requiredFields.push('insurance_expiry');
+  }
   const missing = requiredFields.filter((field) => !order[field]);
   if (missing.length > 0) {
     return `缺少必填字段：${missing.join(', ')}`;
@@ -135,7 +141,10 @@ export async function onRequestPost({ request, env }) {
 
   const payload = await request.json();
   const order = normalizeOrder(payload.order || payload, session);
-  const validationError = validateOrder(order);
+  const existing = await env.DB.prepare('SELECT id, status FROM repair_orders WHERE id = ? AND company_id = ?')
+    .bind(order.id, session.company_id || 'tongda')
+    .first();
+  const validationError = validateOrder(order, existing);
   if (validationError) {
     return json({ error: validationError }, { status: 400 });
   }
@@ -145,10 +154,6 @@ export async function onRequestPost({ request, env }) {
     .filter((column) => column !== 'id')
     .map((column) => `${column} = excluded.${column}`)
     .join(', ');
-
-  const existing = await env.DB.prepare('SELECT id, status FROM repair_orders WHERE id = ? AND company_id = ?')
-    .bind(order.id, session.company_id || 'tongda')
-    .first();
 
   await env.DB.prepare(`
     INSERT INTO repair_orders (${ORDER_COLUMNS.join(', ')}, updated_at)
