@@ -1392,15 +1392,15 @@ function HistoryQueryPage({ orders, insurerOptions, onView, onEdit }) {
           </label>
           <label>
             车牌号
-            <input value={draftFilters.plate} onChange={(event) => updateFilter('plate', event.target.value)} placeholder="粤B" />
+            <input value={draftFilters.plate} onChange={(event) => updateFilter('plate', event.target.value)} placeholder="请输入车牌号" />
           </label>
           <label>
             客户名称
-            <input value={draftFilters.customer} onChange={(event) => updateFilter('customer', event.target.value)} placeholder="陈先生" />
+            <input value={draftFilters.customer} onChange={(event) => updateFilter('customer', event.target.value)} placeholder="请输入客户名称" />
           </label>
           <label>
             手机号
-            <input value={draftFilters.phone} onChange={(event) => updateFilter('phone', event.target.value)} placeholder="138" />
+            <input value={draftFilters.phone} onChange={(event) => updateFilter('phone', event.target.value)} placeholder="请输入手机号" />
           </label>
           <label>
             维修状态
@@ -1938,27 +1938,27 @@ function OrderForm({ draft, mode, insurerOptions, staffOptions, onChange, onCanc
       <div className="form-grid">
         <label>
           车牌号
-          <input required value={draft.plate} onChange={(event) => updateField('plate', event.target.value)} placeholder="粤B·8A123" />
+          <input required value={draft.plate} onChange={(event) => updateField('plate', event.target.value)} placeholder="必填，请输入车牌号" />
         </label>
         <label>
           客户名称
-          <input required value={draft.customer} onChange={(event) => updateField('customer', event.target.value)} placeholder="陈先生" />
+          <input required value={draft.customer} onChange={(event) => updateField('customer', event.target.value)} placeholder="必填，请输入客户名称" />
         </label>
         <label>
           手机号
-          <input required value={draft.phone} onChange={(event) => updateField('phone', event.target.value)} placeholder="138****5678" />
+          <input required value={draft.phone} onChange={(event) => updateField('phone', event.target.value)} placeholder="必填，请输入手机号" />
         </label>
         <label>
           车型
-          <input required value={draft.car} onChange={(event) => updateField('car', event.target.value)} placeholder="本田 凯美瑞" />
+          <input required value={draft.car} onChange={(event) => updateField('car', event.target.value)} placeholder="必填，请输入车型" />
         </label>
         <label>
           车架号
-          <input value={draft.vin} onChange={(event) => updateField('vin', event.target.value)} placeholder="LFV3A24G6N30***21" />
+          <input value={draft.vin} onChange={(event) => updateField('vin', event.target.value)} placeholder="可选，请输入车架号" />
         </label>
         <label>
           保险案件号
-          <input value={draft.claimNo} onChange={(event) => updateField('claimNo', event.target.value)} placeholder="可选，保险维修时填写" />
+          <input value={draft.claimNo} onChange={(event) => updateField('claimNo', event.target.value)} placeholder="可选，请输入保险案件号" />
         </label>
         <label>
           保险公司
@@ -1999,7 +1999,7 @@ function OrderForm({ draft, mode, insurerOptions, staffOptions, onChange, onCanc
         </label>
         <label>
           进厂时间
-          <input required value={draft.time} onChange={(event) => updateField('time', event.target.value)} placeholder="10:25" />
+          <input required value={draft.time} onChange={(event) => updateField('time', event.target.value)} placeholder="必填，请输入进厂时间" />
         </label>
         <label>
           工时费
@@ -2026,15 +2026,15 @@ function OrderForm({ draft, mode, insurerOptions, staffOptions, onChange, onCanc
         </label>
         <label className="full-field">
           维修项目
-          <textarea required value={draft.record} onChange={(event) => updateField('record', event.target.value)} placeholder="填写维修项目、故障描述或接待备注" />
+          <textarea required value={draft.record} onChange={(event) => updateField('record', event.target.value)} placeholder="必填，请输入维修项目、故障描述" />
         </label>
         <label className="full-field">
           预计交车
-          <input value={draft.delivery} onChange={(event) => updateField('delivery', event.target.value)} placeholder="07-23 15:00" />
+          <input value={draft.delivery} onChange={(event) => updateField('delivery', event.target.value)} placeholder="可选，请输入预计交车时间" />
         </label>
         <label className="full-field">
           接待备注
-          <textarea value={draft.remark} onChange={(event) => updateField('remark', event.target.value)} placeholder="记录客户要求、定损说明、取车提醒等信息" />
+          <textarea value={draft.remark} onChange={(event) => updateField('remark', event.target.value)} placeholder="可选，请输入客户要求、定损说明、取车提醒" />
         </label>
       </div>
 
@@ -2251,23 +2251,23 @@ function InsuranceLedger({ policies, insurerOptions, onSavePolicy, focusPolicyRe
           <div className="form-grid">
             <label>
               车牌号
-              <input required value={draft.plate} onChange={(event) => updateField('plate', event.target.value)} placeholder="粤B·8A123" />
+              <input required value={draft.plate} onChange={(event) => updateField('plate', event.target.value)} placeholder="必填，请输入车牌号" />
             </label>
             <label>
               客户名称
-              <input required value={draft.customer} onChange={(event) => updateField('customer', event.target.value)} placeholder="陈先生" />
+              <input required value={draft.customer} onChange={(event) => updateField('customer', event.target.value)} placeholder="必填，请输入客户名称" />
             </label>
             <label>
               手机号
-              <input value={draft.phone} onChange={(event) => updateField('phone', event.target.value)} placeholder="138****5678" />
+              <input value={draft.phone} onChange={(event) => updateField('phone', event.target.value)} placeholder="可选，请输入手机号" />
             </label>
             <label>
               车型
-              <input required value={draft.car} onChange={(event) => updateField('car', event.target.value)} placeholder="本田 凯美瑞" />
+              <input required value={draft.car} onChange={(event) => updateField('car', event.target.value)} placeholder="必填，请输入车型" />
             </label>
             <label>
               车架号
-              <input value={draft.vin} onChange={(event) => updateField('vin', event.target.value)} placeholder="LFV3A24G6N30***21" />
+              <input value={draft.vin} onChange={(event) => updateField('vin', event.target.value)} placeholder="可选，请输入车架号" />
             </label>
             <label>
               保险公司
@@ -2285,7 +2285,7 @@ function InsuranceLedger({ policies, insurerOptions, onSavePolicy, focusPolicyRe
             </label>
             <label className="full-field">
               险种
-              <input required value={draft.type} onChange={(event) => updateField('type', event.target.value)} placeholder="交强险 / 商业险" />
+              <input required value={draft.type} onChange={(event) => updateField('type', event.target.value)} placeholder="必填，请输入险种" />
             </label>
           </div>
           <div className="form-total">
@@ -2513,23 +2513,23 @@ function CustomerVehiclesPage({ vehicles, orders, policies, insurerOptions, onSa
           <div className="form-grid">
             <label>
               客户名称
-              <input required value={draft.customer} onChange={(event) => updateField('customer', event.target.value)} placeholder="陈先生" />
+              <input required value={draft.customer} onChange={(event) => updateField('customer', event.target.value)} placeholder="必填，请输入客户名称" />
             </label>
             <label>
               手机号
-              <input value={draft.phone} onChange={(event) => updateField('phone', event.target.value)} placeholder="138****5678" />
+              <input value={draft.phone} onChange={(event) => updateField('phone', event.target.value)} placeholder="可选，请输入手机号" />
             </label>
             <label>
               车牌号
-              <input required value={draft.plate} onChange={(event) => updateField('plate', event.target.value)} placeholder="粤B·8A123" />
+              <input required value={draft.plate} onChange={(event) => updateField('plate', event.target.value)} placeholder="必填，请输入车牌号" />
             </label>
             <label>
               车型
-              <input required value={draft.car} onChange={(event) => updateField('car', event.target.value)} placeholder="本田 凯美瑞" />
+              <input required value={draft.car} onChange={(event) => updateField('car', event.target.value)} placeholder="必填，请输入车型" />
             </label>
             <label>
               车架号
-              <input value={draft.vin} onChange={(event) => updateField('vin', event.target.value)} placeholder="LFV3A24G6N30***21" />
+              <input value={draft.vin} onChange={(event) => updateField('vin', event.target.value)} placeholder="可选，请输入车架号" />
             </label>
             <label>
               保险公司
@@ -2555,7 +2555,7 @@ function CustomerVehiclesPage({ vehicles, orders, policies, insurerOptions, onSa
             </label>
             <label className="full-field">
               备注
-              <textarea value={draft.remark} onChange={(event) => updateField('remark', event.target.value)} placeholder="记录客户偏好、续保提醒、车辆情况等信息" />
+              <textarea value={draft.remark} onChange={(event) => updateField('remark', event.target.value)} placeholder="可选，请输入客户偏好、续保提醒、车辆情况" />
             </label>
           </div>
           <div className="form-total">
@@ -2916,12 +2916,12 @@ function DictionaryManager({ title, description, entries, draft, onDraftChange, 
       <form className="dictionary-form" onSubmit={onSubmit}>
         <label>
           {isStaff ? '岗位职称' : '保险公司名称'}
-          <input value={draft.value} onChange={(event) => onDraftChange((current) => ({ ...current, value: event.target.value }))} placeholder={isStaff ? '例如 接待顾问' : '例如 中华联合保险'} />
+          <input value={draft.value} onChange={(event) => onDraftChange((current) => ({ ...current, value: event.target.value }))} placeholder={isStaff ? '必填，请输入岗位职称' : '必填，请输入保险公司名称'} />
         </label>
         {isStaff ? (
           <label>
             人员名称
-            <input value={draft.extra} onChange={(event) => onDraftChange((current) => ({ ...current, extra: event.target.value }))} placeholder="例如 王师傅" />
+            <input value={draft.extra} onChange={(event) => onDraftChange((current) => ({ ...current, extra: event.target.value }))} placeholder="必填，请输入人员名称" />
           </label>
         ) : null}
         <label>
@@ -3201,19 +3201,19 @@ function SystemSettingsPage({ session, cloudState, orders, dictionaries, canView
           <form className="settings-account-form" onSubmit={submitAccount}>
             <label>
               账号
-              <input value={accountDraft.username} onChange={(event) => setAccountDraft((current) => ({ ...current, username: event.target.value }))} placeholder="例如 tongda" />
+              <input value={accountDraft.username} onChange={(event) => setAccountDraft((current) => ({ ...current, username: event.target.value }))} placeholder="必填，请输入账号" />
             </label>
             <label>
               密码
-              <input value={accountDraft.password} onChange={(event) => setAccountDraft((current) => ({ ...current, password: event.target.value }))} placeholder="6-32位密码" />
+              <input value={accountDraft.password} onChange={(event) => setAccountDraft((current) => ({ ...current, password: event.target.value }))} placeholder="必填，请输入6-32位密码" />
             </label>
             <label>
               人员名称
-              <input value={accountDraft.displayName} onChange={(event) => setAccountDraft((current) => ({ ...current, displayName: event.target.value }))} placeholder="例如 张三" />
+              <input value={accountDraft.displayName} onChange={(event) => setAccountDraft((current) => ({ ...current, displayName: event.target.value }))} placeholder="请输入人员名称" />
             </label>
             <label>
               岗位职称
-              <input value={accountDraft.title} disabled={accountDraft.role === 'admin'} onChange={(event) => setAccountDraft((current) => ({ ...current, title: event.target.value }))} placeholder="例如 接待顾问" />
+              <input value={accountDraft.title} disabled={accountDraft.role === 'admin'} onChange={(event) => setAccountDraft((current) => ({ ...current, title: event.target.value }))} placeholder="请输入岗位职称" />
             </label>
             <label>
               角色

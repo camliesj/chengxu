@@ -1542,6 +1542,17 @@ dd {
   outline: 0;
 }
 
+.form-grid input::placeholder,
+.form-grid textarea::placeholder,
+.insurance-editor input::placeholder,
+.insurance-editor textarea::placeholder,
+.settings-account-form input::placeholder,
+.dictionary-form input::placeholder,
+.history-filter-grid input::placeholder {
+  color: #9aabc0;
+  font-weight: 700;
+}
+
 .form-grid input:focus,
 .form-grid select:focus,
 .form-grid textarea:focus {
