@@ -32,9 +32,41 @@ const INSURANCE_STORAGE_KEY = 'chengxu-insurance-policies';
 const CUSTOMER_VEHICLE_STORAGE_KEY = 'chengxu-customer-vehicles';
 const ACCESS_SESSION_KEY = 'chengxu-access-session';
 const INSURANCE_BASE_DATE = '2026-07-21';
+const defaultInsurerOptions = ['人保财险', '平安保险', '太平洋保险', '阳光保险'];
+const defaultStaffEntries = [
+  { id: 'default-staff-1', value: '接待顾问', extra: '张工', isActive: true },
+  { id: 'default-staff-2', value: '维修顾问', extra: '王工', isActive: true },
+  { id: 'default-staff-3', value: '结算专员', extra: '李工', isActive: true },
+];
+const permissionItems = [
+  { key: 'repair', label: '维修接待' },
+  { key: 'history', label: '历史查询' },
+  { key: 'insurance', label: '车辆保险' },
+  { key: 'customers', label: '客户车辆' },
+  { key: 'reports', label: '汇总报表' },
+  { key: 'export', label: '数据导出' },
+  { key: 'settings', label: '系统设置' },
+  { key: 'voidOrder', label: '作废工单' },
+  { key: 'logs', label: '操作日志' },
+];
+const allPermissionKeys = permissionItems.map((item) => item.key);
+const defaultStaffPermissions = ['repair', 'history', 'insurance', 'customers', 'reports'];
 
 function companyById(companyId) {
   return companies.find((company) => company.id === companyId) || companies[0];
+}
+
+function permissionsForSession(session) {
+  if (session?.role === 'admin') return allPermissionKeys;
+  return Array.isArray(session?.permissions) && session.permissions.length > 0 ? session.permissions : defaultStaffPermissions;
+}
+
+function hasUiPermission(session, permission) {
+  return permissionsForSession(session).includes(permission);
+}
+
+function dictionaryStaffLabel(entry) {
+  return `${entry.value || ''}${entry.extra ? ` ${entry.extra}` : ''}`.trim();
 }
 
 function AssetIcon({ name, alt = '', className = '' }) {
@@ -222,6 +254,49 @@ async function deleteAccount(id, session) {
   return response.json();
 }
 
+async function fetchDictionaries(session) {
+  const response = await fetch('/api/dictionaries', {
+    headers: authHeaders(session),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `字典读取失败：${response.status}`);
+  }
+  const data = await response.json();
+  return Array.isArray(data.dictionaries) ? data.dictionaries : [];
+}
+
+async function saveDictionaryEntry(entry, session) {
+  const response = await fetch('/api/dictionaries', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...authHeaders(session) },
+    body: JSON.stringify(entry),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    const messageMap = {
+      DICTIONARY_VALUE_REQUIRED: '请填写字典名称',
+      STAFF_NAME_REQUIRED: '请填写人员名称',
+      PERMISSION_REQUIRED: '当前账号无权维护系统字典',
+    };
+    throw new Error(messageMap[data.error] || data.error || `字典保存失败：${response.status}`);
+  }
+  return response.json();
+}
+
+async function deleteDictionaryEntry(id, session) {
+  const response = await fetch('/api/dictionaries', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...authHeaders(session) },
+    body: JSON.stringify({ action: 'delete', id }),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `字典删除失败：${response.status}`);
+  }
+  return response.json();
+}
+
 function normalizeInsurancePolicy(policy, index = 0) {
   return {
     id: policy.id || `IP${Date.now()}${index}`,
@@ -400,6 +475,7 @@ function App() {
   const [orders, setOrders] = useState(readStoredOrders);
   const [insurancePolicies, setInsurancePolicies] = useState(readStoredInsurancePolicies);
   const [customerVehicles, setCustomerVehicles] = useState(readStoredCustomerVehicles);
+  const [dictionaries, setDictionaries] = useState([]);
   const [createRequest, setCreateRequest] = useState(0);
   const [receptionFocus, setReceptionFocus] = useState(null);
   const [insuranceFocusRequest, setInsuranceFocusRequest] = useState(null);
@@ -409,6 +485,10 @@ function App() {
 
   const currentCompany = companyById(accessSession?.companyId || 'tongda');
   const isAdmin = accessSession?.role === 'admin';
+  const canExportData = hasUiPermission(accessSession, 'export');
+  const canOpenSettings = hasUiPermission(accessSession, 'settings');
+  const canVoidOrder = hasUiPermission(accessSession, 'voidOrder');
+  const canViewLogs = hasUiPermission(accessSession, 'logs');
   const orderData = useMemo(() => orderRepository.listOrders(orders), [orders]);
   const companyOrders = useMemo(
     () => orderData.filter((order) => (order.companyId || 'tongda') === currentCompany.id),
@@ -422,6 +502,18 @@ function App() {
     () => customerVehicles.filter((vehicle) => (vehicle.companyId || 'tongda') === currentCompany.id),
     [customerVehicles, currentCompany.id],
   );
+  const insurerChoices = useMemo(() => {
+    const values = dictionaries
+      .filter((entry) => entry.category === 'insurer' && entry.isActive)
+      .map((entry) => entry.value)
+      .filter(Boolean);
+    return values.length > 0 ? values : defaultInsurerOptions;
+  }, [dictionaries]);
+  const staffEntries = useMemo(() => {
+    const entries = dictionaries.filter((entry) => entry.category === 'staff' && entry.isActive);
+    return entries.length > 0 ? entries : defaultStaffEntries;
+  }, [dictionaries]);
+  const staffChoices = useMemo(() => staffEntries.map(dictionaryStaffLabel).filter(Boolean), [staffEntries]);
 
   useEffect(() => {
     localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(orders));
@@ -441,6 +533,21 @@ function App() {
       .catch((error) => {
         if (isCancelled) return;
         setOrdersCloudState({ loading: false, error: error.message || '云端连接失败' });
+      });
+    return () => {
+      isCancelled = true;
+    };
+  }, [isUnlocked, accessSession]);
+
+  useEffect(() => {
+    if (!isUnlocked || !accessSession?.token) return undefined;
+    let isCancelled = false;
+    fetchDictionaries(accessSession)
+      .then((nextDictionaries) => {
+        if (!isCancelled) setDictionaries(nextDictionaries);
+      })
+      .catch(() => {
+        if (!isCancelled) setDictionaries([]);
       });
     return () => {
       isCancelled = true;
@@ -627,7 +734,18 @@ function App() {
           </div>
         </div>
         <nav>
-          {navItems.filter((item) => isAdmin || item !== '数据导出').map((item) => (
+          {navItems.filter((item) => {
+            const permissionMap = {
+              维修接待: 'repair',
+              历史查询: 'history',
+              车辆保险: 'insurance',
+              客户车辆: 'customers',
+              汇总报表: 'reports',
+              数据导出: 'export',
+              系统设置: 'settings',
+            };
+            return !permissionMap[item] || hasUiPermission(accessSession, permissionMap[item]);
+          }).map((item) => (
             <button
               key={item}
               className={activePage === item ? 'nav-item active' : 'nav-item'}
@@ -672,7 +790,7 @@ function App() {
           >
             ＋ 新增工单
           </button>
-          {isAdmin ? (
+          {canExportData ? (
             <button className="secondary-action" onClick={() => setActivePage('数据导出')}><AssetIcon name="action-excel.png" className="button-icon" />导出Excel</button>
           ) : null}
           <div className="topbar-user">
@@ -742,10 +860,12 @@ function App() {
               <div className="topbar-popover user-popover">
                 <h3>{accessSession?.role === 'admin' ? '门店管理员' : '门店员工'}</h3>
                 <p>{accessSession?.displayName || accessSession?.label || '已登录账号'} · {currentCompany.shortName}</p>
-                <button type="button" onClick={() => {
-                  setActivePage('系统设置');
-                  setUserMenuOpen(false);
-                }}>系统设置</button>
+                {canOpenSettings ? (
+                  <button type="button" onClick={() => {
+                    setActivePage('系统设置');
+                    setUserMenuOpen(false);
+                  }}>系统设置</button>
+                ) : null}
                 <button type="button" onClick={logout}>退出登录</button>
               </div>
             ) : null}
@@ -770,43 +890,52 @@ function App() {
             onStatusChange={updateOrderStatus}
             cloudState={ordersCloudState}
             role={accessSession?.role || 'staff'}
+            canVoidOrder={canVoidOrder}
+            insurerOptions={insurerChoices}
+            staffOptions={staffChoices}
             onVoidOrder={voidOrder}
           />
         )}
         {activePage === '历史查询' && (
           <HistoryQueryPage
             orders={companyOrders}
+            insurerOptions={insurerChoices}
             onView={(order) => openOrderInReception(order, 'view')}
             onEdit={(order) => openOrderInReception(order, 'edit')}
           />
         )}
         {activePage === '车辆保险' && (
-          <InsuranceLedger policies={companyInsurancePolicies} onSavePolicy={saveInsurancePolicy} focusPolicyRequest={insuranceFocusRequest} />
+          <InsuranceLedger policies={companyInsurancePolicies} insurerOptions={insurerChoices} onSavePolicy={saveInsurancePolicy} focusPolicyRequest={insuranceFocusRequest} />
         )}
         {activePage === '客户车辆' && (
           <CustomerVehiclesPage
             vehicles={companyCustomerVehicles}
             orders={companyOrders}
             policies={companyInsurancePolicies}
+            insurerOptions={insurerChoices}
             onSaveVehicle={saveCustomerVehicle}
           />
         )}
-        {activePage === '数据导出' && isAdmin && (
+        {activePage === '数据导出' && canExportData && (
           <DataExportPage
             orders={companyOrders}
             policies={companyInsurancePolicies}
             vehicles={companyCustomerVehicles}
           />
         )}
-        {activePage === '数据导出' && !isAdmin && <NoPermissionPage title="数据导出" />}
-        {activePage === '系统设置' && (
+        {activePage === '数据导出' && !canExportData && <NoPermissionPage title="数据导出" />}
+        {activePage === '系统设置' && canOpenSettings && (
           <SystemSettingsPage
             session={accessSession}
             cloudState={ordersCloudState}
             orders={companyOrders}
+            dictionaries={dictionaries}
+            canViewLogs={canViewLogs}
+            onDictionariesChange={setDictionaries}
             onRefreshOrders={refreshOrders}
           />
         )}
+        {activePage === '系统设置' && !canOpenSettings && <NoPermissionPage title="系统设置" />}
         {!['首页看板', '维修接待', '历史查询', '车辆保险', '客户车辆', '数据导出', '系统设置'].includes(activePage) && (
           <PlaceholderPage title={activePage} orders={filteredOrders} />
         )}
@@ -1154,7 +1283,6 @@ const REPAIR_STATUS = {
   pendingSettlement: statusOptions[2],
   settled: statusOptions[3],
 };
-const insurerOptions = ['人保财险', '平安保险', '太平洋保险', '阳光保险'];
 const vehicleTypeOptions = ['标的车', '三者车'];
 const accidentTypeOptions = ['喷漆维修（无换件）', '钣喷维修（有换件）', '机电维修保养', '数据修复'];
 
@@ -1220,7 +1348,7 @@ function filterHistoryOrders(orders, filters) {
   });
 }
 
-function HistoryQueryPage({ orders, onView, onEdit }) {
+function HistoryQueryPage({ orders, insurerOptions, onView, onEdit }) {
   const [draftFilters, setDraftFilters] = useState(historyInitialFilters);
   const [appliedFilters, setAppliedFilters] = useState(historyInitialFilters);
 
@@ -1324,7 +1452,7 @@ function HistoryQueryPage({ orders, onView, onEdit }) {
   );
 }
 
-function RepairReception({ orders, company, createRequest, focusRequest, onSaveOrder, onStatusChange, cloudState, role, onVoidOrder }) {
+function RepairReception({ orders, company, createRequest, focusRequest, onSaveOrder, onStatusChange, cloudState, canVoidOrder, insurerOptions, staffOptions, onVoidOrder }) {
   const [selectedId, setSelectedId] = useState(() => orders[0]?.id || '');
   const [formMode, setFormMode] = useState('view');
   const [draft, setDraft] = useState(() => createOrderDraft(orders[0]));
@@ -1471,7 +1599,7 @@ function RepairReception({ orders, company, createRequest, focusRequest, onSaveO
             onEdit={openEdit}
             onPrint={printOrder}
             onSettle={(order) => setSettlementOrder(order)}
-            onVoid={role === 'admin' ? (order) => setVoidOrderTarget(order) : null}
+            onVoid={canVoidOrder ? (order) => setVoidOrderTarget(order) : null}
           />
         </div>
         <aside className="detail-panel">
@@ -1515,6 +1643,8 @@ function RepairReception({ orders, company, createRequest, focusRequest, onSaveO
             <OrderForm
               draft={draft}
               mode={formMode}
+              insurerOptions={insurerOptions}
+              staffOptions={staffOptions}
               onChange={setDraft}
               onCancel={() => {
                 setFormMode('view');
@@ -1534,7 +1664,7 @@ function RepairReception({ orders, company, createRequest, focusRequest, onSaveO
           onEdit={() => openEdit(detailOrder)}
           onPrint={() => printOrder(detailOrder)}
           onSettle={() => setSettlementOrder(detailOrder)}
-          onVoid={role === 'admin' ? () => setVoidOrderTarget(detailOrder) : null}
+          onVoid={canVoidOrder ? () => setVoidOrderTarget(detailOrder) : null}
         />
       ) : null}
       {settlementOrder ? (
@@ -1788,9 +1918,11 @@ function SettlementDialog({ order, onClose, onSubmit }) {
   );
 }
 
-function OrderForm({ draft, mode, onChange, onCancel, onSubmit }) {
+function OrderForm({ draft, mode, insurerOptions, staffOptions, onChange, onCancel, onSubmit }) {
   const labor = normalizeMoney(draft.labor);
   const material = normalizeMoney(draft.material);
+  const visibleInsurerOptions = Array.from(new Set([draft.insurer, ...insurerOptions].filter(Boolean)));
+  const visibleStaffOptions = Array.from(new Set([draft.staff, ...staffOptions].filter(Boolean)));
 
   function updateField(field, value) {
     onChange({ ...draft, [field]: value });
@@ -1831,7 +1963,7 @@ function OrderForm({ draft, mode, onChange, onCancel, onSubmit }) {
         <label>
           保险公司
           <select value={draft.insurer} onChange={(event) => updateField('insurer', event.target.value)}>
-            {insurerOptions.map((insurer) => <option key={insurer}>{insurer}</option>)}
+            {visibleInsurerOptions.map((insurer) => <option key={insurer}>{insurer}</option>)}
           </select>
         </label>
         <label>
@@ -1889,9 +2021,7 @@ function OrderForm({ draft, mode, onChange, onCancel, onSubmit }) {
         <label>
           业务员
           <select value={draft.staff} onChange={(event) => updateField('staff', event.target.value)}>
-            <option>张工</option>
-            <option>王工</option>
-            <option>李工</option>
+            {visibleStaffOptions.map((staff) => <option key={staff}>{staff}</option>)}
           </select>
         </label>
         <label className="full-field">
@@ -2020,10 +2150,14 @@ function draftToInsurancePolicy(draft) {
   });
 }
 
-function InsuranceLedger({ policies, onSavePolicy, focusPolicyRequest }) {
+function InsuranceLedger({ policies, insurerOptions, onSavePolicy, focusPolicyRequest }) {
   const [activeFilter, setActiveFilter] = useState('7天内到期');
   const [formMode, setFormMode] = useState('create');
   const [draft, setDraft] = useState(createInsuranceDraft);
+  const visibleInsurerOptions = useMemo(
+    () => Array.from(new Set([draft.insurer, ...insurerOptions].filter(Boolean))),
+    [draft.insurer, insurerOptions],
+  );
 
   const filteredPolicies = useMemo(() => {
     if (activeFilter === '全部保险') return policies;
@@ -2138,10 +2272,7 @@ function InsuranceLedger({ policies, onSavePolicy, focusPolicyRequest }) {
             <label>
               保险公司
               <select value={draft.insurer} onChange={(event) => updateField('insurer', event.target.value)}>
-                <option>人保财险</option>
-                <option>平安保险</option>
-                <option>太平洋保险</option>
-                <option>阳光保险</option>
+                {visibleInsurerOptions.map((insurer) => <option key={insurer}>{insurer}</option>)}
               </select>
             </label>
             <label>
@@ -2266,11 +2397,15 @@ function downloadExcel(filename, htmlContent) {
   URL.revokeObjectURL(url);
 }
 
-function CustomerVehiclesPage({ vehicles, orders, policies, onSaveVehicle }) {
+function CustomerVehiclesPage({ vehicles, orders, policies, insurerOptions, onSaveVehicle }) {
   const [keyword, setKeyword] = useState('');
   const [activeFilter, setActiveFilter] = useState('全部车辆');
   const [formMode, setFormMode] = useState('create');
   const [draft, setDraft] = useState(createCustomerVehicleDraft);
+  const visibleInsurerOptions = useMemo(
+    () => Array.from(new Set([draft.insurer, ...insurerOptions].filter(Boolean))),
+    [draft.insurer, insurerOptions],
+  );
 
   const filteredVehicles = useMemo(() => {
     const normalizedKeyword = keyword.trim().toLowerCase();
@@ -2399,10 +2534,7 @@ function CustomerVehiclesPage({ vehicles, orders, policies, onSaveVehicle }) {
             <label>
               保险公司
               <select value={draft.insurer} onChange={(event) => updateField('insurer', event.target.value)}>
-                <option>人保财险</option>
-                <option>平安保险</option>
-                <option>太平洋保险</option>
-                <option>阳光保险</option>
+                {visibleInsurerOptions.map((insurer) => <option key={insurer}>{insurer}</option>)}
               </select>
             </label>
             <label>
@@ -2755,28 +2887,105 @@ function ReportRanking({ title, rows, maxAmount }) {
   );
 }
 
+function DictionaryManager({ title, description, entries, draft, onDraftChange, onEdit, onDelete, onSubmit }) {
+  const isStaff = draft.category === 'staff';
+  return (
+    <article className="dictionary-card">
+      <header>
+        <div>
+          <h4>{title}</h4>
+          <p>{description}</p>
+        </div>
+        <span>{entries.length} 项</span>
+      </header>
+      <div className="dictionary-list">
+        {entries.length === 0 ? (
+          <div className="settings-empty">暂无字典项</div>
+        ) : entries.map((entry) => (
+          <div key={entry.id} className={entry.isActive ? 'dictionary-item active' : 'dictionary-item'}>
+            <div>
+              <strong>{entry.value}</strong>
+              {entry.extra ? <span>{entry.extra}</span> : null}
+            </div>
+            <small>{entry.isActive ? '启用' : '停用'} · 排序 {entry.sortOrder}</small>
+            <button type="button" onClick={() => onEdit(entry)}>编辑</button>
+            <button type="button" className="danger" onClick={() => onDelete(entry)}>删除</button>
+          </div>
+        ))}
+      </div>
+      <form className="dictionary-form" onSubmit={onSubmit}>
+        <label>
+          {isStaff ? '岗位职称' : '保险公司名称'}
+          <input value={draft.value} onChange={(event) => onDraftChange((current) => ({ ...current, value: event.target.value }))} placeholder={isStaff ? '例如 接待顾问' : '例如 中华联合保险'} />
+        </label>
+        {isStaff ? (
+          <label>
+            人员名称
+            <input value={draft.extra} onChange={(event) => onDraftChange((current) => ({ ...current, extra: event.target.value }))} placeholder="例如 王师傅" />
+          </label>
+        ) : null}
+        <label>
+          排序
+          <input type="number" value={draft.sortOrder} onChange={(event) => onDraftChange((current) => ({ ...current, sortOrder: event.target.value }))} />
+        </label>
+        <label className="settings-switch-field">
+          启用
+          <input type="checkbox" checked={draft.isActive} onChange={(event) => onDraftChange((current) => ({ ...current, isActive: event.target.checked }))} />
+        </label>
+        <div className="account-form-actions">
+          <button type="button" onClick={() => onDraftChange(createDictionaryDraft(draft.category))}>清空</button>
+          <button type="submit">{draft.id ? '保存修改' : '新增字典'}</button>
+        </div>
+      </form>
+    </article>
+  );
+}
+
 function createAccountDraft(account) {
   return {
     id: account?.id || '',
     username: account?.username || '',
     password: account?.password || '',
     role: account?.role || 'staff',
+    title: account?.title || account?.label || '员工',
     displayName: account?.displayName || '',
     companyId: account?.companyId || 'tongda',
     isActive: account?.isActive ?? true,
+    permissions: account?.role === 'admin'
+      ? allPermissionKeys
+      : Array.isArray(account?.permissions) && account.permissions.length > 0
+        ? account.permissions
+        : defaultStaffPermissions,
   };
 }
 
-function SystemSettingsPage({ session, cloudState, orders, onRefreshOrders }) {
+function createDictionaryDraft(category = 'insurer', entry = null) {
+  return {
+    id: entry?.id || '',
+    category,
+    value: entry?.value || '',
+    extra: entry?.extra || '',
+    sortOrder: entry?.sortOrder ?? 10,
+    isActive: entry?.isActive ?? true,
+  };
+}
+
+function SystemSettingsPage({ session, cloudState, orders, dictionaries, canViewLogs, onDictionariesChange, onRefreshOrders }) {
   const [logs, setLogs] = useState([]);
   const [logState, setLogState] = useState({ loading: false, error: '' });
   const [accounts, setAccounts] = useState([]);
   const [accountDraft, setAccountDraft] = useState(createAccountDraft());
   const [accountState, setAccountState] = useState({ loading: false, message: '', error: '' });
+  const [insurerDraft, setInsurerDraft] = useState(createDictionaryDraft('insurer'));
+  const [staffDraft, setStaffDraft] = useState(createDictionaryDraft('staff'));
+  const [dictionaryState, setDictionaryState] = useState({ loading: false, message: '', error: '' });
   const isAdmin = session?.role === 'admin';
+  const canManageSettings = hasUiPermission(session, 'settings');
+  const insurerDictionaries = dictionaries.filter((entry) => entry.category === 'insurer');
+  const staffDictionaries = dictionaries.filter((entry) => entry.category === 'staff');
 
   function loadLogs() {
-    if (!isAdmin) return;
+    if (!canViewLogs) return;
     setLogState({ loading: true, error: '' });
     fetchOperationLogs(session)
       .then((nextLogs) => {
@@ -2800,6 +3009,16 @@ function SystemSettingsPage({ session, cloudState, orders, onRefreshOrders }) {
   function editAccount(account) {
     setAccountDraft(createAccountDraft(account));
     setAccountState({ loading: false, message: '', error: '' });
+  }
+
+  function updateAccountPermission(permission, checked) {
+    setAccountDraft((current) => {
+      const currentPermissions = Array.isArray(current.permissions) ? current.permissions : [];
+      const nextPermissions = checked
+        ? [...new Set([...currentPermissions, permission])]
+        : currentPermissions.filter((item) => item !== permission);
+      return { ...current, permissions: nextPermissions };
+    });
   }
 
   function submitAccount(event) {
@@ -2829,12 +3048,46 @@ function SystemSettingsPage({ session, cloudState, orders, onRefreshOrders }) {
       .catch((error) => setAccountState({ loading: false, message: '', error: error.message || '账号删除失败' }));
   }
 
+  function refreshDictionaries() {
+    fetchDictionaries(session)
+      .then((nextDictionaries) => onDictionariesChange(nextDictionaries))
+      .catch((error) => setDictionaryState({ loading: false, message: '', error: error.message || '字典刷新失败' }));
+  }
+
+  function submitDictionary(event, draft, resetDraft) {
+    event.preventDefault();
+    if (!canManageSettings) return;
+    setDictionaryState({ loading: true, message: '', error: '' });
+    saveDictionaryEntry(draft, session)
+      .then(() => {
+        resetDraft(createDictionaryDraft(draft.category));
+        setDictionaryState({ loading: false, message: '字典已保存', error: '' });
+        refreshDictionaries();
+        if (canViewLogs) loadLogs();
+      })
+      .catch((error) => setDictionaryState({ loading: false, message: '', error: error.message || '字典保存失败' }));
+  }
+
+  function removeDictionary(entry) {
+    if (!canManageSettings) return;
+    setDictionaryState({ loading: true, message: '', error: '' });
+    deleteDictionaryEntry(entry.id, session)
+      .then(() => {
+        onDictionariesChange(dictionaries.filter((item) => item.id !== entry.id));
+        setDictionaryState({ loading: false, message: `${entry.value} 已删除`, error: '' });
+        if (canViewLogs) loadLogs();
+      })
+      .catch((error) => setDictionaryState({ loading: false, message: '', error: error.message || '字典删除失败' }));
+  }
+
   useEffect(() => {
     if (isAdmin) {
-      loadLogs();
       loadAccounts();
     }
-  }, [isAdmin]);
+    if (canViewLogs) {
+      loadLogs();
+    }
+  }, [isAdmin, canViewLogs]);
 
   return (
     <section className="settings-layout">
@@ -2853,7 +3106,7 @@ function SystemSettingsPage({ session, cloudState, orders, onRefreshOrders }) {
           <dl>
             <div><dt>角色</dt><dd>{session?.role === 'admin' ? '管理员' : '员工'}</dd></div>
             <div><dt>身份</dt><dd>{session?.label || '未识别'}</dd></div>
-            <div><dt>权限</dt><dd>{isAdmin ? '可作废工单、查看操作日志' : '可新增、编辑、结算工单'}</dd></div>
+            <div><dt>权限</dt><dd>{isAdmin ? '全部权限' : permissionsForSession(session).map((key) => permissionItems.find((item) => item.key === key)?.label).filter(Boolean).join('、')}</dd></div>
           </dl>
         </article>
 
@@ -2876,6 +3129,42 @@ function SystemSettingsPage({ session, cloudState, orders, onRefreshOrders }) {
         </article>
       </div>
 
+      {canManageSettings ? (
+        <section className="settings-card settings-access-card">
+          <div className="settings-access-heading">
+            <div>
+              <h3>基础字典</h3>
+              <p>维护当前公司的保险公司选项和人员岗位，新增工单、保险档案、客户车辆会同步使用。</p>
+            </div>
+            <span>{dictionaries.length} 条字典</span>
+          </div>
+          {dictionaryState.error ? <div className="cloud-banner error">{dictionaryState.error}</div> : null}
+          {dictionaryState.message ? <div className="cloud-banner">{dictionaryState.message}</div> : null}
+          <div className="dictionary-grid">
+            <DictionaryManager
+              title="保险公司字典"
+              description="用于工单、保险档案、客户车辆的保险公司下拉项。"
+              entries={insurerDictionaries}
+              draft={insurerDraft}
+              onDraftChange={setInsurerDraft}
+              onEdit={(entry) => setInsurerDraft(createDictionaryDraft('insurer', entry))}
+              onDelete={removeDictionary}
+              onSubmit={(event) => submitDictionary(event, insurerDraft, setInsurerDraft)}
+            />
+            <DictionaryManager
+              title="人员岗位字典"
+              description="职称和人员名称会合并显示在工单业务员选项中。"
+              entries={staffDictionaries}
+              draft={staffDraft}
+              onDraftChange={setStaffDraft}
+              onEdit={(entry) => setStaffDraft(createDictionaryDraft('staff', entry))}
+              onDelete={removeDictionary}
+              onSubmit={(event) => submitDictionary(event, staffDraft, setStaffDraft)}
+            />
+          </div>
+        </section>
+      ) : null}
+
       {isAdmin ? (
         <section className="settings-card settings-access-card">
           <div className="settings-access-heading">
@@ -2896,9 +3185,11 @@ function SystemSettingsPage({ session, cloudState, orders, onRefreshOrders }) {
                 </div>
                 <dl>
                   <div><dt>密码</dt><dd>{account.password || '需重设'}</dd></div>
+                  <div><dt>岗位</dt><dd>{account.role === 'admin' ? '管理员' : account.title || account.label}</dd></div>
                   <div><dt>角色</dt><dd>{account.role === 'admin' ? '管理员' : '员工'}</dd></div>
                   <div><dt>公司</dt><dd>{account.role === 'admin' ? '全部公司' : companyById(account.companyId).shortName}</dd></div>
                   <div><dt>状态</dt><dd>{account.isActive ? '启用中' : '已停用'}</dd></div>
+                  <div><dt>权限</dt><dd>{account.role === 'admin' ? '全部权限' : (account.permissions || []).map((key) => permissionItems.find((item) => item.key === key)?.label).filter(Boolean).join('、') || '未分配'}</dd></div>
                 </dl>
                 <div className="access-code-actions">
                   <button type="button" onClick={() => editAccount(account)}>编辑</button>
@@ -2921,6 +3212,10 @@ function SystemSettingsPage({ session, cloudState, orders, onRefreshOrders }) {
               <input value={accountDraft.displayName} onChange={(event) => setAccountDraft((current) => ({ ...current, displayName: event.target.value }))} placeholder="例如 张三" />
             </label>
             <label>
+              岗位职称
+              <input value={accountDraft.title} disabled={accountDraft.role === 'admin'} onChange={(event) => setAccountDraft((current) => ({ ...current, title: event.target.value }))} placeholder="例如 接待顾问" />
+            </label>
+            <label>
               角色
               <select value={accountDraft.role} onChange={(event) => setAccountDraft((current) => ({ ...current, role: event.target.value }))}>
                 <option value="admin">管理员</option>
@@ -2941,6 +3236,22 @@ function SystemSettingsPage({ session, cloudState, orders, onRefreshOrders }) {
               启用账号
               <input type="checkbox" checked={accountDraft.isActive} onChange={(event) => setAccountDraft((current) => ({ ...current, isActive: event.target.checked }))} />
             </label>
+            <div className="permission-checks">
+              <span>权限分配</span>
+              <div>
+                {permissionItems.map((permission) => (
+                  <label key={permission.key}>
+                    <input
+                      type="checkbox"
+                      disabled={accountDraft.role === 'admin'}
+                      checked={accountDraft.role === 'admin' || accountDraft.permissions.includes(permission.key)}
+                      onChange={(event) => updateAccountPermission(permission.key, event.target.checked)}
+                    />
+                    {permission.label}
+                  </label>
+                ))}
+              </div>
+            </div>
             <div className="account-form-actions">
               <button type="button" onClick={() => setAccountDraft(createAccountDraft())}>清空新增</button>
               <button type="submit" disabled={accountState.loading}>{accountState.loading ? '保存中...' : accountDraft.id ? '保存账号' : '新增账号'}</button>
@@ -2954,11 +3265,11 @@ function SystemSettingsPage({ session, cloudState, orders, onRefreshOrders }) {
           <h2>操作日志</h2>
           <div>
             {logState.loading ? <span className="settings-note">读取中...</span> : null}
-            {isAdmin ? <button onClick={loadLogs}>刷新日志</button> : null}
+            {canViewLogs ? <button onClick={loadLogs}>刷新日志</button> : null}
           </div>
         </div>
-        {!isAdmin ? (
-          <div className="settings-empty">员工账号无权查看操作日志。</div>
+        {!canViewLogs ? (
+          <div className="settings-empty">当前账号未分配操作日志权限。</div>
         ) : logState.error ? (
           <div className="cloud-banner error">{logState.error}</div>
         ) : (

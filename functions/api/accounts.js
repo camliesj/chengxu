@@ -1,5 +1,7 @@
 import { json, requireSession, sha256Hex, writeOperationLog } from '../_shared/auth.js';
 
+const ALL_PERMISSIONS = ['repair', 'history', 'insurance', 'customers', 'reports', 'export', 'settings', 'voidOrder', 'logs'];
+
 const ROLE_LABELS = {
   admin: '管理员',
   staff: '员工',
@@ -21,11 +23,29 @@ function toAccount(row) {
     password: row.password_value || '',
     role: row.role,
     label: row.label,
+    title: row.title || row.label,
     displayName: row.display_name,
     companyId: row.company_id || '',
     isActive: row.is_active === 1,
+    permissions: parseAccountPermissions(row.role, row.permissions),
     createdAt: row.created_at,
   };
+}
+
+function parseAccountPermissions(role, value = '') {
+  if (role === 'admin') return ALL_PERMISSIONS;
+  try {
+    const parsed = JSON.parse(value || '[]');
+    return Array.isArray(parsed) ? parsed.filter((item) => ALL_PERMISSIONS.includes(item)) : [];
+  } catch {
+    return [];
+  }
+}
+
+function normalizePermissions(role, permissions) {
+  if (role === 'admin') return JSON.stringify(ALL_PERMISSIONS);
+  const list = Array.isArray(permissions) ? permissions : [];
+  return JSON.stringify([...new Set(list.filter((item) => ALL_PERMISSIONS.includes(item)))]);
 }
 
 async function activeAdminCount(env, excludeId = '') {
@@ -42,7 +62,7 @@ export async function onRequestGet({ request, env }) {
   if (error) return error;
 
   const result = await env.DB.prepare(`
-    SELECT id, username, password_value, role, label, display_name, company_id, is_active, created_at
+    SELECT id, username, password_value, role, label, title, display_name, company_id, is_active, permissions, created_at
     FROM accounts
     ORDER BY role ASC, company_id ASC, created_at ASC
   `).all();
@@ -76,8 +96,10 @@ export async function onRequestPost({ request, env }) {
   const password = cleanText(payload.password);
   const role = cleanText(payload.role) || 'staff';
   const companyId = role === 'admin' ? '' : cleanText(payload.companyId);
+  const title = role === 'admin' ? '管理员' : cleanText(payload.title) || '员工';
   const displayName = cleanText(payload.displayName) || username;
   const isActive = payload.isActive === false ? 0 : 1;
+  const permissions = normalizePermissions(role, payload.permissions);
 
   if (!username) return json({ error: 'USERNAME_REQUIRED' }, { status: 400 });
   if (!password) return json({ error: 'PASSWORD_REQUIRED' }, { status: 400 });
@@ -95,21 +117,23 @@ export async function onRequestPost({ request, env }) {
   if (usernameOwner) return json({ error: 'USERNAME_EXISTS' }, { status: 409 });
 
   const passwordHash = await sha256Hex(password);
-  const label = ROLE_LABELS[role];
+  const label = role === 'admin' ? ROLE_LABELS.admin : title;
 
   await env.DB.prepare(`
-    INSERT INTO accounts (id, username, password_hash, password_value, role, label, display_name, company_id, is_active)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO accounts (id, username, password_hash, password_value, role, label, title, display_name, company_id, is_active, permissions)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       username = excluded.username,
       password_hash = excluded.password_hash,
       password_value = excluded.password_value,
       role = excluded.role,
       label = excluded.label,
+      title = excluded.title,
       display_name = excluded.display_name,
       company_id = excluded.company_id,
-      is_active = excluded.is_active
-  `).bind(id, username, passwordHash, password, role, label, displayName, companyId, isActive).run();
+      is_active = excluded.is_active,
+      permissions = excluded.permissions
+  `).bind(id, username, passwordHash, password, role, label, title, displayName, companyId, isActive, permissions).run();
 
   await writeOperationLog(env, session, existing ? 'update_account' : 'create_account', 'account', username, `${label} ${displayName}`);
 
@@ -121,9 +145,11 @@ export async function onRequestPost({ request, env }) {
       password,
       role,
       label,
+      title,
       displayName,
       companyId,
       isActive: isActive === 1,
+      permissions: parseAccountPermissions(role, permissions),
     },
   });
 }

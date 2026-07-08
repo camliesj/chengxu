@@ -1,7 +1,7 @@
 import { json, requireSession, writeOperationLog } from '../../../_shared/auth.js';
 
 export async function onRequestPost({ request, env, params }) {
-  const { session, error } = await requireSession(request, env, { adminOnly: true });
+  const { session, error } = await requireSession(request, env, { permission: 'voidOrder' });
   if (error) return error;
 
   const payload = await request.json().catch(() => ({}));

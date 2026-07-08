@@ -1,7 +1,7 @@
 import { json, requireSession } from '../_shared/auth.js';
 
 export async function onRequestGet({ request, env }) {
-  const { error } = await requireSession(request, env, { adminOnly: true });
+  const { error } = await requireSession(request, env, { permission: 'logs' });
   if (error) return error;
 
   const result = await env.DB.prepare(`

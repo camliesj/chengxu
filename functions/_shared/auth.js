@@ -40,7 +40,7 @@ export async function createSession(env, accessCode, companyId = 'tongda') {
 export async function createAccountSession(env, { companyId, username, password }) {
   const passwordHash = await sha256Hex(password);
   const account = await env.DB.prepare(`
-    SELECT username, role, label, display_name, company_id
+    SELECT username, role, label, display_name, company_id, permissions
     FROM accounts
     WHERE username = ? AND password_hash = ? AND is_active = 1
   `).bind(username, passwordHash).first();
@@ -55,6 +55,10 @@ export async function createAccountSession(env, { companyId, username, password 
     VALUES (?, ?, ?, ?, ?, ?, datetime('now', '+12 hours'))
   `).bind(token, account.role, account.label, sessionCompany, account.username, account.display_name).run();
 
+  await env.DB.prepare('UPDATE access_sessions SET permissions = ? WHERE token = ?')
+    .bind(account.permissions || '', token)
+    .run();
+
   return {
     token,
     role: account.role,
@@ -62,7 +66,37 @@ export async function createAccountSession(env, { companyId, username, password 
     companyId: sessionCompany,
     username: account.username,
     displayName: account.display_name,
+    permissions: parsePermissions(account.role, account.permissions),
   };
+}
+
+export const ALL_PERMISSIONS = [
+  'repair',
+  'history',
+  'insurance',
+  'customers',
+  'reports',
+  'export',
+  'settings',
+  'voidOrder',
+  'logs',
+];
+
+export const DEFAULT_STAFF_PERMISSIONS = ['repair', 'history', 'insurance', 'customers', 'reports'];
+
+export function parsePermissions(role, permissionsValue = '') {
+  if (role === 'admin') return ALL_PERMISSIONS;
+  try {
+    const parsed = JSON.parse(permissionsValue || '[]');
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed.filter((item) => ALL_PERMISSIONS.includes(item)) : DEFAULT_STAFF_PERMISSIONS;
+  } catch {
+    return DEFAULT_STAFF_PERMISSIONS;
+  }
+}
+
+export function hasPermission(session, permission) {
+  if (session?.role === 'admin') return true;
+  return parsePermissions(session?.role, session?.permissions).includes(permission);
 }
 
 export async function requireSession(request, env, options = {}) {
@@ -72,7 +106,7 @@ export async function requireSession(request, env, options = {}) {
   }
 
   const session = await env.DB.prepare(`
-    SELECT token, role, label, company_id, username, display_name
+    SELECT token, role, label, company_id, username, display_name, permissions
     FROM access_sessions
     WHERE token = ? AND expires_at > datetime('now')
   `).bind(token).first();
@@ -83,6 +117,10 @@ export async function requireSession(request, env, options = {}) {
 
   if (options.adminOnly && session.role !== 'admin') {
     return { error: json({ error: 'ADMIN_REQUIRED' }, { status: 403 }) };
+  }
+
+  if (options.permission && !hasPermission(session, options.permission)) {
+    return { error: json({ error: 'PERMISSION_REQUIRED' }, { status: 403 }) };
   }
 
   return { session };
