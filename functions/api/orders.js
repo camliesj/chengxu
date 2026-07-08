@@ -2,6 +2,7 @@ import { json, requireSession, writeOperationLog } from '../_shared/auth.js';
 
 const ORDER_COLUMNS = [
   'id',
+  'company_id',
   'date',
   'time',
   'plate',
@@ -33,6 +34,7 @@ const ORDER_COLUMNS = [
 function toOrder(row) {
   return {
     id: row.id,
+    companyId: row.company_id || 'tongda',
     date: row.date,
     time: row.time,
     plate: row.plate,
@@ -71,13 +73,14 @@ function normalizeMoney(value) {
   return Number.isFinite(number) && number > 0 ? number : 0;
 }
 
-function normalizeOrder(input) {
+function normalizeOrder(input, session) {
   const labor = normalizeMoney(input.labor);
   const material = normalizeMoney(input.material);
   const amount = normalizeMoney(input.amount) || labor + material;
 
   return {
     id: cleanText(input.id),
+    company_id: cleanText(input.companyId) || session?.company_id || 'tongda',
     date: cleanText(input.date),
     time: cleanText(input.time),
     plate: cleanText(input.plate),
@@ -117,12 +120,12 @@ function validateOrder(order) {
 }
 
 export async function onRequestGet({ request, env }) {
-  const { error } = await requireSession(request, env);
+  const { session, error } = await requireSession(request, env);
   if (error) return error;
 
   const result = await env.DB.prepare(
-    'SELECT * FROM repair_orders WHERE voided = 0 ORDER BY date DESC, time DESC, created_at DESC',
-  ).all();
+    'SELECT * FROM repair_orders WHERE voided = 0 AND company_id = ? ORDER BY date DESC, time DESC, created_at DESC',
+  ).bind(session.company_id || 'tongda').all();
   return json({ orders: result.results.map(toOrder) });
 }
 
@@ -131,7 +134,7 @@ export async function onRequestPost({ request, env }) {
   if (error) return error;
 
   const payload = await request.json();
-  const order = normalizeOrder(payload.order || payload);
+  const order = normalizeOrder(payload.order || payload, session);
   const validationError = validateOrder(order);
   if (validationError) {
     return json({ error: validationError }, { status: 400 });
@@ -143,7 +146,9 @@ export async function onRequestPost({ request, env }) {
     .map((column) => `${column} = excluded.${column}`)
     .join(', ');
 
-  const existing = await env.DB.prepare('SELECT id, status FROM repair_orders WHERE id = ?').bind(order.id).first();
+  const existing = await env.DB.prepare('SELECT id, status FROM repair_orders WHERE id = ? AND company_id = ?')
+    .bind(order.id, session.company_id || 'tongda')
+    .first();
 
   await env.DB.prepare(`
     INSERT INTO repair_orders (${ORDER_COLUMNS.join(', ')}, updated_at)

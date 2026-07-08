@@ -126,7 +126,8 @@ button {
   font-weight: 900;
 }
 
-.access-form input {
+.access-form input,
+.access-form select {
   height: 48px;
   border: 1px solid var(--line-strong);
   border-radius: 8px;
@@ -141,7 +142,8 @@ button {
   color: #95a5b8;
 }
 
-.access-form input:focus {
+.access-form input:focus,
+.access-form select:focus {
   outline: 0;
   border-color: rgba(20, 120, 242, 0.72);
   box-shadow: 0 0 0 4px rgba(20, 120, 242, 0.1);
@@ -210,7 +212,7 @@ button {
 .sidebar-brand strong {
   display: block;
   color: var(--text);
-  font-size: 18px;
+  font-size: 19px;
   line-height: 1.2;
   letter-spacing: 0;
 }
@@ -219,7 +221,7 @@ button {
   display: block;
   margin-top: 5px;
   color: #4d6b89;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
 }
 

@@ -13,8 +13,8 @@ export async function onRequestPost({ request, env, params }) {
   }
 
   const order = await env.DB.prepare(
-    'SELECT id, plate, customer FROM repair_orders WHERE id = ? AND voided = 0',
-  ).bind(id).first();
+    'SELECT id, plate, customer FROM repair_orders WHERE id = ? AND company_id = ? AND voided = 0',
+  ).bind(id, session.company_id || 'tongda').first();
 
   if (!order) {
     return json({ error: 'ORDER_NOT_FOUND' }, { status: 404 });
@@ -23,8 +23,8 @@ export async function onRequestPost({ request, env, params }) {
   await env.DB.prepare(`
     UPDATE repair_orders
     SET voided = 1, voided_at = CURRENT_TIMESTAMP, void_reason = ?, updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?
-  `).bind(reason || 'admin voided', id).run();
+    WHERE id = ? AND company_id = ?
+  `).bind(reason || 'admin voided', id, session.company_id || 'tongda').run();
 
   await writeOperationLog(env, session, 'void_order', 'repair_order', id, `${order.plate} ${order.customer}`);
 

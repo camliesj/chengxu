@@ -2,6 +2,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 
 const navItems = ['首页看板', '维修接待', '历史查询', '车辆保险', '客户车辆', '汇总报表', '数据导出', '系统设置'];
 
+const companies = [
+  { id: 'tongda', shortName: '通达汽车服务中心', fullName: '鄂尔多斯市通达汽车服务有限公司' },
+  { id: 'xinqiheng', shortName: '鑫齐恒汽车服务中心', fullName: '鄂尔多斯市鑫齐恒汽车服务有限公司' },
+];
+
 const iconBase = '/assets/ui/icons/';
 
 const navIconMap = {
@@ -27,6 +32,10 @@ const INSURANCE_STORAGE_KEY = 'chengxu-insurance-policies';
 const CUSTOMER_VEHICLE_STORAGE_KEY = 'chengxu-customer-vehicles';
 const ACCESS_SESSION_KEY = 'chengxu-access-session';
 const INSURANCE_BASE_DATE = '2026-07-21';
+
+function companyById(companyId) {
+  return companies.find((company) => company.id === companyId) || companies[0];
+}
 
 function AssetIcon({ name, alt = '', className = '' }) {
   return <img className={className} src={`${iconBase}${name}`} alt={alt} aria-hidden={alt ? undefined : 'true'} />;
@@ -55,14 +64,14 @@ function authHeaders(session) {
   return session?.token ? { authorization: `Bearer ${session.token}` } : {};
 }
 
-async function validateAccessCode(code) {
+async function validateAccess(credentials) {
   const response = await fetch('/api/access', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ code }),
+    body: JSON.stringify(credentials),
   });
   if (!response.ok) {
-    throw new Error('访问码不正确');
+    throw new Error('账号、密码或公司不正确');
   }
   return response.json();
 }
@@ -167,6 +176,7 @@ async function unlockAccessCodePanel(adminCode, session) {
 function normalizeInsurancePolicy(policy, index = 0) {
   return {
     id: policy.id || `IP${Date.now()}${index}`,
+    companyId: policy.companyId || 'tongda',
     plate: policy.plate || '',
     customer: policy.customer || '',
     phone: policy.phone || '',
@@ -213,6 +223,7 @@ function isInsuranceUrgent(policy) {
 function normalizeCustomerVehicle(vehicle, index = 0) {
   return {
     id: vehicle.id || `CV${Date.now()}${index}`,
+    companyId: vehicle.companyId || 'tongda',
     customer: vehicle.customer || '',
     phone: vehicle.phone || '',
     plate: vehicle.plate || '',
@@ -256,7 +267,9 @@ const productionTrend = [68, 68, 82, 92, 125, 112, 132, 158, 98, 92, 112, 108, 1
 const formatMoney = (value) => `¥${value.toLocaleString('zh-CN')}`;
 
 function AccessGate({ onUnlock }) {
-  const [code, setCode] = useState('');
+  const [companyId, setCompanyId] = useState('tongda');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -265,12 +278,16 @@ function AccessGate({ onUnlock }) {
     setIsSubmitting(true);
     setError('');
     try {
-      const data = await validateAccessCode(code.trim());
+      const data = await validateAccess({
+        companyId,
+        username: username.trim(),
+        password: password.trim(),
+      });
       localStorage.setItem('shop-access-granted', 'true');
       localStorage.setItem(ACCESS_SESSION_KEY, JSON.stringify(data.session));
       onUnlock(data.session);
     } catch (accessError) {
-      setError(accessError.message || '访问码不正确');
+      setError(accessError.message || '账号、密码或公司不正确');
     } finally {
       setIsSubmitting(false);
     }
@@ -279,26 +296,40 @@ function AccessGate({ onUnlock }) {
   return (
     <main className="access-page">
       <section className="access-panel">
-        <div className="brand-mark">车</div>
         <div className="access-copy">
-          <h1>汽修接待 & 保险管理系统</h1>
-          <p>门店数据已启用安全校验，请输入授权访问码进入工作台。</p>
+          <h1>维修接待与车辆保险管理</h1>
+          <p>请选择公司并输入账号密码，进入对应门店工作台。</p>
         </div>
         <form onSubmit={submitAccess} className="access-form">
-          <label htmlFor="access-code">门店访问码</label>
+          <label htmlFor="company-id">公司</label>
+          <select id="company-id" value={companyId} onChange={(event) => setCompanyId(event.target.value)}>
+            {companies.map((company) => <option key={company.id} value={company.id}>{company.shortName}</option>)}
+          </select>
+          <label htmlFor="login-username">账号</label>
           <input
-            id="access-code"
-            value={code}
+            id="login-username"
+            value={username}
             onChange={(event) => {
-              setCode(event.target.value);
+              setUsername(event.target.value);
               setError('');
             }}
-            placeholder="请输入访问码"
-            inputMode="numeric"
+            placeholder="请输入账号"
+            autoComplete="username"
+          />
+          <label htmlFor="login-password">密码</label>
+          <input
+            id="login-password"
+            value={password}
+            onChange={(event) => {
+              setPassword(event.target.value);
+              setError('');
+            }}
+            placeholder="请输入密码"
+            type="password"
             autoComplete="current-password"
           />
           {error ? <span className="form-error">{error}</span> : null}
-          <button type="submit" disabled={isSubmitting}>{isSubmitting ? '校验中...' : '进入系统'}</button>
+          <button type="submit" disabled={isSubmitting}>{isSubmitting ? '登录中...' : '进入系统'}</button>
         </form>
       </section>
     </main>
@@ -327,7 +358,21 @@ function App() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [ordersCloudState, setOrdersCloudState] = useState({ loading: false, error: '' });
 
+  const currentCompany = companyById(accessSession?.companyId || 'tongda');
+  const isAdmin = accessSession?.role === 'admin';
   const orderData = useMemo(() => orderRepository.listOrders(orders), [orders]);
+  const companyOrders = useMemo(
+    () => orderData.filter((order) => (order.companyId || 'tongda') === currentCompany.id),
+    [orderData, currentCompany.id],
+  );
+  const companyInsurancePolicies = useMemo(
+    () => insurancePolicies.filter((policy) => (policy.companyId || 'tongda') === currentCompany.id),
+    [insurancePolicies, currentCompany.id],
+  );
+  const companyCustomerVehicles = useMemo(
+    () => customerVehicles.filter((vehicle) => (vehicle.companyId || 'tongda') === currentCompany.id),
+    [customerVehicles, currentCompany.id],
+  );
 
   useEffect(() => {
     localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(orders));
@@ -363,7 +408,7 @@ function App() {
 
   const filteredOrders = useMemo(() => {
     const keyword = query.trim().toLowerCase();
-    return orderData.filter((order) => {
+    return companyOrders.filter((order) => {
       const orderDate = orderDateValue(order.date);
       const inDateRange = (!dateRange.start || orderDate >= dateRange.start) && (!dateRange.end || orderDate <= dateRange.end);
       const inKeyword = !keyword || [order.id, order.plate, order.customer, order.phone, order.status, order.insurer, order.car, order.staff]
@@ -372,7 +417,7 @@ function App() {
         .includes(keyword);
       return inDateRange && inKeyword;
     });
-  }, [orderData, query, dateRange]);
+  }, [companyOrders, query, dateRange]);
 
   function refreshOrders() {
     if (!accessSession?.token) return;
@@ -387,14 +432,15 @@ function App() {
   }
 
   function upsertOrder(nextOrder) {
+    const scopedOrder = { ...nextOrder, companyId: currentCompany.id };
     setOrders((currentOrders) => {
-      const exists = currentOrders.some((order) => order.id === nextOrder.id);
+      const exists = currentOrders.some((order) => order.id === scopedOrder.id);
       if (exists) {
-        return currentOrders.map((order) => (order.id === nextOrder.id ? nextOrder : order));
+        return currentOrders.map((order) => (order.id === scopedOrder.id ? scopedOrder : order));
       }
-      return [nextOrder, ...currentOrders];
+      return [scopedOrder, ...currentOrders];
     });
-    saveCloudOrder(nextOrder, accessSession)
+    saveCloudOrder(scopedOrder, accessSession)
       .then(() => setOrdersCloudState({ loading: false, error: '' }))
       .catch((error) => setOrdersCloudState({ loading: false, error: error.message || '云端保存失败' }));
   }
@@ -404,13 +450,13 @@ function App() {
   }
 
   function updateOrderStatus(orderId, status) {
-    const currentOrder = orders.find((order) => order.id === orderId);
+    const currentOrder = companyOrders.find((order) => order.id === orderId);
     if (!currentOrder) return;
     upsertOrder({ ...currentOrder, status });
   }
 
   function voidOrder(orderId, reason) {
-    const currentOrder = orders.find((order) => order.id === orderId);
+    const currentOrder = companyOrders.find((order) => order.id === orderId);
     if (!currentOrder) return;
     setOrders((currentOrders) => currentOrders.filter((order) => order.id !== orderId));
     voidCloudOrder(orderId, reason, accessSession)
@@ -442,7 +488,7 @@ function App() {
 
   function saveInsurancePolicy(nextPolicy) {
     setInsurancePolicies((currentPolicies) => {
-      const normalizedPolicy = normalizeInsurancePolicy(nextPolicy);
+      const normalizedPolicy = normalizeInsurancePolicy({ ...nextPolicy, companyId: currentCompany.id });
       const exists = currentPolicies.some((policy) => policy.id === normalizedPolicy.id);
       if (exists) {
         return currentPolicies.map((policy) => (policy.id === normalizedPolicy.id ? normalizedPolicy : policy));
@@ -453,7 +499,7 @@ function App() {
 
   function saveCustomerVehicle(nextVehicle) {
     setCustomerVehicles((currentVehicles) => {
-      const normalizedVehicle = normalizeCustomerVehicle(nextVehicle);
+      const normalizedVehicle = normalizeCustomerVehicle({ ...nextVehicle, companyId: currentCompany.id });
       const exists = currentVehicles.some((vehicle) => vehicle.id === normalizedVehicle.id);
       if (exists) {
         return currentVehicles.map((vehicle) => (vehicle.id === normalizedVehicle.id ? normalizedVehicle : vehicle));
@@ -473,14 +519,13 @@ function App() {
     <div className="app-shell">
       <aside className="sidebar" aria-label="主导航">
         <div className="sidebar-brand">
-          <span className="brand-icon"><AssetIcon name="metric-car.png" /></span>
           <div>
-            <strong>汽修接待</strong>
-            <small>& 保险管理系统</small>
+            <strong>{currentCompany.shortName}</strong>
+            <small>维修接待与车辆保险管理</small>
           </div>
         </div>
         <nav>
-          {navItems.map((item) => (
+          {navItems.filter((item) => isAdmin || item !== '数据导出').map((item) => (
             <button
               key={item}
               className={activePage === item ? 'nav-item active' : 'nav-item'}
@@ -525,7 +570,9 @@ function App() {
           >
             ＋ 新增工单
           </button>
-          <button className="secondary-action" onClick={() => setActivePage('数据导出')}><AssetIcon name="action-excel.png" className="button-icon" />导出Excel</button>
+          {isAdmin ? (
+            <button className="secondary-action" onClick={() => setActivePage('数据导出')}><AssetIcon name="action-excel.png" className="button-icon" />导出Excel</button>
+          ) : null}
           <div className="topbar-user">
             <button
               type="button"
@@ -537,7 +584,7 @@ function App() {
               aria-label="查看待处理提醒"
             >
               <span className="notice-dot">
-                {insurancePolicies.filter(isInsuranceUrgent).length + orderData.filter((order) => order.status !== REPAIR_STATUS.settled).length}
+                {companyInsurancePolicies.filter(isInsuranceUrgent).length + companyOrders.filter((order) => order.status !== REPAIR_STATUS.settled).length}
               </span>
             </button>
             <button
@@ -558,7 +605,7 @@ function App() {
             {noticeOpen ? (
               <div className="topbar-popover notice-popover">
                 <h3>待处理提醒</h3>
-                {insurancePolicies.filter(isInsuranceUrgent).slice(0, 4).map((policy) => (
+                {companyInsurancePolicies.filter(isInsuranceUrgent).slice(0, 4).map((policy) => (
                   <button
                     key={policy.id}
                     type="button"
@@ -571,7 +618,7 @@ function App() {
                     <span>{policy.customer} · {insuranceState(policy)} · {policy.expiry}</span>
                   </button>
                 ))}
-                {orderData.filter((order) => order.status !== REPAIR_STATUS.settled).slice(0, 3).map((order) => (
+                {companyOrders.filter((order) => order.status !== REPAIR_STATUS.settled).slice(0, 3).map((order) => (
                   <button
                     key={order.id}
                     type="button"
@@ -584,7 +631,7 @@ function App() {
                     <span>{order.customer} · {order.status} · {formatMoney(order.amount)}</span>
                   </button>
                 ))}
-                {insurancePolicies.filter(isInsuranceUrgent).length === 0 && orderData.filter((order) => order.status !== REPAIR_STATUS.settled).length === 0 ? (
+                {companyInsurancePolicies.filter(isInsuranceUrgent).length === 0 && companyOrders.filter((order) => order.status !== REPAIR_STATUS.settled).length === 0 ? (
                   <p>暂无待处理事项</p>
                 ) : null}
               </div>
@@ -592,7 +639,7 @@ function App() {
             {userMenuOpen ? (
               <div className="topbar-popover user-popover">
                 <h3>{accessSession?.role === 'admin' ? '门店管理员' : '门店员工'}</h3>
-                <p>{accessSession?.label || '已登录账号'}</p>
+                <p>{accessSession?.displayName || accessSession?.label || '已登录账号'} · {currentCompany.shortName}</p>
                 <button type="button" onClick={() => {
                   setActivePage('系统设置');
                   setUserMenuOpen(false);
@@ -606,7 +653,7 @@ function App() {
         {activePage === '首页看板' && (
           <Dashboard
             filteredOrders={filteredOrders}
-            policies={insurancePolicies}
+            policies={companyInsurancePolicies}
             onRefreshOrders={refreshOrders}
             onViewInsurance={openInsurancePolicy}
           />
@@ -625,34 +672,35 @@ function App() {
         )}
         {activePage === '历史查询' && (
           <HistoryQueryPage
-            orders={orderData}
+            orders={companyOrders}
             onView={(order) => openOrderInReception(order, 'view')}
             onEdit={(order) => openOrderInReception(order, 'edit')}
           />
         )}
         {activePage === '车辆保险' && (
-          <InsuranceLedger policies={insurancePolicies} onSavePolicy={saveInsurancePolicy} focusPolicyRequest={insuranceFocusRequest} />
+          <InsuranceLedger policies={companyInsurancePolicies} onSavePolicy={saveInsurancePolicy} focusPolicyRequest={insuranceFocusRequest} />
         )}
         {activePage === '客户车辆' && (
           <CustomerVehiclesPage
-            vehicles={customerVehicles}
-            orders={orderData}
-            policies={insurancePolicies}
+            vehicles={companyCustomerVehicles}
+            orders={companyOrders}
+            policies={companyInsurancePolicies}
             onSaveVehicle={saveCustomerVehicle}
           />
         )}
-        {activePage === '数据导出' && (
+        {activePage === '数据导出' && isAdmin && (
           <DataExportPage
-            orders={orderData}
-            policies={insurancePolicies}
-            vehicles={customerVehicles}
+            orders={companyOrders}
+            policies={companyInsurancePolicies}
+            vehicles={companyCustomerVehicles}
           />
         )}
+        {activePage === '数据导出' && !isAdmin && <NoPermissionPage title="数据导出" />}
         {activePage === '系统设置' && (
           <SystemSettingsPage
             session={accessSession}
             cloudState={ordersCloudState}
-            orders={orderData}
+            orders={companyOrders}
             onRefreshOrders={refreshOrders}
           />
         )}
@@ -2821,6 +2869,15 @@ function PlaceholderPage({ title, orders }) {
         <Metric icon="order" title="当前筛选工单" value={orders.length.toString()} trend="模拟数据" tone="blue" />
         <Metric icon="yuan" title="可导出记录" value={`${orders.length + insuranceRows.length}`} trend="待接入导出" tone="green" />
       </div>
+    </section>
+  );
+}
+
+function NoPermissionPage({ title }) {
+  return (
+    <section className="placeholder-panel">
+      <h2>{title}</h2>
+      <p>当前账号没有该功能权限。导出相关功能仅管理员可用。</p>
     </section>
   );
 }
