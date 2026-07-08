@@ -51,10 +51,7 @@ async function cosAuthorization(method, key, config) {
   const httpString = `${method.toLowerCase()}\n${pathname}\n\nhost=${config.host}\n`;
   const stringToSign = `sha1\n${keyTime}\n${await sha1Hex(httpString)}\n`;
   const signKey = await hmacSha1Hex(config.secretKey, keyTime);
-  const signature = await hmacSha1Hex(
-    Uint8Array.from(signKey.match(/.{2}/g).map((byte) => parseInt(byte, 16))),
-    stringToSign,
-  );
+  const signature = await hmacSha1Hex(signKey, stringToSign);
   return {
     pathname,
     authorization: `q-sign-algorithm=sha1&q-ak=${config.secretId}&q-sign-time=${keyTime}&q-key-time=${keyTime}&q-header-list=${headerList}&q-url-param-list=&q-signature=${signature}`,
@@ -69,6 +66,11 @@ function extensionForType(type) {
   if (type === 'image/png') return 'png';
   if (type === 'image/webp') return 'webp';
   return 'jpg';
+}
+
+async function cosFailure(response, error) {
+  const text = await response.text().catch(() => '');
+  return json({ error, cosStatus: response.status, cosMessage: text.slice(0, 500) }, { status: response.status });
 }
 
 async function cosFetch(method, key, env, init = {}) {
@@ -100,7 +102,7 @@ export async function onRequestGet({ request, env }) {
 
   const { response, error: cosError } = await cosFetch('GET', key, env);
   if (cosError) return cosError;
-  if (!response.ok) return json({ error: 'RECEIPT_READ_FAILED' }, { status: response.status });
+  if (!response.ok) return cosFailure(response, 'RECEIPT_READ_FAILED');
 
   return new Response(response.body, {
     headers: {
@@ -117,7 +119,9 @@ export async function onRequestPost({ request, env }) {
   const formData = await request.formData();
   const file = formData.get('file');
   const orderId = cleanText(formData.get('orderId'));
-  if (!(file instanceof File)) return json({ error: 'FILE_REQUIRED' }, { status: 400 });
+  if (!file || typeof file.arrayBuffer !== 'function' || typeof file.size !== 'number') {
+    return json({ error: 'FILE_REQUIRED' }, { status: 400 });
+  }
   if (!orderId) return json({ error: 'ORDER_ID_REQUIRED' }, { status: 400 });
   if (!ALLOWED_TYPES.includes(file.type)) return json({ error: 'UNSUPPORTED_FILE_TYPE' }, { status: 400 });
   if (file.size <= 0 || file.size > MAX_RECEIPT_SIZE) return json({ error: 'FILE_TOO_LARGE' }, { status: 400 });
@@ -132,7 +136,7 @@ export async function onRequestPost({ request, env }) {
     },
   });
   if (cosError) return cosError;
-  if (!response.ok) return json({ error: 'RECEIPT_UPLOAD_FAILED' }, { status: response.status });
+  if (!response.ok) return cosFailure(response, 'RECEIPT_UPLOAD_FAILED');
 
   await writeOperationLog(env, session, 'upload_receipt', 'repair_order', orderId, file.name);
 
@@ -158,7 +162,7 @@ export async function onRequestDelete({ request, env }) {
 
   const { response, error: cosError } = await cosFetch('DELETE', key, env);
   if (cosError) return cosError;
-  if (!response.ok && response.status !== 404) return json({ error: 'RECEIPT_DELETE_FAILED' }, { status: response.status });
+  if (!response.ok && response.status !== 404) return cosFailure(response, 'RECEIPT_DELETE_FAILED');
 
   await writeOperationLog(env, session, 'delete_receipt', 'repair_order', orderId, key);
 
