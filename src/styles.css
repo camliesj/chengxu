@@ -1457,6 +1457,80 @@ dd {
   box-shadow: 0 8px 18px rgba(8, 117, 222, 0.18);
 }
 
+.receipt-panel {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid #cfe0f4;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #f6fbff, #ffffff);
+}
+
+.receipt-panel > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.receipt-panel strong {
+  color: var(--text);
+  font-size: 15px;
+}
+
+.receipt-panel span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.receipt-panel > div:nth-child(2) {
+  display: flex;
+  gap: 8px;
+}
+
+.receipt-panel button {
+  min-height: 34px;
+  border: 1px solid #cfe0f4;
+  border-radius: 6px;
+  padding: 0 12px;
+  color: var(--blue);
+  background: #fff;
+  font-weight: 900;
+}
+
+.receipt-panel button.danger {
+  border-color: #ffd2ca;
+  color: var(--red);
+  background: #fff7f5;
+}
+
+.receipt-panel img {
+  width: 100%;
+  max-height: 360px;
+  object-fit: contain;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.receipt-upload-field {
+  padding: 12px;
+  border: 1px dashed #bcd4ef;
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
+.receipt-upload-field input {
+  padding: 8px;
+  background: #fff;
+}
+
+.receipt-upload-field span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .print-order-sheet {
   display: none;
 }
@@ -3002,6 +3076,13 @@ dd {
   .print-cost-grid .print-total strong {
     color: #005ecb;
     font-size: 13pt;
+  }
+
+  .print-receipt-line {
+    margin-top: 2.5mm;
+    color: #334155;
+    font-size: 8pt;
+    font-weight: 800;
   }
 
   .print-signatures {

@@ -297,6 +297,55 @@ async function deleteDictionaryEntry(id, session) {
   return response.json();
 }
 
+async function uploadSettlementReceipt(file, orderId, session) {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('orderId', orderId);
+  const response = await fetch('/api/receipts', {
+    method: 'POST',
+    headers: authHeaders(session),
+    body: formData,
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    const messageMap = {
+      COS_NOT_CONFIGURED: '腾讯云 COS 尚未配置，请先在 Cloudflare 中配置 COS 密钥',
+      FILE_REQUIRED: '请选择到账回执截图',
+      ORDER_ID_REQUIRED: '缺少工单号',
+      UNSUPPORTED_FILE_TYPE: '仅支持 JPG、PNG、WEBP 图片',
+      FILE_TOO_LARGE: '图片过大，请压缩后上传',
+      RECEIPT_UPLOAD_FAILED: '回执上传失败，请稍后重试',
+    };
+    throw new Error(messageMap[data.error] || data.error || `回执上传失败：${response.status}`);
+  }
+  const data = await response.json();
+  return data.receipt;
+}
+
+async function fetchSettlementReceiptBlob(key, session) {
+  const response = await fetch(`/api/receipts?key=${encodeURIComponent(key)}`, {
+    headers: authHeaders(session),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error === 'COS_NOT_CONFIGURED' ? '腾讯云 COS 尚未配置' : data.error || `回执读取失败：${response.status}`);
+  }
+  return response.blob();
+}
+
+async function deleteSettlementReceipt(key, orderId, session) {
+  const response = await fetch('/api/receipts', {
+    method: 'DELETE',
+    headers: { 'content-type': 'application/json', ...authHeaders(session) },
+    body: JSON.stringify({ key, orderId }),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error === 'COS_NOT_CONFIGURED' ? '腾讯云 COS 尚未配置' : data.error || `回执删除失败：${response.status}`);
+  }
+  return response.json();
+}
+
 function normalizeInsurancePolicy(policy, index = 0) {
   return {
     id: policy.id || `IP${Date.now()}${index}`,
@@ -601,6 +650,23 @@ function App() {
       .catch((error) => setOrdersCloudState({ loading: false, error: error.message || '云端保存失败' }));
   }
 
+  function clearOrderReceipt(order) {
+    if (!order?.settlementReceiptKey) return Promise.resolve(order);
+    return deleteSettlementReceipt(order.settlementReceiptKey, order.id, accessSession)
+      .then(() => {
+        const nextOrder = {
+          ...order,
+          settlementReceiptKey: '',
+          settlementReceiptName: '',
+          settlementReceiptType: '',
+          settlementReceiptSize: 0,
+          settlementReceiptUploadedAt: '',
+        };
+        upsertOrder(nextOrder);
+        return nextOrder;
+      });
+  }
+
   function saveOrder(nextOrder) {
     upsertOrder(nextOrder);
     syncCustomerVehicleFromOrder(nextOrder);
@@ -893,6 +959,9 @@ function App() {
             canVoidOrder={canVoidOrder}
             insurerOptions={insurerChoices}
             staffOptions={staffChoices}
+            onUploadReceipt={(file, orderId) => uploadSettlementReceipt(file, orderId, accessSession)}
+            onViewReceipt={(key) => fetchSettlementReceiptBlob(key, accessSession)}
+            onDeleteReceipt={clearOrderReceipt}
             onVoidOrder={voidOrder}
           />
         )}
@@ -1204,6 +1273,11 @@ function createOrderDraft(order) {
       settlementDate: order.settlementDate || '',
       settlementTime: order.settlementTime || '',
       settlementRemark: order.settlementRemark || '',
+      settlementReceiptKey: order.settlementReceiptKey || '',
+      settlementReceiptName: order.settlementReceiptName || '',
+      settlementReceiptType: order.settlementReceiptType || '',
+      settlementReceiptSize: order.settlementReceiptSize || 0,
+      settlementReceiptUploadedAt: order.settlementReceiptUploadedAt || '',
       remark: order.remark || '',
     };
   }
@@ -1235,6 +1309,11 @@ function createOrderDraft(order) {
     settlementDate: '',
     settlementTime: '',
     settlementRemark: '',
+    settlementReceiptKey: '',
+    settlementReceiptName: '',
+    settlementReceiptType: '',
+    settlementReceiptSize: 0,
+    settlementReceiptUploadedAt: '',
     remark: '',
   };
 }
@@ -1304,6 +1383,11 @@ function createSettlementDraft(order) {
     settlementDate: order?.settlementDate || current.date,
     settlementTime: order?.settlementTime || current.time,
     settlementRemark: order?.settlementRemark || '',
+    settlementReceiptKey: order?.settlementReceiptKey || '',
+    settlementReceiptName: order?.settlementReceiptName || '',
+    settlementReceiptType: order?.settlementReceiptType || '',
+    settlementReceiptSize: order?.settlementReceiptSize || 0,
+    settlementReceiptUploadedAt: order?.settlementReceiptUploadedAt || '',
   };
 }
 
@@ -1315,6 +1399,11 @@ function settleOrder(order, settlementDraft) {
     settlementDate: settlementDraft.settlementDate,
     settlementTime: settlementDraft.settlementTime,
     settlementRemark: settlementDraft.settlementRemark.trim(),
+    settlementReceiptKey: settlementDraft.settlementReceiptKey || '',
+    settlementReceiptName: settlementDraft.settlementReceiptName || '',
+    settlementReceiptType: settlementDraft.settlementReceiptType || '',
+    settlementReceiptSize: settlementDraft.settlementReceiptSize || 0,
+    settlementReceiptUploadedAt: settlementDraft.settlementReceiptUploadedAt || '',
   };
 }
 
@@ -1452,7 +1541,22 @@ function HistoryQueryPage({ orders, insurerOptions, onView, onEdit }) {
   );
 }
 
-function RepairReception({ orders, company, createRequest, focusRequest, onSaveOrder, onStatusChange, cloudState, canVoidOrder, insurerOptions, staffOptions, onVoidOrder }) {
+function RepairReception({
+  orders,
+  company,
+  createRequest,
+  focusRequest,
+  onSaveOrder,
+  onStatusChange,
+  cloudState,
+  canVoidOrder,
+  insurerOptions,
+  staffOptions,
+  onUploadReceipt,
+  onViewReceipt,
+  onDeleteReceipt,
+  onVoidOrder,
+}) {
   const [selectedId, setSelectedId] = useState(() => orders[0]?.id || '');
   const [formMode, setFormMode] = useState('view');
   const [draft, setDraft] = useState(() => createOrderDraft(orders[0]));
@@ -1664,6 +1768,11 @@ function RepairReception({ orders, company, createRequest, focusRequest, onSaveO
           onEdit={() => openEdit(detailOrder)}
           onPrint={() => printOrder(detailOrder)}
           onSettle={() => setSettlementOrder(detailOrder)}
+          onViewReceipt={onViewReceipt}
+          onDeleteReceipt={(order) => onDeleteReceipt(order).then((nextOrder) => {
+            setDetailOrder(nextOrder);
+            setDraft(createOrderDraft(nextOrder));
+          })}
           onVoid={canVoidOrder ? () => setVoidOrderTarget(detailOrder) : null}
         />
       ) : null}
@@ -1671,6 +1780,7 @@ function RepairReception({ orders, company, createRequest, focusRequest, onSaveO
         <SettlementDialog
           order={settlementOrder}
           onClose={() => setSettlementOrder(null)}
+          onUploadReceipt={onUploadReceipt}
           onSubmit={completeSettlement}
         />
       ) : null}
@@ -1698,9 +1808,37 @@ function PrintField({ label, value, wide = false }) {
   );
 }
 
-function OrderDetailDialog({ order, company, onClose, onEdit, onPrint, onSettle, onVoid }) {
+function OrderDetailDialog({ order, company, onClose, onEdit, onPrint, onSettle, onViewReceipt, onDeleteReceipt, onVoid }) {
+  const [receiptState, setReceiptState] = useState({ loading: false, error: '', previewUrl: '' });
   const printTime = new Date().toLocaleString('zh-CN', { hour12: false });
   const settlementText = order.settlementDate ? `${order.settlementDate} ${order.settlementTime || ''}` : '未结算';
+  const hasReceipt = Boolean(order.settlementReceiptKey);
+
+  useEffect(() => () => {
+    if (receiptState.previewUrl) URL.revokeObjectURL(receiptState.previewUrl);
+  }, [receiptState.previewUrl]);
+
+  function viewReceipt() {
+    if (!hasReceipt || receiptState.loading) return;
+    setReceiptState((current) => ({ ...current, loading: true, error: '' }));
+    onViewReceipt(order.settlementReceiptKey)
+      .then((blob) => {
+        if (receiptState.previewUrl) URL.revokeObjectURL(receiptState.previewUrl);
+        setReceiptState({ loading: false, error: '', previewUrl: URL.createObjectURL(blob) });
+      })
+      .catch((error) => setReceiptState({ loading: false, error: error.message || '回执读取失败', previewUrl: '' }));
+  }
+
+  function deleteReceipt() {
+    if (!hasReceipt || receiptState.loading) return;
+    setReceiptState((current) => ({ ...current, loading: true, error: '' }));
+    onDeleteReceipt(order)
+      .then(() => {
+        if (receiptState.previewUrl) URL.revokeObjectURL(receiptState.previewUrl);
+        setReceiptState({ loading: false, error: '', previewUrl: '' });
+      })
+      .catch((error) => setReceiptState((current) => ({ ...current, loading: false, error: error.message || '回执删除失败' })));
+  }
 
   return (
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
@@ -1734,11 +1872,27 @@ function OrderDetailDialog({ order, company, onClose, onEdit, onPrint, onSettle,
             <div><dt>预计交车</dt><dd>{order.delivery}</dd></div>
             <div><dt>结算时间</dt><dd>{settlementText}</dd></div>
             <div><dt>结算备注</dt><dd>{order.settlementRemark || '暂无备注'}</dd></div>
+            <div><dt>到账回执</dt><dd>{hasReceipt ? order.settlementReceiptName || '已上传回执' : '未上传'}</dd></div>
             <div><dt>工时费</dt><dd>{formatMoney(order.labor)}</dd></div>
             <div><dt>材料费</dt><dd>{formatMoney(order.material)}</dd></div>
             <div className="modal-wide"><dt>维修项目</dt><dd>{order.record}</dd></div>
             <div className="modal-wide"><dt>接待备注</dt><dd>{order.remark || '暂无备注'}</dd></div>
           </div>
+
+          {hasReceipt ? (
+            <section className="receipt-panel">
+              <div>
+                <strong>到账回执</strong>
+                <span>{order.settlementReceiptName || '已上传回执'} · {order.settlementReceiptUploadedAt ? new Date(order.settlementReceiptUploadedAt).toLocaleString('zh-CN', { hour12: false }) : '上传时间未记录'}</span>
+              </div>
+              <div>
+                <button type="button" onClick={viewReceipt} disabled={receiptState.loading}>{receiptState.loading ? '处理中...' : '查看回执'}</button>
+                <button type="button" className="danger" onClick={deleteReceipt} disabled={receiptState.loading}>删除回执</button>
+              </div>
+              {receiptState.error ? <p className="form-error">{receiptState.error}</p> : null}
+              {receiptState.previewUrl ? <img src={receiptState.previewUrl} alt="到账回执截图" /> : null}
+            </section>
+          ) : null}
 
           <footer className="modal-actions">
             <button type="button" onClick={onPrint}>打印工单</button>
@@ -1807,6 +1961,7 @@ function OrderDetailDialog({ order, company, onClose, onEdit, onPrint, onSettle,
               <div><span>结算时间</span><strong>{settlementText}</strong></div>
               <div className="print-total"><span>工单金额</span><strong>{formatMoney(order.amount)}</strong></div>
             </div>
+            <div className="print-receipt-line">到账回执：{hasReceipt ? order.settlementReceiptName || '已上传' : '未上传'}</div>
           </div>
 
           <footer className="print-signatures">
@@ -1855,8 +2010,11 @@ function VoidOrderDialog({ order, onClose, onSubmit }) {
   );
 }
 
-function SettlementDialog({ order, onClose, onSubmit }) {
+function SettlementDialog({ order, onClose, onUploadReceipt, onSubmit }) {
   const [draft, setDraft] = useState(() => createSettlementDraft(order));
+  const [receiptFile, setReceiptFile] = useState(null);
+  const [uploadState, setUploadState] = useState({ loading: false, error: '' });
+  const hasExistingReceipt = Boolean(draft.settlementReceiptKey);
 
   function updateField(field, value) {
     setDraft((current) => ({ ...current, [field]: value }));
@@ -1864,7 +2022,31 @@ function SettlementDialog({ order, onClose, onSubmit }) {
 
   function submitSettlement(event) {
     event.preventDefault();
-    onSubmit(draft);
+    setUploadState({ loading: true, error: '' });
+    const uploadPromise = receiptFile
+      ? onUploadReceipt(receiptFile, order.id)
+      : hasExistingReceipt
+        ? Promise.resolve({
+          key: draft.settlementReceiptKey,
+          name: draft.settlementReceiptName,
+          type: draft.settlementReceiptType,
+          size: draft.settlementReceiptSize,
+          uploadedAt: draft.settlementReceiptUploadedAt,
+        })
+        : Promise.reject(new Error('请先上传到账回执截图'));
+
+    uploadPromise
+      .then((receipt) => {
+        onSubmit({
+          ...draft,
+          settlementReceiptKey: receipt.key,
+          settlementReceiptName: receipt.name,
+          settlementReceiptType: receipt.type,
+          settlementReceiptSize: receipt.size,
+          settlementReceiptUploadedAt: receipt.uploadedAt,
+        });
+      })
+      .catch((error) => setUploadState({ loading: false, error: error.message || '回执上传失败' }));
   }
 
   return (
@@ -1907,11 +2089,24 @@ function SettlementDialog({ order, onClose, onSubmit }) {
             结算备注
             <textarea value={draft.settlementRemark} onChange={(event) => updateField('settlementRemark', event.target.value)} placeholder="记录收款说明、优惠、挂账原因或保险直赔备注" />
           </label>
+          <label className="full-field receipt-upload-field">
+            到账回执截图
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              onChange={(event) => {
+                setReceiptFile(event.target.files?.[0] || null);
+                setUploadState({ loading: false, error: '' });
+              }}
+            />
+            <span>{receiptFile ? receiptFile.name : hasExistingReceipt ? `已上传：${draft.settlementReceiptName || '到账回执'}` : '必填，请上传到账回执截图'}</span>
+          </label>
         </div>
+        {uploadState.error ? <div className="cloud-banner error">{uploadState.error}</div> : null}
 
         <footer className="modal-actions">
           <button type="button" onClick={onClose}>取消</button>
-          <button type="submit">确认结算</button>
+          <button type="submit" disabled={uploadState.loading}>{uploadState.loading ? '上传并结算中...' : '确认结算'}</button>
         </footer>
       </form>
     </div>
@@ -2603,6 +2798,7 @@ const exportConfigs = {
       { label: '工单金额', value: (row) => row.amount },
       { label: '业务员', value: (row) => row.staff },
       { label: '预计交车', value: (row) => row.delivery },
+      { label: '到账回执', value: (row) => row.settlementReceiptName || '' },
     ],
   },
   insurance: {

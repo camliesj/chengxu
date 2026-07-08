@@ -34,7 +34,35 @@ npm run deploy
 ```text
 GET /api/orders
 POST /api/orders
+POST /api/receipts
+GET /api/receipts?key=<receipt-key>
+DELETE /api/receipts
 ```
+
+## 腾讯云 COS 回执图片
+
+结算到账回执截图使用腾讯云 COS 存储，前端不会保存 COS 密钥。Cloudflare Pages Functions 通过以下环境变量在服务端签名上传、读取和删除图片：
+
+```text
+TENCENT_SECRET_ID
+TENCENT_SECRET_KEY
+COS_BUCKET
+COS_REGION
+```
+
+配置方式：
+
+1. 在腾讯云 COS 创建私有 Bucket。
+2. 创建只允许访问该 Bucket 的 SecretId / SecretKey。
+3. 在 Cloudflare Pages 项目 `chengxu` 的环境变量中添加以上 4 项。
+4. 重新部署 Pages。
+
+回执接口说明：
+
+- `POST /api/receipts`：上传 JPG / PNG / WEBP 回执截图。
+- `GET /api/receipts?key=...`：登录后读取回执图片。
+- `DELETE /api/receipts`：删除指定回执图片。
+- 工单结算后，回执 key、文件名、文件类型、大小和上传时间会写入 `repair_orders`。
 
 ## 访问权限
 
