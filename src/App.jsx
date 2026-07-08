@@ -173,6 +173,55 @@ async function unlockAccessCodePanel(adminCode, session) {
   return Array.isArray(data.codes) ? data.codes : [];
 }
 
+async function fetchAccounts(session) {
+  const response = await fetch('/api/accounts', {
+    headers: authHeaders(session),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `账号读取失败：${response.status}`);
+  }
+  const data = await response.json();
+  return Array.isArray(data.accounts) ? data.accounts : [];
+}
+
+async function saveAccount(account, session) {
+  const response = await fetch('/api/accounts', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...authHeaders(session) },
+    body: JSON.stringify(account),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    const messageMap = {
+      USERNAME_EXISTS: '账号已存在',
+      USERNAME_FORMAT_INVALID: '账号只能使用3-24位字母、数字或下划线',
+      PASSWORD_FORMAT_INVALID: '密码需为6-32位',
+      CANNOT_DISABLE_LAST_ADMIN: '不能停用或降级最后一个管理员账号',
+      INVALID_COMPANY: '请选择账号所属公司',
+    };
+    throw new Error(messageMap[data.error] || data.error || `账号保存失败：${response.status}`);
+  }
+  return response.json();
+}
+
+async function deleteAccount(id, session) {
+  const response = await fetch('/api/accounts', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...authHeaders(session) },
+    body: JSON.stringify({ action: 'delete', id }),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    const messageMap = {
+      CANNOT_DELETE_LAST_ADMIN: '不能删除最后一个管理员账号',
+      ACCOUNT_NOT_FOUND: '账号不存在或已删除',
+    };
+    throw new Error(messageMap[data.error] || data.error || `账号删除失败：${response.status}`);
+  }
+  return response.json();
+}
+
 function normalizeInsurancePolicy(policy, index = 0) {
   return {
     id: policy.id || `IP${Date.now()}${index}`,
@@ -2563,15 +2612,24 @@ function ReportRanking({ title, rows, maxAmount }) {
   );
 }
 
+function createAccountDraft(account) {
+  return {
+    id: account?.id || '',
+    username: account?.username || '',
+    password: account?.password || '',
+    role: account?.role || 'staff',
+    displayName: account?.displayName || '',
+    companyId: account?.companyId || 'tongda',
+    isActive: account?.isActive ?? true,
+  };
+}
+
 function SystemSettingsPage({ session, cloudState, orders, onRefreshOrders }) {
   const [logs, setLogs] = useState([]);
   const [logState, setLogState] = useState({ loading: false, error: '' });
-  const [accessDraft, setAccessDraft] = useState({ id: '', role: 'staff', code: '' });
-  const [accessCodeState, setAccessCodeState] = useState({ loading: false, message: '', error: '' });
-  const [accessUnlockCode, setAccessUnlockCode] = useState('');
-  const [accessUnlocked, setAccessUnlocked] = useState(false);
-  const [accessCodeRows, setAccessCodeRows] = useState([]);
-  const [accessUnlockState, setAccessUnlockState] = useState({ loading: false, error: '' });
+  const [accounts, setAccounts] = useState([]);
+  const [accountDraft, setAccountDraft] = useState(createAccountDraft());
+  const [accountState, setAccountState] = useState({ loading: false, message: '', error: '' });
   const isAdmin = session?.role === 'admin';
 
   function loadLogs() {
@@ -2585,60 +2643,53 @@ function SystemSettingsPage({ session, cloudState, orders, onRefreshOrders }) {
       .catch((error) => setLogState({ loading: false, error: error.message || '日志读取失败' }));
   }
 
-  function submitAccessCode(event) {
-    event.preventDefault();
-    if (!isAdmin || !accessUnlocked) return;
-    setAccessCodeState({ loading: true, message: '', error: '' });
-    updateAccessCode(accessDraft.role, accessDraft.code, session, accessDraft.id)
-      .then((result) => {
-        setAccessDraft({ id: '', role: result.role || 'staff', code: '' });
-        setAccessCodeState({ loading: false, message: `${result.label}访问码已更新`, error: '' });
-        if (accessUnlockCode) {
-          unlockAccessCodePanel(accessUnlockCode, session).then(setAccessCodeRows).catch(() => {});
-        }
-        loadLogs();
+  function loadAccounts() {
+    if (!isAdmin) return;
+    setAccountState((current) => ({ ...current, loading: true, error: '' }));
+    fetchAccounts(session)
+      .then((nextAccounts) => {
+        setAccounts(nextAccounts);
+        setAccountState({ loading: false, message: '', error: '' });
       })
-      .catch((error) => setAccessCodeState({ loading: false, message: '', error: error.message || '访问码修改失败' }));
+      .catch((error) => setAccountState({ loading: false, message: '', error: error.message || '账号读取失败' }));
   }
 
-  function unlockAccessCodes(event) {
+  function editAccount(account) {
+    setAccountDraft(createAccountDraft(account));
+    setAccountState({ loading: false, message: '', error: '' });
+  }
+
+  function submitAccount(event) {
     event.preventDefault();
     if (!isAdmin) return;
-    setAccessUnlockState({ loading: true, error: '' });
-    unlockAccessCodePanel(accessUnlockCode, session)
-      .then((codes) => {
-        setAccessCodeRows(codes);
-        setAccessUnlocked(true);
-        setAccessUnlockState({ loading: false, error: '' });
-      })
-      .catch((error) => {
-        setAccessUnlocked(false);
-        setAccessCodeRows([]);
-        setAccessUnlockState({ loading: false, error: error.message || '管理员访问码不正确' });
-      });
-  }
-
-  function editAccessCode(code) {
-    setAccessDraft({ id: code.id, role: code.role, code: code.code || '' });
-    setAccessCodeState({ loading: false, message: '', error: '' });
-  }
-
-  function removeAccessCode(code) {
-    if (!isAdmin || !accessUnlocked) return;
-    setAccessCodeState({ loading: true, message: '', error: '' });
-    deleteAccessCode(code.id, session)
+    setAccountState({ loading: true, message: '', error: '' });
+    saveAccount(accountDraft, session)
       .then(() => {
-        setAccessCodeRows((rows) => rows.filter((row) => row.id !== code.id));
-        setAccessDraft((current) => (current.id === code.id ? { id: '', role: 'staff', code: '' } : current));
-        setAccessCodeState({ loading: false, message: `${code.label}访问码已删除`, error: '' });
+        setAccountDraft(createAccountDraft());
+        setAccountState({ loading: false, message: '账号已保存', error: '' });
+        loadAccounts();
         loadLogs();
       })
-      .catch((error) => setAccessCodeState({ loading: false, message: '', error: error.message || '访问码删除失败' }));
+      .catch((error) => setAccountState({ loading: false, message: '', error: error.message || '账号保存失败' }));
+  }
+
+  function removeAccount(account) {
+    if (!isAdmin) return;
+    setAccountState({ loading: true, message: '', error: '' });
+    deleteAccount(account.id, session)
+      .then(() => {
+        setAccounts((current) => current.filter((item) => item.id !== account.id));
+        setAccountDraft((current) => (current.id === account.id ? createAccountDraft() : current));
+        setAccountState({ loading: false, message: `${account.username} 已删除`, error: '' });
+        loadLogs();
+      })
+      .catch((error) => setAccountState({ loading: false, message: '', error: error.message || '账号删除失败' }));
   }
 
   useEffect(() => {
     if (isAdmin) {
       loadLogs();
+      loadAccounts();
     }
   }, [isAdmin]);
 
@@ -2673,11 +2724,11 @@ function SystemSettingsPage({ session, cloudState, orders, onRefreshOrders }) {
         </article>
 
         <article className="settings-card">
-          <h3>访问码</h3>
+          <h3>账号登录</h3>
           <dl>
-            <div><dt>管理员访问码</dt><dd>由管理员维护</dd></div>
-            <div><dt>员工访问码</dt><dd>按门店授权发放</dd></div>
-            <div><dt>校验方式</dt><dd>云端校验</dd></div>
+            <div><dt>登录方式</dt><dd>公司 + 账号 + 密码</dd></div>
+            <div><dt>当前公司</dt><dd>{companyById(session?.companyId || 'tongda').shortName}</dd></div>
+            <div><dt>账号管理</dt><dd>{isAdmin ? '可维护' : '仅管理员'}</dd></div>
           </dl>
         </article>
       </div>
@@ -2686,71 +2737,72 @@ function SystemSettingsPage({ session, cloudState, orders, onRefreshOrders }) {
         <section className="settings-card settings-access-card">
           <div className="settings-access-heading">
             <div>
-              <h3>访问码管理</h3>
-              <p>输入管理员访问码后查看已有访问码信息，并进入编辑。</p>
+              <h3>账号密码管理</h3>
+              <p>维护两家公司登录账号、密码、角色、所属公司和启用状态。原访问码管理暂不使用。</p>
             </div>
-            {accessUnlocked ? <span>已解锁</span> : <span className="locked">未解锁</span>}
+            <span>{accounts.length} 个账号</span>
           </div>
-          <form className="settings-unlock-form" onSubmit={unlockAccessCodes}>
+          {accountState.error ? <div className="cloud-banner error">{accountState.error}</div> : null}
+          {accountState.message ? <div className="cloud-banner">{accountState.message}</div> : null}
+          <div className="access-code-list">
+            {accounts.map((account) => (
+              <article key={account.id} className={`${account.isActive ? 'active' : ''} ${accountDraft.id === account.id ? 'selected' : ''}`}>
+                <div>
+                  <strong>{account.username}</strong>
+                  <p>{account.displayName || account.label}</p>
+                </div>
+                <dl>
+                  <div><dt>密码</dt><dd>{account.password || '需重设'}</dd></div>
+                  <div><dt>角色</dt><dd>{account.role === 'admin' ? '管理员' : '员工'}</dd></div>
+                  <div><dt>公司</dt><dd>{account.role === 'admin' ? '全部公司' : companyById(account.companyId).shortName}</dd></div>
+                  <div><dt>状态</dt><dd>{account.isActive ? '启用中' : '已停用'}</dd></div>
+                </dl>
+                <div className="access-code-actions">
+                  <button type="button" onClick={() => editAccount(account)}>编辑</button>
+                  <button type="button" className="danger" onClick={() => removeAccount(account)}>删除</button>
+                </div>
+              </article>
+            ))}
+          </div>
+          <form className="settings-account-form" onSubmit={submitAccount}>
             <label>
-              管理员访问码
-              <input
-                value={accessUnlockCode}
-                onChange={(event) => setAccessUnlockCode(event.target.value)}
-                placeholder="请输入管理员访问码"
-                inputMode="numeric"
-                autoComplete="current-password"
-              />
+              账号
+              <input value={accountDraft.username} onChange={(event) => setAccountDraft((current) => ({ ...current, username: event.target.value }))} placeholder="例如 tongda" />
             </label>
-            <button type="submit" disabled={accessUnlockState.loading}>{accessUnlockState.loading ? '验证中...' : '进入编辑'}</button>
+            <label>
+              密码
+              <input value={accountDraft.password} onChange={(event) => setAccountDraft((current) => ({ ...current, password: event.target.value }))} placeholder="6-32位密码" />
+            </label>
+            <label>
+              人员名称
+              <input value={accountDraft.displayName} onChange={(event) => setAccountDraft((current) => ({ ...current, displayName: event.target.value }))} placeholder="例如 张三" />
+            </label>
+            <label>
+              角色
+              <select value={accountDraft.role} onChange={(event) => setAccountDraft((current) => ({ ...current, role: event.target.value }))}>
+                <option value="admin">管理员</option>
+                <option value="staff">员工</option>
+              </select>
+            </label>
+            <label>
+              所属公司
+              <select
+                value={accountDraft.companyId}
+                disabled={accountDraft.role === 'admin'}
+                onChange={(event) => setAccountDraft((current) => ({ ...current, companyId: event.target.value }))}
+              >
+                {companies.map((company) => <option key={company.id} value={company.id}>{company.shortName}</option>)}
+              </select>
+            </label>
+            <label className="settings-switch-field">
+              启用账号
+              <input type="checkbox" checked={accountDraft.isActive} onChange={(event) => setAccountDraft((current) => ({ ...current, isActive: event.target.checked }))} />
+            </label>
+            <div className="account-form-actions">
+              <button type="button" onClick={() => setAccountDraft(createAccountDraft())}>清空新增</button>
+              <button type="submit" disabled={accountState.loading}>{accountState.loading ? '保存中...' : accountDraft.id ? '保存账号' : '新增账号'}</button>
+            </div>
           </form>
-          {accessUnlockState.error ? <div className="cloud-banner error">{accessUnlockState.error}</div> : null}
-          {accessUnlocked ? (
-            <>
-              <div className="access-code-list">
-                {accessCodeRows.map((code) => (
-                  <article key={code.id} className={`${code.isActive ? 'active' : ''} ${accessDraft.id === code.id ? 'selected' : ''}`}>
-                    <div>
-                      <strong>{code.label}</strong>
-                      <p>{code.role === 'admin' ? '管理员权限' : '员工权限'}</p>
-                    </div>
-                    <dl>
-                      <div><dt>访问码</dt><dd>{code.code || '需重设'}</dd></div>
-                      <div><dt>状态</dt><dd>{code.isActive ? '启用中' : '已停用'}</dd></div>
-                      <div><dt>创建时间</dt><dd>{code.createdAt || '未知'}</dd></div>
-                      <div><dt>安全指纹</dt><dd>末尾 {code.fingerprint}</dd></div>
-                    </dl>
-                    <div className="access-code-actions">
-                      <button type="button" onClick={() => editAccessCode(code)}>编辑</button>
-                      <button type="button" className="danger" onClick={() => removeAccessCode(code)}>删除</button>
-                    </div>
-                  </article>
-                ))}
-              </div>
-              <p className="settings-note">当前版本已启用明文管理；旧版本修改过且未记录明文的访问码会显示“需重设”。</p>
-              <form className="settings-access-form" onSubmit={submitAccessCode}>
-                <label>
-                  权限角色
-                  <select value={accessDraft.role} onChange={(event) => setAccessDraft((current) => ({ ...current, role: event.target.value }))}>
-                    <option value="admin">管理员</option>
-                    <option value="staff">员工</option>
-                  </select>
-                </label>
-                <label>
-                  新访问码
-                  <input
-                    value={accessDraft.code}
-                    onChange={(event) => setAccessDraft((current) => ({ ...current, code: event.target.value }))}
-                    placeholder="4-12位数字"
-                    inputMode="numeric"
-                  />
-                </label>
-                <button type="submit" disabled={accessCodeState.loading}>{accessCodeState.loading ? '保存中...' : accessDraft.id ? '保存修改' : '新增访问码'}</button>
-              </form>
-            </>
-          ) : null}
-          {accessCodeState.message ? <div className="cloud-banner">{accessCodeState.message}</div> : null}
-          {accessCodeState.error ? <div className="cloud-banner error">{accessCodeState.error}</div> : null}
         </section>
       ) : null}
 
