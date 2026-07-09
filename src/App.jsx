@@ -127,7 +127,10 @@ async function saveCloudOrder(order, session) {
   });
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
-    throw new Error(data.error || `云端保存失败：${response.status}`);
+    const messageMap = {
+      SETTLEMENT_ADMIN_REQUIRED: '当前账号无结算或返结算权限，请联系管理员操作',
+    };
+    throw new Error(messageMap[data.error] || data.error || `云端保存失败：${response.status}`);
   }
   return response.json();
 }
@@ -538,6 +541,7 @@ function App() {
   const canOpenSettings = hasUiPermission(accessSession, 'settings');
   const canVoidOrder = hasUiPermission(accessSession, 'voidOrder');
   const canViewLogs = hasUiPermission(accessSession, 'logs');
+  const canSettleOrder = isAdmin;
   const orderData = useMemo(() => orderRepository.listOrders(orders), [orders]);
   const companyOrders = useMemo(
     () => orderData.filter((order) => (order.companyId || 'tongda') === currentCompany.id),
@@ -956,6 +960,7 @@ function App() {
             onStatusChange={updateOrderStatus}
             cloudState={ordersCloudState}
             role={accessSession?.role || 'staff'}
+            canSettleOrder={canSettleOrder}
             canVoidOrder={canVoidOrder}
             insurerOptions={insurerChoices}
             staffOptions={staffChoices}
@@ -1549,6 +1554,7 @@ function RepairReception({
   onSaveOrder,
   onStatusChange,
   cloudState,
+  canSettleOrder,
   canVoidOrder,
   insurerOptions,
   staffOptions,
@@ -1636,12 +1642,29 @@ function RepairReception({
 
   function changeStatus(status) {
     if (!selected) return;
+    if (!canSettleOrder && [REPAIR_STATUS.pendingSettlement, REPAIR_STATUS.settled].includes(status)) return;
     if (status === REPAIR_STATUS.settled) {
       setSettlementOrder(selected);
       return;
     }
     onStatusChange(selected.id, status);
     setDraft(createOrderDraft({ ...selected, status }));
+  }
+
+  function reverseSettlement(order) {
+    if (!canSettleOrder || !order) return;
+    const nextOrder = {
+      ...order,
+      status: REPAIR_STATUS.pendingSettlement,
+      paymentMethod: '待确认',
+      settlementDate: '',
+      settlementTime: '',
+      settlementRemark: '',
+    };
+    onSaveOrder(nextOrder);
+    setSelectedId(nextOrder.id);
+    setDraft(createOrderDraft(nextOrder));
+    setDetailOrder(nextOrder);
   }
 
   function printOrder(order) {
@@ -1702,7 +1725,7 @@ function RepairReception({
             onView={openView}
             onEdit={openEdit}
             onPrint={printOrder}
-            onSettle={(order) => setSettlementOrder(order)}
+            onSettle={canSettleOrder ? (order) => setSettlementOrder(order) : null}
             onVoid={canVoidOrder ? (order) => setVoidOrderTarget(order) : null}
           />
         </div>
@@ -1738,8 +1761,9 @@ function RepairReception({
               <div className="state-actions">
                 <button onClick={() => changeStatus(REPAIR_STATUS.repairing)}>切为在修</button>
                 <button onClick={() => changeStatus(REPAIR_STATUS.completed)}>切为完工</button>
-                <button onClick={() => changeStatus(REPAIR_STATUS.pendingSettlement)}>待结算</button>
-                <button onClick={() => changeStatus(REPAIR_STATUS.settled)}>完成结算</button>
+                {canSettleOrder ? <button onClick={() => changeStatus(REPAIR_STATUS.pendingSettlement)}>待结算</button> : null}
+                {canSettleOrder && selected.status !== REPAIR_STATUS.settled ? <button onClick={() => changeStatus(REPAIR_STATUS.settled)}>完成结算</button> : null}
+                {canSettleOrder && selected.status === REPAIR_STATUS.settled ? <button onClick={() => reverseSettlement(selected)}>返结算</button> : null}
               </div>
               <button className="wide-edit-button" onClick={() => openEdit(selected)}>编辑当前工单</button>
             </>
@@ -1747,6 +1771,7 @@ function RepairReception({
             <OrderForm
               draft={draft}
               mode={formMode}
+              canSettleOrder={canSettleOrder}
               insurerOptions={insurerOptions}
               staffOptions={staffOptions}
               onChange={setDraft}
@@ -1767,7 +1792,8 @@ function RepairReception({
           onClose={() => setDetailOrder(null)}
           onEdit={() => openEdit(detailOrder)}
           onPrint={() => printOrder(detailOrder)}
-          onSettle={() => setSettlementOrder(detailOrder)}
+          onSettle={canSettleOrder ? () => setSettlementOrder(detailOrder) : null}
+          onReverseSettle={canSettleOrder ? () => reverseSettlement(detailOrder) : null}
           onUploadReceipt={(file, order) => onUploadReceipt(file, order.id).then((receipt) => {
             const nextOrder = {
               ...order,
@@ -1822,7 +1848,7 @@ function PrintField({ label, value, wide = false }) {
   );
 }
 
-function OrderDetailDialog({ order, company, onClose, onEdit, onPrint, onSettle, onUploadReceipt, onViewReceipt, onDeleteReceipt, onVoid }) {
+function OrderDetailDialog({ order, company, onClose, onEdit, onPrint, onSettle, onReverseSettle, onUploadReceipt, onViewReceipt, onDeleteReceipt, onVoid }) {
   const [receiptState, setReceiptState] = useState({ loading: false, error: '', previewUrl: '' });
   const [receiptFile, setReceiptFile] = useState(null);
   const printTime = new Date().toLocaleString('zh-CN', { hour12: false });
@@ -1948,7 +1974,8 @@ function OrderDetailDialog({ order, company, onClose, onEdit, onPrint, onSettle,
 
           <footer className="modal-actions">
             <button type="button" onClick={onPrint}>打印工单</button>
-            {order.status !== REPAIR_STATUS.settled ? <button type="button" onClick={onSettle}>结算工单</button> : null}
+            {onSettle && order.status !== REPAIR_STATUS.settled ? <button type="button" onClick={onSettle}>结算工单</button> : null}
+            {onReverseSettle && order.status === REPAIR_STATUS.settled ? <button type="button" onClick={onReverseSettle}>返结算</button> : null}
             {onVoid ? <button type="button" onClick={onVoid}>作废工单</button> : null}
             <button type="button" onClick={onEdit}>编辑工单</button>
           </footer>
@@ -2165,11 +2192,15 @@ function SettlementDialog({ order, onClose, onUploadReceipt, onSubmit }) {
   );
 }
 
-function OrderForm({ draft, mode, insurerOptions, staffOptions, onChange, onCancel, onSubmit }) {
+function OrderForm({ draft, mode, canSettleOrder, insurerOptions, staffOptions, onChange, onCancel, onSubmit }) {
   const labor = normalizeMoney(draft.labor);
   const material = normalizeMoney(draft.material);
   const visibleInsurerOptions = Array.from(new Set([draft.insurer, ...insurerOptions].filter(Boolean)));
   const visibleStaffOptions = Array.from(new Set([draft.staff, ...staffOptions].filter(Boolean)));
+  const employeeStatusOptions = [REPAIR_STATUS.repairing, REPAIR_STATUS.completed];
+  const visibleStatusOptions = canSettleOrder
+    ? statusOptions
+    : Array.from(new Set([draft.status, ...employeeStatusOptions].filter(Boolean)));
 
   function updateField(field, value) {
     onChange({ ...draft, [field]: value });
@@ -2259,10 +2290,9 @@ function OrderForm({ draft, mode, insurerOptions, staffOptions, onChange, onCanc
         <label>
           维修状态
           <select value={draft.status} onChange={(event) => updateField('status', event.target.value)}>
-            <option>在修中</option>
-            <option>已完工</option>
-            <option>待结算</option>
-            <option>已结算</option>
+            {visibleStatusOptions.map((status) => (
+              <option key={status} disabled={!canSettleOrder && !employeeStatusOptions.includes(status)}>{status}</option>
+            ))}
           </select>
         </label>
         <label>
@@ -2338,11 +2368,10 @@ function OrderTable({ orders, onView, onEdit, onPrint, onSettle, onVoid }) {
                   <button onClick={() => onView?.(order)}>查看</button>
                   <button onClick={() => onEdit?.(order)}>编辑</button>
                   <button onClick={() => onPrint?.(order)}>打印</button>
-                  {order.status !== REPAIR_STATUS.settled ? (
+                  {onSettle && order.status !== REPAIR_STATUS.settled ? (
                     <button onClick={() => onSettle?.(order)}>结算</button>
-                  ) : (
-                    <button onClick={() => onView?.(order)}>已结</button>
-                  )}
+                  ) : null}
+                  {order.status === REPAIR_STATUS.settled ? <span className="settled-readonly">已结算</span> : null}
                   {onVoid ? <button onClick={() => onVoid(order)}>作废</button> : null}
                 </span>
               </td>

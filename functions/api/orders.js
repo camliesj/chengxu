@@ -140,6 +140,16 @@ function validateOrder(order, existing) {
   return '';
 }
 
+function validateSettlementPermission(order, existing, session) {
+  if (session.role === 'admin') return '';
+  const settlementStatuses = ['待结算', '已结算'];
+  const isStatusChanged = !existing || order.status !== existing.status;
+  if (isStatusChanged && (settlementStatuses.includes(order.status) || settlementStatuses.includes(existing?.status))) {
+    return 'SETTLEMENT_ADMIN_REQUIRED';
+  }
+  return '';
+}
+
 export async function onRequestGet({ request, env }) {
   const { session, error } = await requireSession(request, env);
   if (error) return error;
@@ -163,6 +173,10 @@ export async function onRequestPost({ request, env }) {
   if (validationError) {
     return json({ error: validationError }, { status: 400 });
   }
+  const permissionError = validateSettlementPermission(order, existing, session);
+  if (permissionError) {
+    return json({ error: permissionError }, { status: 403 });
+  }
 
   const placeholders = ORDER_COLUMNS.map(() => '?').join(', ');
   const updates = ORDER_COLUMNS
@@ -176,7 +190,13 @@ export async function onRequestPost({ request, env }) {
     ON CONFLICT(id) DO UPDATE SET ${updates}, updated_at = CURRENT_TIMESTAMP
   `).bind(...ORDER_COLUMNS.map((column) => order[column])).run();
 
-  const action = !existing ? 'create_order' : order.status === '已结算' && existing.status !== '已结算' ? 'settle_order' : 'update_order';
+  const action = !existing
+    ? 'create_order'
+    : order.status === '已结算' && existing.status !== '已结算'
+      ? 'settle_order'
+      : existing.status === '已结算' && order.status !== '已结算'
+        ? 'reverse_settlement'
+        : 'update_order';
   await writeOperationLog(env, session, action, 'repair_order', order.id, `${order.plate} ${order.customer}`);
 
   return json({ order: toOrder(order) });
