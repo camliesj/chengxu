@@ -3294,56 +3294,63 @@ function ReportRanking({ title, rows, maxAmount }) {
   );
 }
 
-function DictionaryManager({ title, description, entries, draft, onDraftChange, onEdit, onDelete, onSubmit }) {
+function DictionaryManager({ title, description, entries, draft, collapsed, onToggle, onDraftChange, onEdit, onDelete, onSubmit }) {
   const isStaff = draft.category === 'staff';
   return (
-    <article className="dictionary-card">
+    <article className={collapsed ? 'dictionary-card is-collapsed' : 'dictionary-card'}>
       <header>
         <div>
           <h4>{title}</h4>
           <p>{description}</p>
         </div>
-        <span>{entries.length} 项</span>
-      </header>
-      <div className="dictionary-list">
-        {entries.length === 0 ? (
-          <div className="settings-empty">暂无字典项</div>
-        ) : entries.map((entry) => (
-          <div key={entry.id} className={entry.isActive ? 'dictionary-item active' : 'dictionary-item'}>
-            <div>
-              <strong>{entry.value}</strong>
-              {entry.extra ? <span>{entry.extra}</span> : null}
-            </div>
-            <small>{entry.isActive ? '启用' : '停用'} · 排序 {entry.sortOrder}</small>
-            <button type="button" onClick={() => onEdit(entry)}>编辑</button>
-            <button type="button" className="danger" onClick={() => onDelete(entry)}>删除</button>
-          </div>
-        ))}
-      </div>
-      <form className="dictionary-form" onSubmit={onSubmit}>
-        <label>
-          {isStaff ? '岗位职称' : '保险公司名称'}
-          <input value={draft.value} onChange={(event) => onDraftChange((current) => ({ ...current, value: event.target.value }))} placeholder={isStaff ? '必填，请输入岗位职称' : '必填，请输入保险公司名称'} />
-        </label>
-        {isStaff ? (
-          <label>
-            人员名称
-            <input value={draft.extra} onChange={(event) => onDraftChange((current) => ({ ...current, extra: event.target.value }))} placeholder="必填，请输入人员名称" />
-          </label>
-        ) : null}
-        <label>
-          排序
-          <input type="number" value={draft.sortOrder} onChange={(event) => onDraftChange((current) => ({ ...current, sortOrder: event.target.value }))} />
-        </label>
-        <label className="settings-switch-field">
-          启用
-          <input type="checkbox" checked={draft.isActive} onChange={(event) => onDraftChange((current) => ({ ...current, isActive: event.target.checked }))} />
-        </label>
-        <div className="account-form-actions">
-          <button type="button" onClick={() => onDraftChange(createDictionaryDraft(draft.category))}>清空</button>
-          <button type="submit">{draft.id ? '保存修改' : '新增字典'}</button>
+        <div className="collapse-actions">
+          <span>{entries.length} 项</span>
+          <button type="button" onClick={onToggle}>{collapsed ? '展开' : '收起'}</button>
         </div>
-      </form>
+      </header>
+      {collapsed ? null : (
+        <>
+          <div className="dictionary-list">
+            {entries.length === 0 ? (
+              <div className="settings-empty">暂无字典项</div>
+            ) : entries.map((entry) => (
+              <div key={entry.id} className={entry.isActive ? 'dictionary-item active' : 'dictionary-item'}>
+                <div>
+                  <strong>{entry.value}</strong>
+                  {entry.extra ? <span>{entry.extra}</span> : null}
+                </div>
+                <small>{entry.isActive ? '启用' : '停用'} · 排序 {entry.sortOrder}</small>
+                <button type="button" onClick={() => onEdit(entry)}>编辑</button>
+                <button type="button" className="danger" onClick={() => onDelete(entry)}>删除</button>
+              </div>
+            ))}
+          </div>
+          <form className="dictionary-form" onSubmit={onSubmit}>
+            <label>
+              {isStaff ? '岗位职称' : '保险公司名称'}
+              <input value={draft.value} onChange={(event) => onDraftChange((current) => ({ ...current, value: event.target.value }))} placeholder={isStaff ? '必填，请输入岗位职称' : '必填，请输入保险公司名称'} />
+            </label>
+            {isStaff ? (
+              <label>
+                人员名称
+                <input value={draft.extra} onChange={(event) => onDraftChange((current) => ({ ...current, extra: event.target.value }))} placeholder="必填，请输入人员名称" />
+              </label>
+            ) : null}
+            <label>
+              排序
+              <input type="number" value={draft.sortOrder} onChange={(event) => onDraftChange((current) => ({ ...current, sortOrder: event.target.value }))} />
+            </label>
+            <label className="settings-switch-field">
+              启用
+              <input type="checkbox" checked={draft.isActive} onChange={(event) => onDraftChange((current) => ({ ...current, isActive: event.target.checked }))} />
+            </label>
+            <div className="account-form-actions">
+              <button type="button" onClick={() => onDraftChange(createDictionaryDraft(draft.category))}>清空</button>
+              <button type="submit">{draft.id ? '保存修改' : '新增字典'}</button>
+            </div>
+          </form>
+        </>
+      )}
     </article>
   );
 }
@@ -3386,10 +3393,20 @@ function SystemSettingsPage({ session, cloudState, orders, dictionaries, canView
   const [insurerDraft, setInsurerDraft] = useState(createDictionaryDraft('insurer'));
   const [staffDraft, setStaffDraft] = useState(createDictionaryDraft('staff'));
   const [dictionaryState, setDictionaryState] = useState({ loading: false, message: '', error: '' });
+  const [collapsedSections, setCollapsedSections] = useState({
+    insurerDictionary: true,
+    staffDictionary: true,
+    accounts: true,
+    logs: true,
+  });
   const isAdmin = session?.role === 'admin';
   const canManageSettings = hasUiPermission(session, 'settings');
   const insurerDictionaries = dictionaries.filter((entry) => entry.category === 'insurer');
   const staffDictionaries = dictionaries.filter((entry) => entry.category === 'staff');
+
+  function toggleSettingsSection(section) {
+    setCollapsedSections((current) => ({ ...current, [section]: !current[section] }));
+  }
 
   function loadLogs() {
     if (!canViewLogs) return;
@@ -3553,6 +3570,8 @@ function SystemSettingsPage({ session, cloudState, orders, dictionaries, canView
               description="用于工单、保险档案、客户车辆的保险公司下拉项。"
               entries={insurerDictionaries}
               draft={insurerDraft}
+              collapsed={collapsedSections.insurerDictionary}
+              onToggle={() => toggleSettingsSection('insurerDictionary')}
               onDraftChange={setInsurerDraft}
               onEdit={(entry) => setInsurerDraft(createDictionaryDraft('insurer', entry))}
               onDelete={removeDictionary}
@@ -3563,6 +3582,8 @@ function SystemSettingsPage({ session, cloudState, orders, dictionaries, canView
               description="职称和人员名称会合并显示在工单业务员选项中。"
               entries={staffDictionaries}
               draft={staffDraft}
+              collapsed={collapsedSections.staffDictionary}
+              onToggle={() => toggleSettingsSection('staffDictionary')}
               onDraftChange={setStaffDraft}
               onEdit={(entry) => setStaffDraft(createDictionaryDraft('staff', entry))}
               onDelete={removeDictionary}
@@ -3579,91 +3600,98 @@ function SystemSettingsPage({ session, cloudState, orders, dictionaries, canView
               <h3>账号密码管理</h3>
               <p>维护两家公司登录账号、密码、角色、所属公司和启用状态。原访问码管理暂不使用。</p>
             </div>
-            <span>{accounts.length} 个账号</span>
+            <div className="collapse-actions">
+              <span>{accounts.length} 个账号</span>
+              <button type="button" onClick={() => toggleSettingsSection('accounts')}>{collapsedSections.accounts ? '展开' : '收起'}</button>
+            </div>
           </div>
-          {accountState.error ? <div className="cloud-banner error">{accountState.error}</div> : null}
-          {accountState.message ? <div className="cloud-banner">{accountState.message}</div> : null}
-          <div className="access-code-list">
-            {accounts.map((account) => (
-              <article key={account.id} className={`${account.isActive ? 'active' : ''} ${accountDraft.id === account.id ? 'selected' : ''}`}>
-                <div>
-                  <strong>{account.username}</strong>
-                  <p>{account.displayName || account.label}</p>
-                </div>
-                <dl>
-                  <div><dt>密码</dt><dd>{account.password || '需重设'}</dd></div>
-                  <div><dt>岗位</dt><dd>{account.role === 'admin' ? '管理员' : account.title || account.label}</dd></div>
-                  <div><dt>角色</dt><dd>{account.role === 'admin' ? '管理员' : '员工'}</dd></div>
-                  <div><dt>公司</dt><dd>{account.role === 'admin' ? '全部公司' : companyById(account.companyId).shortName}</dd></div>
-                  <div><dt>状态</dt><dd>{account.isActive ? '启用中' : '已停用'}</dd></div>
-                  <div><dt>权限</dt><dd>{account.role === 'admin' ? '全部权限' : (account.permissions || []).map((key) => permissionItems.find((item) => item.key === key)?.label).filter(Boolean).join('、') || '未分配'}</dd></div>
-                </dl>
-                <div className="access-code-actions">
-                  <button type="button" onClick={() => editAccount(account)}>编辑</button>
-                  <button type="button" className="danger" onClick={() => removeAccount(account)}>删除</button>
-                </div>
-              </article>
-            ))}
-          </div>
-          <form className="settings-account-form" onSubmit={submitAccount}>
-            <label>
-              账号
-              <input value={accountDraft.username} onChange={(event) => setAccountDraft((current) => ({ ...current, username: event.target.value }))} placeholder="必填，请输入账号" />
-            </label>
-            <label>
-              密码
-              <input value={accountDraft.password} onChange={(event) => setAccountDraft((current) => ({ ...current, password: event.target.value }))} placeholder="必填，请输入6-32位密码" />
-            </label>
-            <label>
-              人员名称
-              <input value={accountDraft.displayName} onChange={(event) => setAccountDraft((current) => ({ ...current, displayName: event.target.value }))} placeholder="请输入人员名称" />
-            </label>
-            <label>
-              岗位职称
-              <input value={accountDraft.title} disabled={accountDraft.role === 'admin'} onChange={(event) => setAccountDraft((current) => ({ ...current, title: event.target.value }))} placeholder="请输入岗位职称" />
-            </label>
-            <label>
-              角色
-              <select value={accountDraft.role} onChange={(event) => setAccountDraft((current) => ({ ...current, role: event.target.value }))}>
-                <option value="admin">管理员</option>
-                <option value="staff">员工</option>
-              </select>
-            </label>
-            <label>
-              所属公司
-              <select
-                value={accountDraft.companyId}
-                disabled={accountDraft.role === 'admin'}
-                onChange={(event) => setAccountDraft((current) => ({ ...current, companyId: event.target.value }))}
-              >
-                {companies.map((company) => <option key={company.id} value={company.id}>{company.shortName}</option>)}
-              </select>
-            </label>
-            <label className="settings-switch-field">
-              启用账号
-              <input type="checkbox" checked={accountDraft.isActive} onChange={(event) => setAccountDraft((current) => ({ ...current, isActive: event.target.checked }))} />
-            </label>
-            <div className="permission-checks">
-              <span>权限分配</span>
-              <div>
-                {permissionItems.map((permission) => (
-                  <label key={permission.key}>
-                    <input
-                      type="checkbox"
-                      disabled={accountDraft.role === 'admin'}
-                      checked={accountDraft.role === 'admin' || accountDraft.permissions.includes(permission.key)}
-                      onChange={(event) => updateAccountPermission(permission.key, event.target.checked)}
-                    />
-                    {permission.label}
-                  </label>
+          {collapsedSections.accounts ? null : (
+            <>
+              {accountState.error ? <div className="cloud-banner error">{accountState.error}</div> : null}
+              {accountState.message ? <div className="cloud-banner">{accountState.message}</div> : null}
+              <div className="access-code-list">
+                {accounts.map((account) => (
+                  <article key={account.id} className={`${account.isActive ? 'active' : ''} ${accountDraft.id === account.id ? 'selected' : ''}`}>
+                    <div>
+                      <strong>{account.username}</strong>
+                      <p>{account.displayName || account.label}</p>
+                    </div>
+                    <dl>
+                      <div><dt>密码</dt><dd>{account.password || '需重设'}</dd></div>
+                      <div><dt>岗位</dt><dd>{account.role === 'admin' ? '管理员' : account.title || account.label}</dd></div>
+                      <div><dt>角色</dt><dd>{account.role === 'admin' ? '管理员' : '员工'}</dd></div>
+                      <div><dt>公司</dt><dd>{account.role === 'admin' ? '全部公司' : companyById(account.companyId).shortName}</dd></div>
+                      <div><dt>状态</dt><dd>{account.isActive ? '启用中' : '已停用'}</dd></div>
+                      <div><dt>权限</dt><dd>{account.role === 'admin' ? '全部权限' : (account.permissions || []).map((key) => permissionItems.find((item) => item.key === key)?.label).filter(Boolean).join('、') || '未分配'}</dd></div>
+                    </dl>
+                    <div className="access-code-actions">
+                      <button type="button" onClick={() => editAccount(account)}>编辑</button>
+                      <button type="button" className="danger" onClick={() => removeAccount(account)}>删除</button>
+                    </div>
+                  </article>
                 ))}
               </div>
-            </div>
-            <div className="account-form-actions">
-              <button type="button" onClick={() => setAccountDraft(createAccountDraft())}>清空新增</button>
-              <button type="submit" disabled={accountState.loading}>{accountState.loading ? '保存中...' : accountDraft.id ? '保存账号' : '新增账号'}</button>
-            </div>
-          </form>
+              <form className="settings-account-form" onSubmit={submitAccount}>
+                <label>
+                  账号
+                  <input value={accountDraft.username} onChange={(event) => setAccountDraft((current) => ({ ...current, username: event.target.value }))} placeholder="必填，请输入账号" />
+                </label>
+                <label>
+                  密码
+                  <input value={accountDraft.password} onChange={(event) => setAccountDraft((current) => ({ ...current, password: event.target.value }))} placeholder="必填，请输入6-32位密码" />
+                </label>
+                <label>
+                  人员名称
+                  <input value={accountDraft.displayName} onChange={(event) => setAccountDraft((current) => ({ ...current, displayName: event.target.value }))} placeholder="请输入人员名称" />
+                </label>
+                <label>
+                  岗位职称
+                  <input value={accountDraft.title} disabled={accountDraft.role === 'admin'} onChange={(event) => setAccountDraft((current) => ({ ...current, title: event.target.value }))} placeholder="请输入岗位职称" />
+                </label>
+                <label>
+                  角色
+                  <select value={accountDraft.role} onChange={(event) => setAccountDraft((current) => ({ ...current, role: event.target.value }))}>
+                    <option value="admin">管理员</option>
+                    <option value="staff">员工</option>
+                  </select>
+                </label>
+                <label>
+                  所属公司
+                  <select
+                    value={accountDraft.companyId}
+                    disabled={accountDraft.role === 'admin'}
+                    onChange={(event) => setAccountDraft((current) => ({ ...current, companyId: event.target.value }))}
+                  >
+                    {companies.map((company) => <option key={company.id} value={company.id}>{company.shortName}</option>)}
+                  </select>
+                </label>
+                <label className="settings-switch-field">
+                  启用账号
+                  <input type="checkbox" checked={accountDraft.isActive} onChange={(event) => setAccountDraft((current) => ({ ...current, isActive: event.target.checked }))} />
+                </label>
+                <div className="permission-checks">
+                  <span>权限分配</span>
+                  <div>
+                    {permissionItems.map((permission) => (
+                      <label key={permission.key}>
+                        <input
+                          type="checkbox"
+                          disabled={accountDraft.role === 'admin'}
+                          checked={accountDraft.role === 'admin' || accountDraft.permissions.includes(permission.key)}
+                          onChange={(event) => updateAccountPermission(permission.key, event.target.checked)}
+                        />
+                        {permission.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div className="account-form-actions">
+                  <button type="button" onClick={() => setAccountDraft(createAccountDraft())}>清空新增</button>
+                  <button type="submit" disabled={accountState.loading}>{accountState.loading ? '保存中...' : accountDraft.id ? '保存账号' : '新增账号'}</button>
+                </div>
+              </form>
+            </>
+          )}
         </section>
       ) : null}
 
@@ -3673,9 +3701,10 @@ function SystemSettingsPage({ session, cloudState, orders, dictionaries, canView
           <div>
             {logState.loading ? <span className="settings-note">读取中...</span> : null}
             {canViewLogs ? <button onClick={loadLogs}>刷新日志</button> : null}
+            <button type="button" className="collapse-toggle" onClick={() => toggleSettingsSection('logs')}>{collapsedSections.logs ? '展开' : '收起'}</button>
           </div>
         </div>
-        {!canViewLogs ? (
+        {collapsedSections.logs ? null : !canViewLogs ? (
           <div className="settings-empty">当前账号未分配操作日志权限。</div>
         ) : logState.error ? (
           <div className="cloud-banner error">{logState.error}</div>

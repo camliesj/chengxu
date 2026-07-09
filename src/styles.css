@@ -2298,7 +2298,8 @@ dd {
   line-height: 1.6;
 }
 
-.settings-access-heading span {
+.settings-access-heading span,
+.collapse-actions span {
   flex: 0 0 auto;
   border-radius: 999px;
   padding: 5px 10px;
@@ -2306,6 +2307,31 @@ dd {
   background: #eaf9f1;
   font-size: 12px;
   font-weight: 900;
+}
+
+.collapse-actions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.collapse-actions button,
+.collapse-toggle {
+  min-height: 30px;
+  border: 1px solid #cfe0f4;
+  border-radius: 6px;
+  padding: 0 11px;
+  color: var(--blue);
+  background: #f6fbff;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.collapse-actions button:hover,
+.collapse-toggle:hover {
+  border-color: #9ecbff;
+  background: #edf6ff;
 }
 
 .settings-access-heading span.locked {
@@ -2509,6 +2535,10 @@ dd {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #f8fbff;
+}
+
+.dictionary-card.is-collapsed {
+  background: linear-gradient(180deg, #f8fbff, #f5faff);
 }
 
 .dictionary-card header {
