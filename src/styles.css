@@ -3101,29 +3101,29 @@ dd {
 @media print {
   @page {
     size: A4 portrait;
-    margin: 10mm;
+    margin: 0;
   }
 
   html,
   body {
     width: 210mm;
-    min-height: 297mm;
+    height: 297mm;
+    margin: 0 !important;
+    overflow: hidden;
     background: #fff;
   }
 
   body * {
-    visibility: hidden;
+    visibility: hidden !important;
   }
 
-  .modal-backdrop,
-  .modal-backdrop *,
-  .order-detail-modal,
-  .order-detail-modal * {
-    visibility: visible;
+  .print-order-sheet,
+  .print-order-sheet * {
+    visibility: visible !important;
   }
 
   .modal-backdrop {
-    position: static;
+    position: static !important;
     display: block;
     padding: 0;
     background: #fff;
@@ -3131,9 +3131,10 @@ dd {
   }
 
   .order-detail-modal {
-    width: 190mm;
+    position: static !important;
+    width: 210mm;
     max-height: none;
-    overflow: visible;
+    overflow: hidden;
     padding: 0;
     border: 0;
     border-radius: 0;
@@ -3146,12 +3147,23 @@ dd {
   }
 
   .print-order-sheet {
+    position: fixed;
+    inset: 0;
     display: block !important;
-    width: 190mm;
-    min-height: 272mm;
+    box-sizing: border-box;
+    width: 210mm;
+    height: 297mm;
+    min-height: 0;
+    overflow: hidden;
+    padding: 16mm 18mm 12mm;
     color: #111827;
     background: #fff;
     font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+    break-before: avoid;
+    break-after: avoid;
+    break-inside: avoid;
+    page-break-before: avoid;
+    page-break-after: avoid;
     page-break-inside: avoid;
   }
 
