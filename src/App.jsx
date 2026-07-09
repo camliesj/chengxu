@@ -1763,6 +1763,13 @@ function RepairReception({
           </div>
           <OrderTable
             orders={visibleOrders}
+            selectedId={selected?.id}
+            onSelect={(order) => {
+              setSelectedId(order.id);
+              setFormMode('view');
+              setDraft(createOrderDraft(order));
+              setDetailOrder(null);
+            }}
             onView={openView}
             onEdit={openEdit}
             onPrint={printOrder}
@@ -2398,7 +2405,12 @@ function OrderForm({ draft, mode, canSettleOrder, insurerOptions, staffOptions, 
   );
 }
 
-function OrderTable({ orders, onView, onEdit, onPrint, onSettle, onVoid }) {
+function OrderTable({ orders, selectedId, onSelect, onView, onEdit, onPrint, onSettle, onVoid }) {
+  function stopAction(event, action) {
+    event.stopPropagation();
+    action();
+  }
+
   return (
     <div className="table-scroll">
       <table>
@@ -2423,7 +2435,11 @@ function OrderTable({ orders, onView, onEdit, onPrint, onSettle, onVoid }) {
               <td colSpan="11" className="empty-table-cell">暂无匹配工单</td>
             </tr>
           ) : orders.map((order) => (
-            <tr key={order.id}>
+            <tr
+              key={order.id}
+              className={`${onSelect ? 'clickable-row' : ''} ${selectedId === order.id ? 'selected-row' : ''}`.trim()}
+              onClick={() => onSelect?.(order)}
+            >
               <td>{order.id}</td>
               <td>{order.date}　{order.time}</td>
               <td><strong className="plate-link">{order.plate}</strong></td>
@@ -2436,14 +2452,14 @@ function OrderTable({ orders, onView, onEdit, onPrint, onSettle, onVoid }) {
               <td>{order.staff}</td>
               <td>
                 <span className="table-actions">
-                  <button onClick={() => onView?.(order)}>查看</button>
-                  <button onClick={() => onEdit?.(order)}>编辑</button>
-                  <button onClick={() => onPrint?.(order)}>打印</button>
+                  <button onClick={(event) => stopAction(event, () => onView?.(order))}>查看</button>
+                  <button onClick={(event) => stopAction(event, () => onEdit?.(order))}>编辑</button>
+                  <button onClick={(event) => stopAction(event, () => onPrint?.(order))}>打印</button>
                   {onSettle && order.status !== REPAIR_STATUS.settled ? (
-                    <button onClick={() => onSettle?.(order)}>结算</button>
+                    <button onClick={(event) => stopAction(event, () => onSettle?.(order))}>结算</button>
                   ) : null}
                   {order.status === REPAIR_STATUS.settled ? <span className="settled-readonly">已结算</span> : null}
-                  {onVoid ? <button onClick={() => onVoid(order)}>作废</button> : null}
+                  {onVoid ? <button onClick={(event) => stopAction(event, () => onVoid(order))}>作废</button> : null}
                 </span>
               </td>
             </tr>

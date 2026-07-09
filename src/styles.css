@@ -987,6 +987,10 @@ tbody tr:hover {
   background: #f8fbff;
 }
 
+tbody tr.clickable-row {
+  cursor: pointer;
+}
+
 tbody tr.selected-row {
   background: #f0f7ff;
 }
