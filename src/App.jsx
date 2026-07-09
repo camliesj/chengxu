@@ -395,6 +395,24 @@ function currentTimeLabel() {
   });
 }
 
+function monthRange(year, month) {
+  const paddedMonth = String(month).padStart(2, '0');
+  const lastDay = new Date(Number(year), month, 0).getDate();
+  return {
+    start: `${year}-${paddedMonth}-01`,
+    end: `${year}-${paddedMonth}-${String(lastDay).padStart(2, '0')}`,
+  };
+}
+
+function monthShortcutValue(dateRange) {
+  if (!dateRange.start || !dateRange.end) return '';
+  const match = /^(\d{4})-(\d{2})-01$/.exec(dateRange.start);
+  if (!match) return '';
+  const month = Number(match[2]);
+  const range = monthRange(match[1], month);
+  return range.end === dateRange.end ? String(month) : '';
+}
+
 function daysBetween(start, end) {
   const startDate = new Date(`${start}T00:00:00`);
   const endDate = new Date(`${end}T00:00:00`);
@@ -591,6 +609,8 @@ function App() {
     return entries.length > 0 ? entries : defaultStaffEntries;
   }, [dictionaries]);
   const staffChoices = useMemo(() => staffEntries.map(dictionaryStaffLabel).filter(Boolean), [staffEntries]);
+  const currentYear = (dateRange.start || currentDateValue()).slice(0, 4);
+  const monthShortcut = monthShortcutValue(dateRange);
 
   useEffect(() => {
     localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(orders));
@@ -889,6 +909,19 @@ function App() {
             <input type="date" value={dateRange.start} onChange={(event) => setDateRange((current) => ({ ...current, start: event.target.value }))} aria-label="开始日期" />
             <span>至</span>
             <input type="date" value={dateRange.end} onChange={(event) => setDateRange((current) => ({ ...current, end: event.target.value }))} aria-label="结束日期" />
+            <select
+              value={monthShortcut}
+              onChange={(event) => {
+                if (!event.target.value) return;
+                setDateRange(monthRange(currentYear, Number(event.target.value)));
+              }}
+              aria-label="快捷选择月份"
+            >
+              <option value="">月份快捷</option>
+              {Array.from({ length: 12 }, (_, index) => index + 1).map((month) => (
+                <option key={month} value={month}>{currentYear}年{month}月</option>
+              ))}
+            </select>
           </div>
           <div className="search-wrap">
             <AssetIcon name="action-search.png" className="field-icon" />
