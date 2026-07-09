@@ -1569,6 +1569,7 @@ function RepairReception({
   const [detailOrder, setDetailOrder] = useState(null);
   const [settlementOrder, setSettlementOrder] = useState(null);
   const [voidOrderTarget, setVoidOrderTarget] = useState(null);
+  const [confirmAction, setConfirmAction] = useState(null);
   const [activeStatus, setActiveStatus] = useState('全部');
 
   const visibleOrders = useMemo(
@@ -1640,15 +1641,44 @@ function RepairReception({
     setDraft(createOrderDraft(nextOrder));
   }
 
-  function changeStatus(status) {
-    if (!selected) return;
+  function applyStatusChange(order, status) {
+    if (!order) return;
     if (!canSettleOrder && [REPAIR_STATUS.pendingSettlement, REPAIR_STATUS.settled].includes(status)) return;
     if (status === REPAIR_STATUS.settled) {
-      setSettlementOrder(selected);
+      setSettlementOrder(order);
       return;
     }
-    onStatusChange(selected.id, status);
-    setDraft(createOrderDraft({ ...selected, status }));
+    const nextOrder = { ...order, status };
+    onStatusChange(order.id, status);
+    setDraft(createOrderDraft(nextOrder));
+    if (detailOrder?.id === order.id) setDetailOrder(nextOrder);
+  }
+
+  function requestStatusChange(order, status) {
+    if (!order) return;
+    const actionText = status === REPAIR_STATUS.repairing
+      ? '切为在修'
+      : status === REPAIR_STATUS.completed
+        ? '切为完工'
+        : status === REPAIR_STATUS.pendingSettlement
+          ? '切为待结算'
+          : '完成结算';
+    setConfirmAction({
+      title: `确认${actionText}`,
+      description: `工单 ${order.id}（${order.plate}）当前状态为“${order.status}”，确认切换为“${status}”？`,
+      confirmText: status === REPAIR_STATUS.settled ? '继续结算' : '确认切换',
+      onConfirm: () => applyStatusChange(order, status),
+    });
+  }
+
+  function requestSettlement(order) {
+    if (!canSettleOrder || !order) return;
+    setConfirmAction({
+      title: '确认结算工单',
+      description: `工单 ${order.id}（${order.plate}）将进入结算流程，需上传到账回执后完成结算。`,
+      confirmText: '进入结算',
+      onConfirm: () => setSettlementOrder(order),
+    });
   }
 
   function reverseSettlement(order) {
@@ -1665,6 +1695,17 @@ function RepairReception({
     setSelectedId(nextOrder.id);
     setDraft(createOrderDraft(nextOrder));
     setDetailOrder(nextOrder);
+  }
+
+  function requestReverseSettlement(order) {
+    if (!canSettleOrder || !order) return;
+    setConfirmAction({
+      title: '确认返结算',
+      description: `工单 ${order.id}（${order.plate}）已结算，返结算后会清空结算时间和结算备注，状态改为“待结算”。`,
+      confirmText: '确认返结算',
+      danger: true,
+      onConfirm: () => reverseSettlement(order),
+    });
   }
 
   function printOrder(order) {
@@ -1725,7 +1766,7 @@ function RepairReception({
             onView={openView}
             onEdit={openEdit}
             onPrint={printOrder}
-            onSettle={canSettleOrder ? (order) => setSettlementOrder(order) : null}
+            onSettle={canSettleOrder ? requestSettlement : null}
             onVoid={canVoidOrder ? (order) => setVoidOrderTarget(order) : null}
           />
         </div>
@@ -1759,11 +1800,11 @@ function RepairReception({
                 <div className="total"><span>工单金额</span><strong>{formatMoney(selected.amount)}</strong></div>
               </div>
               <div className="state-actions">
-                <button onClick={() => changeStatus(REPAIR_STATUS.repairing)}>切为在修</button>
-                <button onClick={() => changeStatus(REPAIR_STATUS.completed)}>切为完工</button>
-                {canSettleOrder ? <button onClick={() => changeStatus(REPAIR_STATUS.pendingSettlement)}>待结算</button> : null}
-                {canSettleOrder && selected.status !== REPAIR_STATUS.settled ? <button onClick={() => changeStatus(REPAIR_STATUS.settled)}>完成结算</button> : null}
-                {canSettleOrder && selected.status === REPAIR_STATUS.settled ? <button onClick={() => reverseSettlement(selected)}>返结算</button> : null}
+                <button onClick={() => requestStatusChange(selected, REPAIR_STATUS.repairing)}>切为在修</button>
+                <button onClick={() => requestStatusChange(selected, REPAIR_STATUS.completed)}>切为完工</button>
+                {canSettleOrder ? <button onClick={() => requestStatusChange(selected, REPAIR_STATUS.pendingSettlement)}>待结算</button> : null}
+                {canSettleOrder && selected.status !== REPAIR_STATUS.settled ? <button onClick={() => requestSettlement(selected)}>完成结算</button> : null}
+                {canSettleOrder && selected.status === REPAIR_STATUS.settled ? <button onClick={() => requestReverseSettlement(selected)}>返结算</button> : null}
               </div>
               <button className="wide-edit-button" onClick={() => openEdit(selected)}>编辑当前工单</button>
             </>
@@ -1792,8 +1833,8 @@ function RepairReception({
           onClose={() => setDetailOrder(null)}
           onEdit={() => openEdit(detailOrder)}
           onPrint={() => printOrder(detailOrder)}
-          onSettle={canSettleOrder ? () => setSettlementOrder(detailOrder) : null}
-          onReverseSettle={canSettleOrder ? () => reverseSettlement(detailOrder) : null}
+          onSettle={canSettleOrder ? () => requestSettlement(detailOrder) : null}
+          onReverseSettle={canSettleOrder ? () => requestReverseSettlement(detailOrder) : null}
           onUploadReceipt={(file, order) => onUploadReceipt(file, order.id).then((receipt) => {
             const nextOrder = {
               ...order,
@@ -1814,6 +1855,16 @@ function RepairReception({
             setDraft(createOrderDraft(nextOrder));
           })}
           onVoid={canVoidOrder ? () => setVoidOrderTarget(detailOrder) : null}
+        />
+      ) : null}
+      {confirmAction ? (
+        <ConfirmActionDialog
+          action={confirmAction}
+          onClose={() => setConfirmAction(null)}
+          onConfirm={() => {
+            confirmAction.onConfirm();
+            setConfirmAction(null);
+          }}
         />
       ) : null}
       {settlementOrder ? (
@@ -1844,6 +1895,26 @@ function PrintField({ label, value, wide = false }) {
     <div className={wide ? 'print-field print-field-wide' : 'print-field'}>
       <span>{label}</span>
       <strong>{value || '未填写'}</strong>
+    </div>
+  );
+}
+
+function ConfirmActionDialog({ action, onClose, onConfirm }) {
+  return (
+    <div className="modal-backdrop" role="presentation" onClick={onClose}>
+      <section className="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title" onClick={(event) => event.stopPropagation()}>
+        <header>
+          <span className={action.danger ? 'confirm-icon danger' : 'confirm-icon'}>{action.danger ? '!' : '✓'}</span>
+          <div>
+            <h2 id="confirm-title">{action.title}</h2>
+            <p>{action.description}</p>
+          </div>
+        </header>
+        <footer className="modal-actions">
+          <button type="button" onClick={onClose}>取消</button>
+          <button type="button" className={action.danger ? 'danger-primary' : ''} onClick={onConfirm}>{action.confirmText || '确认'}</button>
+        </footer>
+      </section>
     </div>
   );
 }
@@ -2922,6 +2993,7 @@ const exportConfigs = {
 function DataExportPage({ orders, policies, vehicles }) {
   const [activeType, setActiveType] = useState('orders');
   const [keyword, setKeyword] = useState('');
+  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
 
   const exportData = {
     orders,
@@ -2935,9 +3007,33 @@ function DataExportPage({ orders, policies, vehicles }) {
     if (!normalizedKeyword) return rows;
     return rows.filter((row) => Object.values(row).join(' ').toLowerCase().includes(normalizedKeyword));
   }, [keyword, rows]);
+  const filteredRowKeys = useMemo(
+    () => filteredRows.map((row, index) => exportRowKey(row, activeType, index)),
+    [activeType, filteredRows],
+  );
+  const selectedRows = useMemo(
+    () => filteredRows.filter((row, index) => selectedRowKeys.includes(exportRowKey(row, activeType, index))),
+    [activeType, filteredRows, selectedRowKeys],
+  );
+  const rowsToExport = selectedRows.length > 0 ? selectedRows : filteredRows;
+  const isAllSelected = filteredRowKeys.length > 0 && filteredRowKeys.every((key) => selectedRowKeys.includes(key));
+
+  useEffect(() => {
+    setSelectedRowKeys([]);
+  }, [activeType, keyword]);
+
+  function toggleRow(key) {
+    setSelectedRowKeys((current) => (
+      current.includes(key) ? current.filter((item) => item !== key) : [...current, key]
+    ));
+  }
+
+  function toggleAllRows() {
+    setSelectedRowKeys(isAllSelected ? [] : filteredRowKeys);
+  }
 
   function exportCurrentRows() {
-    const workbook = buildExcelWorkbook(config.title, config.columns, filteredRows);
+    const workbook = buildExcelWorkbook(config.title, config.columns, rowsToExport);
     const today = '2026-07-21';
     downloadExcel(`${config.filename}-${today}.xls`, workbook);
   }
@@ -2959,7 +3055,7 @@ function DataExportPage({ orders, policies, vehicles }) {
       <div className="history-summary">
         <Metric icon="order" title="当前类型" value={config.title} trend="Excel 格式" tone="blue" />
         <Metric icon="car" title="筛选记录" value={`${filteredRows.length} 条`} trend="按关键词过滤" tone="green" />
-        <Metric icon="shield" title="导出字段" value={`${config.columns.length} 项`} trend="含业务字段" tone="orange" />
+        <Metric icon="shield" title="已选择" value={`${selectedRows.length} 条`} trend={selectedRows.length > 0 ? '仅导出已选记录' : '未选择则导出筛选结果'} tone="orange" />
         <Metric icon="yuan" title="数据来源" value="本地数据" trend="localStorage" tone="blue" />
       </div>
 
@@ -2980,25 +3076,43 @@ function DataExportPage({ orders, policies, vehicles }) {
             <table>
               <thead>
                 <tr>
+                  <th className="select-column">
+                    <input type="checkbox" checked={isAllSelected} onChange={toggleAllRows} aria-label="全选当前筛选记录" />
+                  </th>
                   {config.columns.slice(0, 8).map((column) => <th key={column.label}>{column.label}</th>)}
                 </tr>
               </thead>
               <tbody>
                 {filteredRows.length === 0 ? (
-                  <tr><td colSpan={Math.min(config.columns.length, 8)} className="empty-table-cell">暂无可导出数据</td></tr>
-                ) : filteredRows.slice(0, 8).map((row) => (
-                  <tr key={row.id || row.plate}>
+                  <tr><td colSpan={Math.min(config.columns.length, 8) + 1} className="empty-table-cell">暂无可导出数据</td></tr>
+                ) : filteredRows.map((row, index) => {
+                  const rowKey = exportRowKey(row, activeType, index);
+                  return (
+                  <tr key={rowKey} className={selectedRowKeys.includes(rowKey) ? 'selected-row' : ''}>
+                    <td className="select-column">
+                      <input
+                        type="checkbox"
+                        checked={selectedRowKeys.includes(rowKey)}
+                        onChange={() => toggleRow(rowKey)}
+                        aria-label={`选择第 ${index + 1} 条记录`}
+                      />
+                    </td>
                     {config.columns.slice(0, 8).map((column) => <td key={column.label}>{column.value(row)}</td>)}
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
-          <p>预览最多显示前 8 条、前 8 个字段；导出的 Excel 文件会包含当前筛选结果的全部字段。</p>
+          <p>当前显示 {filteredRows.length} 条记录、前 8 个字段；{selectedRows.length > 0 ? `将导出已选择的 ${selectedRows.length} 条记录。` : '未勾选时导出当前筛选结果。'}</p>
         </div>
       </section>
     </section>
   );
+}
+
+function exportRowKey(row, activeType, index) {
+  return `${activeType}-${row.id || row.plate || row.phone || index}`;
 }
 
 function SummaryReportsPage({ orders, policies = [] }) {
