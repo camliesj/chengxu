@@ -378,8 +378,31 @@ function readStoredInsurancePolicies() {
   }
 }
 
+function currentDateValue() {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function currentTimeLabel() {
+  return new Date().toLocaleString('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function daysBetween(start, end) {
+  const startDate = new Date(`${start}T00:00:00`);
+  const endDate = new Date(`${end}T00:00:00`);
+  return Math.ceil((endDate.getTime() - startDate.getTime()) / 86400000);
+}
+
 function daysUntilExpiry(expiry) {
-  const base = new Date(`${INSURANCE_BASE_DATE}T00:00:00`);
+  const base = new Date(`${currentDateValue()}T00:00:00`);
   const target = new Date(`${expiry}T00:00:00`);
   return Math.ceil((target.getTime() - base.getTime()) / 86400000);
 }
@@ -534,6 +557,7 @@ function App() {
   const [noticeOpen, setNoticeOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [ordersCloudState, setOrdersCloudState] = useState({ loading: false, error: '' });
+  const [lastRefreshAt, setLastRefreshAt] = useState('');
 
   const currentCompany = companyById(accessSession?.companyId || 'tongda');
   const isAdmin = accessSession?.role === 'admin';
@@ -582,6 +606,7 @@ function App() {
         setOrders(cloudOrders);
         localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(cloudOrders));
         setOrdersCloudState({ loading: false, error: '' });
+        setLastRefreshAt(currentTimeLabel());
       })
       .catch((error) => {
         if (isCancelled) return;
@@ -615,13 +640,20 @@ function App() {
     localStorage.setItem(CUSTOMER_VEHICLE_STORAGE_KEY, JSON.stringify(customerVehicles));
   }, [customerVehicles]);
 
+  useEffect(() => {
+    if (!isUnlocked || !accessSession?.token) return undefined;
+    const timer = window.setInterval(() => {
+      refreshOrders();
+    }, 60000);
+    return () => window.clearInterval(timer);
+  }, [isUnlocked, accessSession]);
+
   const filteredOrders = useMemo(() => {
     const keyword = query.trim().toLowerCase();
     return companyOrders.filter((order) => {
       const orderDate = orderDateValue(order.date);
       const inDateRange = (!dateRange.start || orderDate >= dateRange.start) && (!dateRange.end || orderDate <= dateRange.end);
-      const inKeyword = !keyword || [order.id, order.plate, order.customer, order.phone, order.status, order.insurer, order.car, order.staff]
-        .join(' ')
+      const inKeyword = !keyword || orderSearchText(order)
         .toLowerCase()
         .includes(keyword);
       return inDateRange && inKeyword;
@@ -636,6 +668,7 @@ function App() {
         setOrders(cloudOrders);
         localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(cloudOrders));
         setOrdersCloudState({ loading: false, error: '' });
+        setLastRefreshAt(currentTimeLabel());
       })
       .catch((error) => setOrdersCloudState({ loading: false, error: error.message || '云端刷新失败' }));
   }
@@ -650,7 +683,10 @@ function App() {
       return [scopedOrder, ...currentOrders];
     });
     saveCloudOrder(scopedOrder, accessSession)
-      .then(() => setOrdersCloudState({ loading: false, error: '' }))
+      .then(() => {
+        setOrdersCloudState({ loading: false, error: '' });
+        setLastRefreshAt(currentTimeLabel());
+      })
       .catch((error) => setOrdersCloudState({ loading: false, error: error.message || '云端保存失败' }));
   }
 
@@ -787,6 +823,17 @@ function App() {
     });
   }
 
+  const urgentInsurancePolicies = companyInsurancePolicies.filter(isInsuranceUrgent);
+  const unsettledOrders = companyOrders.filter(isOrderUnsettled);
+  const staleOrders = companyOrders.filter(isOrderStale);
+  const todoCount = urgentInsurancePolicies.length + unsettledOrders.length + staleOrders.length;
+
+  function openRepairDashboardList(nextQuery = '') {
+    setQuery(nextQuery);
+    setActivePage('维修接待');
+    setNoticeOpen(false);
+  }
+
   if (!isUnlocked) {
     return <AccessGate onUnlock={(session) => {
       setAccessSession(session);
@@ -874,7 +921,7 @@ function App() {
               aria-label="查看待处理提醒"
             >
               <span className="notice-dot">
-                {companyInsurancePolicies.filter(isInsuranceUrgent).length + companyOrders.filter((order) => order.status !== REPAIR_STATUS.settled).length}
+                {todoCount}
               </span>
             </button>
             <button
@@ -894,8 +941,23 @@ function App() {
             </button>
             {noticeOpen ? (
               <div className="topbar-popover notice-popover">
-                <h3>待处理提醒</h3>
-                {companyInsurancePolicies.filter(isInsuranceUrgent).slice(0, 4).map((policy) => (
+                <h3>待办中心</h3>
+                <button type="button" onClick={() => openRepairDashboardList('待结算')}>
+                  <b>未结算工单：{unsettledOrders.length} 单</b>
+                  <span>点击进入维修接待，优先处理未结算车辆</span>
+                </button>
+                <button type="button" onClick={() => openRepairDashboardList('在修中')}>
+                  <b>长期未更新：{staleOrders.length} 单</b>
+                  <span>在修或完工超过 3 天未结算，需核对状态</span>
+                </button>
+                <button type="button" onClick={() => {
+                  setActivePage('车辆保险');
+                  setNoticeOpen(false);
+                }}>
+                  <b>保险到期：{urgentInsurancePolicies.length} 台</b>
+                  <span>7 天内到期或已过期车辆，需跟进续保</span>
+                </button>
+                {urgentInsurancePolicies.slice(0, 3).map((policy) => (
                   <button
                     key={policy.id}
                     type="button"
@@ -908,7 +970,7 @@ function App() {
                     <span>{policy.customer} · {insuranceState(policy)} · {policy.expiry}</span>
                   </button>
                 ))}
-                {companyOrders.filter((order) => order.status !== REPAIR_STATUS.settled).slice(0, 3).map((order) => (
+                {unsettledOrders.slice(0, 3).map((order) => (
                   <button
                     key={order.id}
                     type="button"
@@ -921,7 +983,7 @@ function App() {
                     <span>{order.customer} · {order.status} · {formatMoney(order.amount)}</span>
                   </button>
                 ))}
-                {companyInsurancePolicies.filter(isInsuranceUrgent).length === 0 && companyOrders.filter((order) => order.status !== REPAIR_STATUS.settled).length === 0 ? (
+                {todoCount === 0 ? (
                   <p>暂无待处理事项</p>
                 ) : null}
               </div>
@@ -946,8 +1008,15 @@ function App() {
           <Dashboard
             filteredOrders={filteredOrders}
             policies={companyInsurancePolicies}
+            dateRange={dateRange}
+            lastRefreshAt={lastRefreshAt}
+            cloudState={ordersCloudState}
             onRefreshOrders={refreshOrders}
             onViewInsurance={openInsurancePolicy}
+            onViewOrder={(order) => openOrderInReception(order, 'view')}
+            onOpenRepairList={openRepairDashboardList}
+            onOpenInsurance={() => setActivePage('车辆保险')}
+            onSetDateRange={setDateRange}
           />
         )}
         {activePage === '维修接待' && (
@@ -1020,15 +1089,28 @@ function App() {
   );
 }
 
-function Dashboard({ filteredOrders, policies, onRefreshOrders, onViewInsurance }) {
+function Dashboard({
+  filteredOrders,
+  policies,
+  dateRange,
+  lastRefreshAt,
+  cloudState,
+  onRefreshOrders,
+  onViewInsurance,
+  onViewOrder,
+  onOpenRepairList,
+  onOpenInsurance,
+  onSetDateRange,
+}) {
   const total = filteredOrders.reduce((sum, order) => sum + order.amount, 0);
-  const activeOrders = filteredOrders.filter((order) => order.status !== REPAIR_STATUS.settled);
+  const activeOrders = filteredOrders.filter(isOrderUnsettled);
   const pendingAmount = activeOrders.reduce((sum, order) => sum + order.amount, 0);
   const repairingOrders = filteredOrders.filter((order) => order.status === REPAIR_STATUS.repairing);
   const completedOrders = filteredOrders.filter((order) => order.status === REPAIR_STATUS.completed);
   const pendingSettlementOrders = filteredOrders.filter((order) => order.status === REPAIR_STATUS.pendingSettlement);
   const settledOrders = filteredOrders.filter((order) => order.status === REPAIR_STATUS.settled);
-  const todayOrders = filteredOrders.filter((order) => order.date === '07-04');
+  const today = currentDateValue();
+  const todayOrders = filteredOrders.filter((order) => orderDateValue(order.date) === today);
   const todayAmount = todayOrders.reduce((sum, order) => sum + order.amount, 0);
   const laborTotal = filteredOrders.reduce((sum, order) => sum + order.labor, 0);
   const materialTotal = filteredOrders.reduce((sum, order) => sum + order.material, 0);
@@ -1036,32 +1118,51 @@ function Dashboard({ filteredOrders, policies, onRefreshOrders, onViewInsurance 
   const laborPercent = costTotal > 0 ? Math.round((laborTotal / costTotal) * 100) : 0;
   const materialPercent = costTotal > 0 ? 100 - laborPercent : 0;
   const urgentPolicies = policies.filter(isInsuranceUrgent);
+  const trend = dashboardTrend(filteredOrders, dateRange);
+  const staleOrders = filteredOrders.filter(isOrderStale);
+  const rangeText = `${dateRange.start || '不限'} 至 ${dateRange.end || '不限'}`;
+
+  function focusToday() {
+    onSetDateRange({ start: today, end: today });
+    onOpenRepairList('');
+  }
 
   return (
     <section className="dashboard-grid">
+      <div className="dashboard-toolbar">
+        <div>
+          <h2>首页工作台</h2>
+          <p>当前统计范围：{rangeText}；{cloudState?.loading ? '正在刷新云端数据' : `最后刷新：${lastRefreshAt || '待刷新'}`}</p>
+        </div>
+        <button type="button" onClick={onRefreshOrders}>刷新云端数据</button>
+      </div>
+
       <div className="metric-strip">
-        <Metric icon="yuan" title="今日产值（元）" value={formatMoney(todayAmount)} trend="云端实时" tone="blue" />
-        <Metric icon="car" title="今日台次（台）" value={todayOrders.length.toString()} trend="云端实时" tone="blue" />
-        <Metric icon="order" title="未结算（元）" value={formatMoney(pendingAmount)} trend={`待处理 ${activeOrders.length} 单`} tone="orange" />
-        <Metric icon="car" title="在修车辆（台）" value={repairingOrders.length.toString()} trend="待处理" tone="green" />
-        <Metric icon="yuan" title="本月产值（元）" value={formatMoney(total)} trend="云端累计" tone="blue" />
-        <Metric icon="car" title="本月台次（台）" value={filteredOrders.length.toString()} trend="月累计" tone="blue" />
-        <Metric icon="shield" title="即将保险到期（台）" value={urgentPolicies.length.toString()} trend="需跟进" tone="red" />
+        <Metric icon="yuan" title="今日产值（元）" value={formatMoney(todayAmount)} trend="点击查看今日工单" tone="blue" onClick={focusToday} />
+        <Metric icon="car" title="今日台次（台）" value={todayOrders.length.toString()} trend="点击查看今日进厂" tone="blue" onClick={focusToday} />
+        <Metric icon="order" title="未结算（元）" value={formatMoney(pendingAmount)} trend={`待处理 ${activeOrders.length} 单`} tone="orange" onClick={() => onOpenRepairList('待结算')} />
+        <Metric icon="car" title="在修车辆（台）" value={repairingOrders.length.toString()} trend={staleOrders.length ? `${staleOrders.length} 单需核对` : '状态正常'} tone="green" onClick={() => onOpenRepairList(REPAIR_STATUS.repairing)} />
+        <Metric icon="yuan" title="筛选产值（元）" value={formatMoney(total)} trend="按顶部日期实时统计" tone="blue" onClick={() => onOpenRepairList('')} />
+        <Metric icon="car" title="筛选台次（台）" value={filteredOrders.length.toString()} trend="按当前条件统计" tone="blue" onClick={() => onOpenRepairList('')} />
+        <Metric icon="shield" title="保险到期（台）" value={urgentPolicies.length.toString()} trend="点击查看保险档案" tone="red" onClick={onOpenInsurance} />
       </div>
 
       <section className="workflow-panel">
-        <h2>维修流程概览</h2>
+        <div className="panel-header">
+          <h2>维修流程看板</h2>
+          <button type="button" onClick={() => onOpenRepairList('')}>查看全部工单</button>
+        </div>
         <div className="workflow-grid">
-          <WorkflowColumn tone="blue" title={`在修（${repairingOrders.length}）`} order={repairingOrders[0]} footer="预计交车" />
-          <WorkflowColumn tone="green" title={`完工（${completedOrders.length}）`} order={completedOrders[0]} footer="待交车" />
-          <WorkflowColumn tone="orange" title={`未结算（${pendingSettlementOrders.length}）`} order={pendingSettlementOrders[0]} footer="请及时结算" />
-          <WorkflowColumn tone="gray" title={`结算（${settledOrders.length}）`} order={settledOrders[0]} footer="已归档" />
+          <WorkflowColumn tone="blue" title={`在修（${repairingOrders.length}）`} orders={repairingOrders} footer="点击工单查看详情" onViewOrder={onViewOrder} />
+          <WorkflowColumn tone="green" title={`完工（${completedOrders.length}）`} orders={completedOrders} footer="等待交车或结算" onViewOrder={onViewOrder} />
+          <WorkflowColumn tone="orange" title={`待结算（${pendingSettlementOrders.length}）`} orders={pendingSettlementOrders} footer="需上传回执并结算" onViewOrder={onViewOrder} />
+          <WorkflowColumn tone="gray" title={`已结算（${settledOrders.length}）`} orders={settledOrders} footer="已归档，可查看详情" onViewOrder={onViewOrder} />
         </div>
       </section>
 
       <div className="chart-panel trend-panel">
-        <PanelHeader title="本月产值趋势（元）" action="按日统计" />
-        <LineChart values={productionTrend} />
+        <PanelHeader title="产值趋势（元）" action="随日期范围刷新" />
+        <LineChart values={trend.values} labels={trend.labels} />
       </div>
 
       <div className="chart-panel status-panel">
@@ -1078,7 +1179,7 @@ function Dashboard({ filteredOrders, policies, onRefreshOrders, onViewInsurance 
       </div>
 
       <div className="chart-panel cost-panel">
-        <PanelHeader title="工时费 / 材料费占比" action="收入结构" />
+        <PanelHeader title="工时费 / 材料费占比" action="按当前筛选统计" />
         <div className="cost-donut">
           <div className="donut-ring blue-green"><strong>{formatMoney(costTotal)}</strong></div>
           <ul>
@@ -1089,26 +1190,38 @@ function Dashboard({ filteredOrders, policies, onRefreshOrders, onViewInsurance 
       </div>
 
       <InsuranceReminder policies={urgentPolicies} onViewInsurance={onViewInsurance} />
-      <RecentOrders orders={filteredOrders} onRefreshOrders={onRefreshOrders} />
+      <RecentOrders orders={filteredOrders} onRefreshOrders={onRefreshOrders} onViewOrder={onViewOrder} />
     </section>
   );
 }
 
-function Metric({ icon, title, value, trend, tone }) {
-  return (
-    <article className="metric-card">
+function Metric({ icon, title, value, trend, tone, onClick }) {
+  const content = (
+    <>
       <span className={`metric-icon ${tone}`}><AssetIcon name={metricIconMap[icon]} /></span>
       <div>
         <p>{title}</p>
         <strong>{value}</strong>
         <small>{trend}</small>
       </div>
+    </>
+  );
+  if (onClick) {
+    return (
+      <button type="button" className="metric-card metric-button" onClick={onClick}>
+        {content}
+      </button>
+    );
+  }
+  return (
+    <article className="metric-card">
+      {content}
     </article>
   );
 }
 
-function WorkflowColumn({ tone, title, order, footer }) {
-  if (!order) {
+function WorkflowColumn({ tone, title, orders, footer, onViewOrder }) {
+  if (!orders.length) {
     return (
       <article className="workflow-card empty">
         <header><strong>{title}</strong><span>→</span></header>
@@ -1122,12 +1235,16 @@ function WorkflowColumn({ tone, title, order, footer }) {
     <article className={`workflow-card ${tone}`}>
       <header><strong>{title}</strong><span>→</span></header>
       <div className="workflow-body">
-        <b>{order.plate}　{order.car}</b>
-        <p>{order.customer}　{order.phone}</p>
-        <p>进厂：2026-07-23　{order.time}</p>
-        <p>项目：{order.record}</p>
-        <span className={`status-chip ${statusClass(order.status)}`}>{order.status}</span>
-        <small>{footer}</small>
+        {orders.slice(0, 2).map((order) => (
+          <button key={order.id} type="button" className="workflow-order" onClick={() => onViewOrder(order)}>
+            <b>{order.plate}　{order.car}</b>
+            <p>{order.customer}　{order.phone}</p>
+            <p>进厂：{orderDateValue(order.date)}　{order.time}</p>
+            <p>项目：{order.record}</p>
+            <span className={`status-chip ${statusClass(order.status)}`}>{order.status}</span>
+          </button>
+        ))}
+        {orders.length > 2 ? <small>还有 {orders.length - 2} 单未显示，进入维修接待查看</small> : <small>{footer}</small>}
       </div>
     </article>
   );
@@ -1142,13 +1259,13 @@ function PanelHeader({ title, action }) {
   );
 }
 
-function LineChart({ values }) {
+function LineChart({ values, labels }) {
   const width = 520;
   const height = 156;
-  const max = Math.max(...values);
+  const max = Math.max(1, ...values);
   const points = values
     .map((value, index) => {
-      const x = (index / (values.length - 1)) * width;
+      const x = values.length === 1 ? width / 2 : (index / (values.length - 1)) * width;
       const y = height - (value / max) * (height - 18) - 8;
       return `${x},${y}`;
     })
@@ -1165,12 +1282,12 @@ function LineChart({ values }) {
         </g>
         <polyline points={points} fill="none" stroke="#0875de" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
         {values.map((value, index) => {
-          const x = (index / (values.length - 1)) * width;
+          const x = values.length === 1 ? width / 2 : (index / (values.length - 1)) * width;
           const y = height - (value / max) * (height - 18) - 8;
           return <circle key={index} cx={x} cy={y} r="3.6" fill="#0875de" stroke="#fff" strokeWidth="2" />;
         })}
       </svg>
-      <div className="chart-axis"><span>07-01</span><span>07-06</span><span>07-11</span><span>07-16</span><span>07-21</span><span>07-26</span><span>07-31</span></div>
+      <div className="chart-axis">{labels.map((label) => <span key={label}>{label}</span>)}</div>
     </div>
   );
 }
@@ -1203,7 +1320,7 @@ function InsuranceReminder({ policies, onViewInsurance }) {
   );
 }
 
-function RecentOrders({ orders, onRefreshOrders }) {
+function RecentOrders({ orders, onRefreshOrders, onViewOrder }) {
   const [status, setStatus] = useState('全部状态');
   const [pageSize, setPageSize] = useState(20);
   const [page, setPage] = useState(1);
@@ -1232,7 +1349,7 @@ function RecentOrders({ orders, onRefreshOrders }) {
           <button onClick={onRefreshOrders}>⟳ 刷新</button>
         </div>
       </div>
-      <OrderTable orders={pageOrders} />
+      <OrderTable orders={pageOrders} onSelect={onViewOrder} />
       <footer className="table-footer">
         <span>共 {visibleOrders.length} 条</span>
         <select value={pageSize} onChange={(event) => setPageSize(Number(event.target.value))} aria-label="每页条数">
@@ -1417,7 +1534,43 @@ function normalizeQueryText(value) {
 }
 
 function orderDateValue(orderDate) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(orderDate || ''))) return orderDate;
   return `2026-${orderDate}`;
+}
+
+function isOrderUnsettled(order) {
+  return order.status !== REPAIR_STATUS.settled;
+}
+
+function isOrderStale(order) {
+  if (![REPAIR_STATUS.repairing, REPAIR_STATUS.completed].includes(order.status)) return false;
+  const orderDate = orderDateValue(order.date);
+  return daysBetween(orderDate, currentDateValue()) >= 3;
+}
+
+function orderSearchText(order) {
+  return [order.id, order.plate, order.customer, order.phone, order.status, order.insurer, order.car, order.staff, order.record]
+    .filter(Boolean)
+    .join(' ');
+}
+
+function dashboardTrend(orders, dateRange) {
+  const start = dateRange.start || currentDateValue().slice(0, 8) + '01';
+  const end = dateRange.end || currentDateValue();
+  const totalDays = Math.max(0, Math.min(30, daysBetween(start, end)));
+  const dates = Array.from({ length: totalDays + 1 }, (_, index) => {
+    const date = new Date(`${start}T00:00:00`);
+    date.setDate(date.getDate() + index);
+    return date.toISOString().slice(0, 10);
+  });
+  const values = dates.map((date) =>
+    orders
+      .filter((order) => orderDateValue(order.date) === date)
+      .reduce((sum, order) => sum + order.amount, 0),
+  );
+  const labelIndexes = [0, Math.floor(dates.length / 4), Math.floor(dates.length / 2), Math.floor((dates.length * 3) / 4), dates.length - 1];
+  const labels = [...new Set(labelIndexes)].map((index) => dates[index]?.slice(5)).filter(Boolean);
+  return { values: values.length ? values : [0], labels: labels.length ? labels : ['今日'] };
 }
 
 function matchesTextFilter(source, keyword) {

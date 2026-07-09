@@ -545,6 +545,43 @@ button {
   gap: 10px;
 }
 
+.dashboard-toolbar {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--shadow-soft);
+}
+
+.dashboard-toolbar h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.dashboard-toolbar p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.dashboard-toolbar button {
+  min-height: 34px;
+  border: 1px solid #cfe0f4;
+  border-radius: 6px;
+  padding: 0 14px;
+  color: var(--blue);
+  background: #f6fbff;
+  font-weight: 900;
+}
+
 .metric-strip {
   grid-column: 1 / -1;
   display: grid;
@@ -574,6 +611,19 @@ button {
   padding: 15px 16px;
   position: relative;
   overflow: hidden;
+}
+
+.metric-button {
+  width: 100%;
+  border: 1px solid var(--line);
+  text-align: left;
+  cursor: pointer;
+}
+
+.metric-button:hover {
+  border-color: #9ecbff;
+  transform: translateY(-1px);
+  box-shadow: 0 16px 32px rgba(20, 120, 242, 0.12);
 }
 
 .metric-card::after {
@@ -680,6 +730,7 @@ button {
 .workflow-card.blue header { background: linear-gradient(90deg, #0875de, #0b83f1); }
 .workflow-card.green header { background: linear-gradient(90deg, #17a45f, #2bb675); }
 .workflow-card.orange header { background: linear-gradient(90deg, #f08300, #ff9913); }
+.workflow-card.gray header { background: linear-gradient(90deg, #7b8b9b, #98a6b4); }
 .workflow-card.empty header { background: linear-gradient(90deg, #7b8b9b, #98a6b4); }
 
 .workflow-body {
@@ -688,6 +739,25 @@ button {
   gap: 6px;
   padding: 12px 14px;
   color: #20334d;
+}
+
+.workflow-order {
+  position: relative;
+  display: grid;
+  gap: 5px;
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  padding: 8px;
+  color: inherit;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.workflow-order:hover {
+  border-color: #cfe0f4;
+  background: #f6fbff;
 }
 
 .workflow-body b {
@@ -704,10 +774,11 @@ button {
   font-weight: 700;
 }
 
-.workflow-body .status-chip {
+.workflow-body .status-chip,
+.workflow-order .status-chip {
   position: absolute;
-  top: 12px;
-  right: 14px;
+  top: 8px;
+  right: 8px;
 }
 
 .workflow-body small {
