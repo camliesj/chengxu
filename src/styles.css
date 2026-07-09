@@ -1514,12 +1514,20 @@ dd {
 }
 
 .modal-heading {
+  position: sticky;
+  top: -18px;
+  z-index: 3;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 18px;
-  padding-bottom: 14px;
+  margin: -18px -18px 14px;
+  padding: 18px 18px 14px;
   border-bottom: 1px solid var(--line);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(255, 255, 255, 0.96)),
+    url("/assets/ui/backgrounds/modal-flow-overlay.png") center top / cover no-repeat;
+  box-shadow: 0 10px 22px rgba(16, 46, 78, 0.08);
 }
 
 .modal-heading h2 {
