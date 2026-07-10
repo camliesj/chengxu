@@ -1632,7 +1632,27 @@ tbody tr.selected-row {
 }
 
 .detail-panel {
+  position: sticky;
+  top: 92px;
   align-self: start;
+  max-height: calc(100vh - 112px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.detail-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.detail-panel::-webkit-scrollbar-track {
+  background: #eef5fc;
+  border-radius: 999px;
+}
+
+.detail-panel::-webkit-scrollbar-thumb {
+  background: #b5c6d8;
+  border-radius: 999px;
 }
 
 .detail-heading h2 {
@@ -3224,6 +3244,12 @@ dd {
 
   .insurance-editor {
     position: static;
+  }
+
+  .detail-panel {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
   }
 
   .modal-summary-strip,

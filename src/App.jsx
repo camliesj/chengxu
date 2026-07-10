@@ -681,6 +681,10 @@ function App() {
   }, [customerVehicles]);
 
   useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [activePage]);
+
+  useEffect(() => {
     if (!isUnlocked || !accessSession?.token) return undefined;
     const timer = window.setInterval(() => {
       refreshOrders();
