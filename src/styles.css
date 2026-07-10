@@ -3510,12 +3510,17 @@ dd {
   }
 
   .print-sheet-header {
-    display: flex;
+    display: grid;
+    grid-template-columns: 56mm 1fr 56mm;
     align-items: flex-start;
-    justify-content: space-between;
-    gap: 12mm;
+    gap: 0;
     padding: 0 0 5mm;
     border-bottom: 0.5mm solid #111827;
+  }
+
+  .print-sheet-title {
+    grid-column: 2;
+    text-align: center;
   }
 
   .print-sheet-header h1 {
@@ -3526,17 +3531,10 @@ dd {
     letter-spacing: 0;
   }
 
-  .print-sheet-header p {
-    margin: 2.5mm 0 0;
-    color: #334155;
-    font-size: 10pt;
-    font-weight: 700;
-  }
-
   .print-sheet-meta {
+    grid-column: 3;
     display: grid;
     gap: 2mm;
-    min-width: 56mm;
     color: #334155;
     font-size: 8.5pt;
     font-weight: 700;

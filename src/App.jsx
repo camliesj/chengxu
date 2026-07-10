@@ -2342,9 +2342,8 @@ function OrderDetailDialog({ order, company, onClose, onEdit, onPrint, onSettle,
 
         <section className="print-order-sheet" aria-hidden="true">
           <header className="print-sheet-header">
-            <div>
+            <div className="print-sheet-title">
               <h1>{company?.fullName || '汽车服务有限公司'}</h1>
-              <p>维修接待与车辆保险管理工单</p>
             </div>
             <div className="print-sheet-meta">
               <span>工单号：{order.id}</span>
