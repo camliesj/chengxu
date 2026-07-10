@@ -559,7 +559,7 @@ button {
 
 .workbench-page {
   display: grid;
-  gap: 12px;
+  gap: 14px;
 }
 
 .workbench-hero {
@@ -567,8 +567,8 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  min-height: 132px;
-  padding: 22px 24px;
+  min-height: 112px;
+  padding: 18px 20px;
   border: 1px solid #cfe0f4;
   border-radius: 10px;
   background:
@@ -588,9 +588,9 @@ button {
 }
 
 .workbench-hero h2 {
-  margin: 6px 0 6px;
+  margin: 6px 0 4px;
   color: #071a34;
-  font-size: 28px;
+  font-size: 26px;
   line-height: 1.18;
   font-weight: 900;
 }
@@ -606,6 +606,7 @@ button {
 .workbench-hero-actions {
   display: grid;
   gap: 10px;
+  width: min(450px, 36%);
   min-width: 360px;
 }
 
@@ -661,8 +662,8 @@ button {
 
 .workbench-metrics {
   display: grid;
-  grid-template-columns: repeat(4, minmax(168px, 1.15fr)) repeat(3, minmax(136px, 0.85fr));
-  gap: 10px;
+  grid-template-columns: repeat(4, minmax(190px, 1fr));
+  gap: 12px;
 }
 
 .metric-card,
@@ -679,20 +680,20 @@ button {
 }
 
 .metric-card {
-  min-height: 96px;
+  min-height: 92px;
   display: grid;
-  grid-template-columns: 52px 1fr;
+  grid-template-columns: 48px minmax(0, 1fr);
   align-items: center;
   gap: 12px;
-  padding: 15px 16px;
+  padding: 14px 16px;
   position: relative;
   overflow: hidden;
 }
 
 .metric-card.large {
-  min-height: 124px;
-  grid-template-columns: 62px 1fr;
-  padding: 18px;
+  min-height: 116px;
+  grid-template-columns: 68px minmax(0, 1fr);
+  padding: 16px 18px;
   border-color: #c8ddf5;
   background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(247,251,255,0.94));
 }
@@ -737,8 +738,8 @@ button {
 .metric-icon {
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
+  width: 46px;
+  height: 46px;
   border-radius: 8px;
   color: #fff;
   font-size: 22px;
@@ -747,14 +748,21 @@ button {
 }
 
 .metric-card.large .metric-icon {
-  width: 58px;
-  height: 58px;
+  width: 62px;
+  height: 62px;
+  background: transparent;
+  box-shadow: none;
 }
 
 .metric-icon img {
   width: 30px;
   height: 30px;
   object-fit: contain;
+}
+
+.metric-card.large .metric-icon img {
+  width: 62px;
+  height: 62px;
 }
 
 .metric-icon img[src*="/assets/ui/icons/"] {
@@ -772,6 +780,7 @@ button {
   font-size: 13px;
   line-height: 1.25;
   font-weight: 800;
+  word-break: keep-all;
 }
 
 .metric-card.large p {
@@ -788,7 +797,7 @@ button {
 }
 
 .metric-card.large strong {
-  font-size: 30px;
+  font-size: 32px;
 }
 
 .metric-card small {
@@ -796,17 +805,19 @@ button {
   margin-top: 6px;
   color: var(--green);
   font-size: 13px;
+  line-height: 1.25;
   font-weight: 800;
+  word-break: keep-all;
 }
 
 .workbench-main-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
+  grid-template-columns: minmax(0, 1fr) 420px;
   gap: 12px;
 }
 
 .workflow-panel {
-  padding: 16px;
+  padding: 18px;
   background:
     linear-gradient(180deg, rgba(255,255,255,0.94), rgba(255,255,255,0.9)),
     url("/assets/ui/workbench/backgrounds/wb-card-flow-bg.png") center / cover no-repeat;
@@ -827,7 +838,7 @@ button {
 
 .workbench-section-heading h2 {
   margin-top: 4px;
-  font-size: 22px;
+  font-size: 21px;
 }
 
 .workbench-section-heading img {
@@ -842,12 +853,12 @@ button {
 .workflow-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
   margin-top: 10px;
 }
 
 .workflow-card {
-  min-height: 214px;
+  min-height: 238px;
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 7px;
@@ -953,7 +964,7 @@ button {
 }
 
 .todo-panel {
-  padding: 16px;
+  padding: 18px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background:
@@ -972,7 +983,7 @@ button {
   grid-template-columns: 10px 1fr auto;
   align-items: center;
   gap: 12px;
-  min-height: 86px;
+  min-height: 82px;
   border: 1px solid #d7e6f6;
   border-radius: 8px;
   padding: 13px 14px;
@@ -1051,7 +1062,7 @@ button {
 
 .analysis-grid {
   display: grid;
-  grid-template-columns: minmax(280px, 1.35fr) minmax(240px, 0.9fr) minmax(260px, 1fr);
+  grid-template-columns: minmax(360px, 1.25fr) minmax(300px, 0.9fr) minmax(320px, 1fr);
   gap: 12px;
 }
 

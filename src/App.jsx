@@ -1208,7 +1208,7 @@ function Dashboard({
       <div className="workbench-hero">
         <div>
           <span>门店经营工作台</span>
-          <h2>把今日接待、结算和保险提醒放在第一屏</h2>
+          <h2>今日经营概览</h2>
           <p>当前统计范围：{rangeText}；{cloudState?.loading ? '正在刷新云端数据' : `最后刷新：${lastRefreshAt || '待刷新'}`}</p>
         </div>
         <div className="workbench-hero-actions">
@@ -1225,10 +1225,10 @@ function Dashboard({
       </div>
 
       <div className="workbench-metrics">
-        <Metric icon="revenue" title="今日产值" value={formatMoney(todayAmount)} trend="点击查看今日工单" tone="blue" size="large" onClick={focusToday} />
-        <Metric icon="count" title="今日台次" value={todayOrders.length.toString()} trend="点击查看今日进厂" tone="blue" size="large" onClick={focusToday} />
+        <Metric icon="revenue" title="今日产值" value={formatMoney(todayAmount)} trend="查看今日工单" tone="blue" size="large" onClick={focusToday} />
+        <Metric icon="count" title="今日台次" value={`${todayOrders.length} 台`} trend="查看今日进厂" tone="blue" size="large" onClick={focusToday} />
         <Metric icon="pending" title="待结算金额" value={formatMoney(pendingAmount)} trend={`待处理 ${activeOrders.length} 单`} tone="orange" size="large" onClick={() => onOpenRepairList(REPAIR_STATUS.pendingSettlement)} />
-        <Metric icon="insurance" title="保险到期" value={`${urgentPolicies.length} 台`} trend="点击查看保险档案" tone="red" size="large" onClick={onOpenInsurance} />
+        <Metric icon="insurance" title="保险到期" value={`${urgentPolicies.length} 台`} trend="查看保险档案" tone="red" size="large" onClick={onOpenInsurance} />
         <Metric icon="repairing" title="在修车辆" value={`${repairingOrders.length} 台`} trend={staleOrders.length ? `${staleOrders.length} 单需核对` : '状态正常'} tone="green" onClick={() => onOpenRepairList(REPAIR_STATUS.repairing)} />
         <Metric icon="revenue" title="筛选产值" value={formatMoney(total)} trend="按顶部日期实时统计" tone="blue" onClick={() => onOpenRepairList('')} />
         <Metric icon="count" title="筛选台次" value={`${filteredOrders.length} 台`} trend="按当前条件统计" tone="blue" onClick={() => onOpenRepairList('')} />
