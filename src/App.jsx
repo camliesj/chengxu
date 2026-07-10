@@ -27,6 +27,22 @@ const metricIconMap = {
   shield: 'metric-shield.png',
 };
 
+const workbenchIconMap = {
+  revenue: 'wb-metric-revenue.png',
+  count: 'wb-metric-count.png',
+  pending: 'wb-metric-pending.png',
+  repairing: 'wb-metric-repairing.png',
+  insurance: 'wb-metric-insurance.png',
+  todo: 'wb-todo-alert.png',
+  refresh: 'wb-action-refresh.png',
+  workflow: 'wb-flow-workflow.png',
+  trend: 'wb-chart-trend.png',
+  status: 'wb-chart-status.png',
+  cost: 'wb-chart-cost.png',
+  table: 'wb-table-orders.png',
+  empty: 'wb-empty-state.png',
+};
+
 const ORDER_STORAGE_KEY = 'chengxu-repair-orders';
 const INSURANCE_STORAGE_KEY = 'chengxu-insurance-policies';
 const CUSTOMER_VEHICLE_STORAGE_KEY = 'chengxu-customer-vehicles';
@@ -71,6 +87,10 @@ function dictionaryStaffLabel(entry) {
 
 function AssetIcon({ name, alt = '', className = '' }) {
   return <img className={className} src={`${iconBase}${name}`} alt={alt} aria-hidden={alt ? undefined : 'true'} />;
+}
+
+function WorkbenchIcon({ name, alt = '', className = '' }) {
+  return <img className={className} src={`/assets/ui/workbench/icons/${name}`} alt={alt} aria-hidden={alt ? undefined : 'true'} />;
 }
 
 const repairOrders = [];
@@ -1154,6 +1174,29 @@ function Dashboard({
   const trend = dashboardTrend(filteredOrders, dateRange);
   const staleOrders = filteredOrders.filter(isOrderStale);
   const rangeText = `${dateRange.start || '不限'} 至 ${dateRange.end || '不限'}`;
+  const todoItems = [
+    {
+      tone: 'orange',
+      title: '待结算工单',
+      value: `${pendingSettlementOrders.length} 单`,
+      detail: pendingSettlementOrders.length ? '需核对金额并上传到账回执' : '当前没有待结算工单',
+      action: () => onOpenRepairList(REPAIR_STATUS.pendingSettlement),
+    },
+    {
+      tone: 'red',
+      title: '保险到期',
+      value: `${urgentPolicies.length} 台`,
+      detail: urgentPolicies.length ? '7天内到期或已过期，建议优先跟进' : '暂无紧急保险提醒',
+      action: onOpenInsurance,
+    },
+    {
+      tone: 'blue',
+      title: '长期未更新',
+      value: `${staleOrders.length} 单`,
+      detail: staleOrders.length ? '在修或完工超过3天未结算' : '状态更新正常',
+      action: () => onOpenRepairList(REPAIR_STATUS.repairing),
+    },
+  ];
 
   function focusToday() {
     onSetDateRange({ start: today, end: today });
@@ -1161,77 +1204,127 @@ function Dashboard({
   }
 
   return (
-    <section className="dashboard-grid">
-      <div className="dashboard-toolbar">
+    <section className="workbench-page">
+      <div className="workbench-hero">
         <div>
-          <h2>首页工作台</h2>
+          <span>门店经营工作台</span>
+          <h2>把今日接待、结算和保险提醒放在第一屏</h2>
           <p>当前统计范围：{rangeText}；{cloudState?.loading ? '正在刷新云端数据' : `最后刷新：${lastRefreshAt || '待刷新'}`}</p>
         </div>
-        <button type="button" onClick={onRefreshOrders}>刷新云端数据</button>
-      </div>
-
-      <div className="metric-strip">
-        <Metric icon="yuan" title="今日产值（元）" value={formatMoney(todayAmount)} trend="点击查看今日工单" tone="blue" onClick={focusToday} />
-        <Metric icon="car" title="今日台次（台）" value={todayOrders.length.toString()} trend="点击查看今日进厂" tone="blue" onClick={focusToday} />
-        <Metric icon="order" title="未结算（元）" value={formatMoney(pendingAmount)} trend={`待处理 ${activeOrders.length} 单`} tone="orange" onClick={() => onOpenRepairList('待结算')} />
-        <Metric icon="car" title="在修车辆（台）" value={repairingOrders.length.toString()} trend={staleOrders.length ? `${staleOrders.length} 单需核对` : '状态正常'} tone="green" onClick={() => onOpenRepairList(REPAIR_STATUS.repairing)} />
-        <Metric icon="yuan" title="筛选产值（元）" value={formatMoney(total)} trend="按顶部日期实时统计" tone="blue" onClick={() => onOpenRepairList('')} />
-        <Metric icon="car" title="筛选台次（台）" value={filteredOrders.length.toString()} trend="按当前条件统计" tone="blue" onClick={() => onOpenRepairList('')} />
-        <Metric icon="shield" title="保险到期（台）" value={urgentPolicies.length.toString()} trend="点击查看保险档案" tone="red" onClick={onOpenInsurance} />
-      </div>
-
-      <section className="workflow-panel">
-        <div className="panel-header">
-          <h2>维修流程看板</h2>
-          <button type="button" onClick={() => onOpenRepairList('')}>查看全部工单</button>
-        </div>
-        <div className="workflow-grid">
-          <WorkflowColumn tone="blue" title={`在修（${repairingOrders.length}）`} orders={repairingOrders} footer="点击工单查看详情" onViewOrder={onViewOrder} />
-          <WorkflowColumn tone="green" title={`完工（${completedOrders.length}）`} orders={completedOrders} footer="等待交车或结算" onViewOrder={onViewOrder} />
-          <WorkflowColumn tone="orange" title={`待结算（${pendingSettlementOrders.length}）`} orders={pendingSettlementOrders} footer="需上传回执并结算" onViewOrder={onViewOrder} />
-          <WorkflowColumn tone="gray" title={`已结算（${settledOrders.length}）`} orders={settledOrders} footer="已归档，可查看详情" onViewOrder={onViewOrder} />
-        </div>
-      </section>
-
-      <div className="chart-panel trend-panel">
-        <PanelHeader title="产值趋势（元）" action="随日期范围刷新" />
-        <LineChart values={trend.values} labels={trend.labels} />
-      </div>
-
-      <div className="chart-panel status-panel">
-        <PanelHeader title="维修状态分布" />
-        <div className="status-donut">
-          <div className="donut-ring"><strong>共 {filteredOrders.length} 台</strong></div>
-          <ul>
-            <li><span className="dot blue" />在修 <em>{repairingOrders.length} 台</em></li>
-            <li><span className="dot green" />完工 <em>{completedOrders.length} 台</em></li>
-            <li><span className="dot orange" />未结算 <em>{pendingSettlementOrders.length} 台</em></li>
-            <li><span className="dot gray" />结算 <em>{settledOrders.length} 台</em></li>
-          </ul>
+        <div className="workbench-hero-actions">
+          <div className="todo-summary">
+            <button type="button" onClick={() => onOpenRepairList(REPAIR_STATUS.pendingSettlement)}><b>{pendingSettlementOrders.length}</b><span>待结算</span></button>
+            <button type="button" onClick={onOpenInsurance}><b>{urgentPolicies.length}</b><span>保险到期</span></button>
+            <button type="button" onClick={() => onOpenRepairList(REPAIR_STATUS.repairing)}><b>{staleOrders.length}</b><span>未更新</span></button>
+          </div>
+          <button type="button" className="workbench-refresh" onClick={onRefreshOrders}>
+            <WorkbenchIcon name={workbenchIconMap.refresh} />
+            刷新云端数据
+          </button>
         </div>
       </div>
 
-      <div className="chart-panel cost-panel">
-        <PanelHeader title="工时费 / 材料费占比" action="按当前筛选统计" />
-        <div className="cost-donut">
-          <div className="donut-ring blue-green"><strong>{formatMoney(costTotal)}</strong></div>
-          <ul>
-            <li><span className="dot blue" />工时费 <em>{laborPercent}%</em><small>{formatMoney(laborTotal)}</small></li>
-            <li><span className="dot green" />材料费 <em>{materialPercent}%</em><small>{formatMoney(materialTotal)}</small></li>
-          </ul>
+      <div className="workbench-metrics">
+        <Metric icon="revenue" title="今日产值" value={formatMoney(todayAmount)} trend="点击查看今日工单" tone="blue" size="large" onClick={focusToday} />
+        <Metric icon="count" title="今日台次" value={todayOrders.length.toString()} trend="点击查看今日进厂" tone="blue" size="large" onClick={focusToday} />
+        <Metric icon="pending" title="待结算金额" value={formatMoney(pendingAmount)} trend={`待处理 ${activeOrders.length} 单`} tone="orange" size="large" onClick={() => onOpenRepairList(REPAIR_STATUS.pendingSettlement)} />
+        <Metric icon="insurance" title="保险到期" value={`${urgentPolicies.length} 台`} trend="点击查看保险档案" tone="red" size="large" onClick={onOpenInsurance} />
+        <Metric icon="repairing" title="在修车辆" value={`${repairingOrders.length} 台`} trend={staleOrders.length ? `${staleOrders.length} 单需核对` : '状态正常'} tone="green" onClick={() => onOpenRepairList(REPAIR_STATUS.repairing)} />
+        <Metric icon="revenue" title="筛选产值" value={formatMoney(total)} trend="按顶部日期实时统计" tone="blue" onClick={() => onOpenRepairList('')} />
+        <Metric icon="count" title="筛选台次" value={`${filteredOrders.length} 台`} trend="按当前条件统计" tone="blue" onClick={() => onOpenRepairList('')} />
+      </div>
+
+      <div className="workbench-main-row">
+        <section className="workflow-panel">
+          <div className="panel-header workbench-section-heading">
+            <div>
+              <span><WorkbenchIcon name={workbenchIconMap.workflow} />维修流程</span>
+              <h2>状态流看板</h2>
+            </div>
+            <button type="button" onClick={() => onOpenRepairList('')}>查看全部工单</button>
+          </div>
+          <div className="workflow-grid">
+            <WorkflowColumn tone="blue" title={`在修（${repairingOrders.length}）`} orders={repairingOrders} footer="点击工单查看详情" onViewOrder={onViewOrder} />
+            <WorkflowColumn tone="green" title={`完工（${completedOrders.length}）`} orders={completedOrders} footer="等待交车或结算" onViewOrder={onViewOrder} />
+            <WorkflowColumn tone="orange" title={`待结算（${pendingSettlementOrders.length}）`} orders={pendingSettlementOrders} footer="需上传回执并结算" onViewOrder={onViewOrder} />
+            <WorkflowColumn tone="gray" title={`已结算（${settledOrders.length}）`} orders={settledOrders} footer="已归档，可查看详情" onViewOrder={onViewOrder} />
+          </div>
+        </section>
+
+        <section className="todo-panel">
+          <div className="workbench-section-heading compact">
+            <div>
+              <span><WorkbenchIcon name={workbenchIconMap.todo} />今日待办</span>
+              <h2>优先处理事项</h2>
+            </div>
+          </div>
+          <div className="todo-list">
+            {todoItems.map((item) => (
+              <button key={item.title} type="button" className={`todo-item ${item.tone}`} onClick={item.action}>
+                <i />
+                <div>
+                  <strong>{item.title}</strong>
+                  <p>{item.detail}</p>
+                </div>
+                <b>{item.value}</b>
+              </button>
+            ))}
+          </div>
+          {pendingSettlementOrders[0] ? (
+            <button type="button" className="todo-featured" onClick={() => onViewOrder(pendingSettlementOrders[0])}>
+              <span>下一笔待结算</span>
+              <strong>{pendingSettlementOrders[0].plate} · {pendingSettlementOrders[0].customer}</strong>
+              <em>{formatMoney(pendingSettlementOrders[0].amount)}</em>
+            </button>
+          ) : null}
+        </section>
+      </div>
+
+      <div className="analysis-grid">
+        <div className="chart-panel trend-panel">
+          <PanelHeader title="产值趋势（元）" action="随日期范围刷新" icon={workbenchIconMap.trend} />
+          <LineChart values={trend.values} labels={trend.labels} />
+        </div>
+
+        <div className="chart-panel status-panel">
+          <PanelHeader title="维修状态分布" icon={workbenchIconMap.status} />
+          <div className="status-donut">
+            <div className="donut-ring"><strong>共 {filteredOrders.length} 台</strong></div>
+            <ul>
+              <li><span className="dot blue" />在修 <em>{repairingOrders.length} 台</em></li>
+              <li><span className="dot green" />完工 <em>{completedOrders.length} 台</em></li>
+              <li><span className="dot orange" />未结算 <em>{pendingSettlementOrders.length} 台</em></li>
+              <li><span className="dot gray" />结算 <em>{settledOrders.length} 台</em></li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="chart-panel cost-panel">
+          <PanelHeader title="工时费 / 材料费占比" action="按当前筛选统计" icon={workbenchIconMap.cost} />
+          <div className="cost-donut">
+            <div className="donut-ring blue-green"><strong>{formatMoney(costTotal)}</strong></div>
+            <ul>
+              <li><span className="dot blue" />工时费 <em>{laborPercent}%</em><small>{formatMoney(laborTotal)}</small></li>
+              <li><span className="dot green" />材料费 <em>{materialPercent}%</em><small>{formatMoney(materialTotal)}</small></li>
+            </ul>
+          </div>
         </div>
       </div>
 
-      <InsuranceReminder policies={urgentPolicies} onViewInsurance={onViewInsurance} />
-      <RecentOrders orders={filteredOrders} onRefreshOrders={onRefreshOrders} onViewOrder={onViewOrder} />
+      <div className="workbench-bottom-row">
+        <InsuranceReminder policies={urgentPolicies} onViewInsurance={onViewInsurance} />
+        <RecentOrders orders={filteredOrders} onRefreshOrders={onRefreshOrders} onViewOrder={onViewOrder} />
+      </div>
     </section>
   );
 }
 
-function Metric({ icon, title, value, trend, tone, onClick }) {
+function Metric({ icon, title, value, trend, tone, onClick, size = 'compact' }) {
+  const workbenchIcon = workbenchIconMap[icon];
+  const iconNode = workbenchIcon ? <WorkbenchIcon name={workbenchIcon} /> : <AssetIcon name={metricIconMap[icon]} />;
   const content = (
     <>
-      <span className={`metric-icon ${tone}`}><AssetIcon name={metricIconMap[icon]} /></span>
+      <span className={`metric-icon ${tone}`}>{iconNode}</span>
       <div>
         <p>{title}</p>
         <strong>{value}</strong>
@@ -1241,13 +1334,13 @@ function Metric({ icon, title, value, trend, tone, onClick }) {
   );
   if (onClick) {
     return (
-      <button type="button" className="metric-card metric-button" onClick={onClick}>
+      <button type="button" className={`metric-card metric-button ${size === 'large' ? 'large' : ''}`} onClick={onClick}>
         {content}
       </button>
     );
   }
   return (
-    <article className="metric-card">
+    <article className={`metric-card ${size === 'large' ? 'large' : ''}`}>
       {content}
     </article>
   );
@@ -1258,7 +1351,7 @@ function WorkflowColumn({ tone, title, orders, footer, onViewOrder }) {
     return (
       <article className="workflow-card empty">
         <header><strong>{title}</strong><span>→</span></header>
-        <div className="empty-clipboard"><AssetIcon name="empty-table.png" /></div>
+        <div className="empty-clipboard"><WorkbenchIcon name={workbenchIconMap.empty} /></div>
         <p>暂无数据</p>
       </article>
     );
@@ -1283,10 +1376,10 @@ function WorkflowColumn({ tone, title, orders, footer, onViewOrder }) {
   );
 }
 
-function PanelHeader({ title, action }) {
+function PanelHeader({ title, action, icon }) {
   return (
     <div className="panel-header">
-      <h2>{title}</h2>
+      <h2>{icon ? <WorkbenchIcon name={icon} /> : null}{title}</h2>
       {action ? <button>{action}</button> : null}
     </div>
   );
