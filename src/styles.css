@@ -847,7 +847,7 @@ button {
 }
 
 .workbench-section-heading h2 {
-  margin-top: 5px;
+  margin-top: 0;
   font-size: 21px;
 }
 
@@ -868,7 +868,7 @@ button {
 }
 
 .workflow-card {
-  min-height: 238px;
+  height: 270px;
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 7px;
@@ -895,8 +895,25 @@ button {
   position: relative;
   display: grid;
   gap: 6px;
+  max-height: calc(100% - 32px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 12px;
   color: #20334d;
+}
+
+.workflow-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.workflow-body::-webkit-scrollbar-track {
+  background: #eef5fc;
+  border-radius: 999px;
+}
+
+.workflow-body::-webkit-scrollbar-thumb {
+  background: #b5c6d8;
+  border-radius: 999px;
 }
 
 .workflow-order {
@@ -904,9 +921,10 @@ button {
   display: grid;
   gap: 5px;
   width: 100%;
+  min-height: 172px;
   border: 1px solid transparent;
   border-radius: 7px;
-  padding: 8px;
+  padding: 12px;
   color: inherit;
   background: #fff;
   text-align: left;

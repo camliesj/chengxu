@@ -1238,7 +1238,6 @@ function Dashboard({
         <section className="workflow-panel">
           <div className="panel-header workbench-section-heading">
             <div>
-              <span><WorkbenchIcon name={workbenchIconMap.workflow} />按状态跟进工单</span>
               <h2>维修流程看板</h2>
             </div>
             <button type="button" onClick={() => onOpenRepairList('')}>查看全部工单</button>
@@ -1361,7 +1360,7 @@ function WorkflowColumn({ tone, title, orders, footer, onViewOrder }) {
     <article className={`workflow-card ${tone}`}>
       <header><strong>{title}</strong><span>→</span></header>
       <div className="workflow-body">
-        {orders.slice(0, 2).map((order) => (
+        {orders.map((order) => (
           <button key={order.id} type="button" className="workflow-order" onClick={() => onViewOrder(order)}>
             <b>{order.plate}　{order.car}</b>
             <p>{order.customer}　{order.phone}</p>
@@ -1370,7 +1369,6 @@ function WorkflowColumn({ tone, title, orders, footer, onViewOrder }) {
             <span className={`status-chip ${statusClass(order.status)}`}>{order.status}</span>
           </button>
         ))}
-        {orders.length > 2 ? <small>还有 {orders.length - 2} 单未显示，进入维修接待查看</small> : <small>{footer}</small>}
       </div>
     </article>
   );
