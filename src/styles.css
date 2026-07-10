@@ -748,10 +748,8 @@ button {
 }
 
 .metric-card.large .metric-icon {
-  width: 62px;
-  height: 62px;
-  background: transparent;
-  box-shadow: none;
+  width: 58px;
+  height: 58px;
 }
 
 .metric-icon img {
@@ -760,9 +758,21 @@ button {
   object-fit: contain;
 }
 
-.metric-card.large .metric-icon img {
+.metric-card.large .metric-icon.workbench {
   width: 62px;
   height: 62px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.metric-card.large .metric-icon.workbench img {
+  width: 62px;
+  height: 62px;
+}
+
+.metric-card.large .metric-icon.legacy img {
+  width: 32px;
+  height: 32px;
 }
 
 .metric-icon img[src*="/assets/ui/icons/"] {
@@ -837,7 +847,7 @@ button {
 }
 
 .workbench-section-heading h2 {
-  margin-top: 4px;
+  margin-top: 5px;
   font-size: 21px;
 }
 
@@ -937,16 +947,18 @@ button {
 }
 
 .workflow-card.empty {
-  display: grid;
-  grid-template-rows: 32px 1fr auto;
+  position: relative;
+  display: block;
 }
 
 .empty-clipboard {
-  align-self: end;
-  justify-self: center;
+  position: absolute;
+  top: 50%;
+  left: 50%;
   width: 58px;
   height: 58px;
   opacity: 0.72;
+  transform: translate(-50%, -48%);
 }
 
 .empty-clipboard img {
@@ -955,12 +967,14 @@ button {
 }
 
 .workflow-card.empty p {
-  align-self: start;
-  justify-self: center;
+  position: absolute;
+  top: calc(50% + 38px);
+  left: 50%;
   margin: 0;
   color: #8291a2;
   font-size: 14px;
   font-weight: 800;
+  transform: translateX(-50%);
 }
 
 .todo-panel {

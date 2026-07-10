@@ -1225,21 +1225,21 @@ function Dashboard({
       </div>
 
       <div className="workbench-metrics">
-        <Metric icon="revenue" title="今日产值" value={formatMoney(todayAmount)} trend="查看今日工单" tone="blue" size="large" onClick={focusToday} />
-        <Metric icon="count" title="今日台次" value={`${todayOrders.length} 台`} trend="查看今日进厂" tone="blue" size="large" onClick={focusToday} />
-        <Metric icon="pending" title="待结算金额" value={formatMoney(pendingAmount)} trend={`待处理 ${activeOrders.length} 单`} tone="orange" size="large" onClick={() => onOpenRepairList(REPAIR_STATUS.pendingSettlement)} />
-        <Metric icon="insurance" title="保险到期" value={`${urgentPolicies.length} 台`} trend="查看保险档案" tone="red" size="large" onClick={onOpenInsurance} />
-        <Metric icon="repairing" title="在修车辆" value={`${repairingOrders.length} 台`} trend={staleOrders.length ? `${staleOrders.length} 单需核对` : '状态正常'} tone="green" onClick={() => onOpenRepairList(REPAIR_STATUS.repairing)} />
-        <Metric icon="revenue" title="筛选产值" value={formatMoney(total)} trend="按顶部日期实时统计" tone="blue" onClick={() => onOpenRepairList('')} />
-        <Metric icon="count" title="筛选台次" value={`${filteredOrders.length} 台`} trend="按当前条件统计" tone="blue" onClick={() => onOpenRepairList('')} />
+        <Metric icon="yuan" title="今日产值" value={formatMoney(todayAmount)} trend="查看今日工单" tone="blue" size="large" onClick={focusToday} />
+        <Metric icon="car" title="今日台次" value={`${todayOrders.length} 台`} trend="查看今日进厂" tone="blue" size="large" onClick={focusToday} />
+        <Metric icon="order" title="待结算金额" value={formatMoney(pendingAmount)} trend={`待处理 ${activeOrders.length} 单`} tone="orange" size="large" onClick={() => onOpenRepairList(REPAIR_STATUS.pendingSettlement)} />
+        <Metric icon="shield" title="保险到期" value={`${urgentPolicies.length} 台`} trend="查看保险档案" tone="red" size="large" onClick={onOpenInsurance} />
+        <Metric icon="car" title="在修车辆" value={`${repairingOrders.length} 台`} trend={staleOrders.length ? `${staleOrders.length} 单需核对` : '状态正常'} tone="green" onClick={() => onOpenRepairList(REPAIR_STATUS.repairing)} />
+        <Metric icon="yuan" title="筛选产值" value={formatMoney(total)} trend="按顶部日期实时统计" tone="blue" onClick={() => onOpenRepairList('')} />
+        <Metric icon="car" title="筛选台次" value={`${filteredOrders.length} 台`} trend="按当前条件统计" tone="blue" onClick={() => onOpenRepairList('')} />
       </div>
 
       <div className="workbench-main-row">
         <section className="workflow-panel">
           <div className="panel-header workbench-section-heading">
             <div>
-              <span><WorkbenchIcon name={workbenchIconMap.workflow} />维修流程</span>
-              <h2>状态流看板</h2>
+              <span><WorkbenchIcon name={workbenchIconMap.workflow} />按状态跟进工单</span>
+              <h2>维修流程看板</h2>
             </div>
             <button type="button" onClick={() => onOpenRepairList('')}>查看全部工单</button>
           </div>
@@ -1324,7 +1324,7 @@ function Metric({ icon, title, value, trend, tone, onClick, size = 'compact' }) 
   const iconNode = workbenchIcon ? <WorkbenchIcon name={workbenchIcon} /> : <AssetIcon name={metricIconMap[icon]} />;
   const content = (
     <>
-      <span className={`metric-icon ${tone}`}>{iconNode}</span>
+      <span className={`metric-icon ${tone} ${workbenchIcon ? 'workbench' : 'legacy'}`}>{iconNode}</span>
       <div>
         <p>{title}</p>
         <strong>{value}</strong>
