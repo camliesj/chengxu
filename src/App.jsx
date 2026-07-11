@@ -1221,11 +1221,11 @@ function Dashboard({
       </div>
 
       <div className="workbench-metrics">
-        <Metric icon="yuan" title="今日产值" value={formatMoney(todayAmount)} trend={`${todayOrders.length} 笔今日工单`} tone="blue" onClick={focusToday} />
-        <Metric icon="car" title="今日台次" value={`${todayOrders.length} 台`} trend="查看今日进厂车辆" tone="blue" onClick={focusToday} />
-        <Metric icon="order" title="待结算金额" value={formatMoney(pendingAmount)} trend={`${pendingSettlementOrders.length} 单待处理`} tone="orange" onClick={() => onOpenRepairList(REPAIR_STATUS.pendingSettlement)} />
-        <Metric icon="shield" title="保险到期" value={`${urgentPolicies.length} 台`} trend="7天内到期或已过期" tone="red" onClick={onOpenInsurance} />
-        <Metric icon="yuan" title="筛选产值" value={formatMoney(total)} trend={`${filteredOrders.length} 台 · 按当前日期`} tone="green" onClick={() => onOpenRepairList('')} />
+        <Metric variant="dashboard" icon="yuan" title="今日产值" value={formatMoney(todayAmount)} trend={`${todayOrders.length} 笔今日工单`} tone="blue" onClick={focusToday} />
+        <Metric variant="dashboard" icon="car" title="今日台次" value={`${todayOrders.length} 台`} trend="查看今日进厂车辆" tone="blue" onClick={focusToday} />
+        <Metric variant="dashboard" icon="order" title="待结算金额" value={formatMoney(pendingAmount)} trend={`${pendingSettlementOrders.length} 单待处理`} tone="orange" onClick={() => onOpenRepairList(REPAIR_STATUS.pendingSettlement)} />
+        <Metric variant="dashboard" icon="shield" title="保险到期" value={`${urgentPolicies.length} 台`} trend="7天内到期或已过期" tone="red" onClick={onOpenInsurance} />
+        <Metric variant="dashboard" icon="yuan" title="筛选产值" value={formatMoney(total)} trend={`${filteredOrders.length} 台 · 按当前日期`} tone="green" onClick={() => onOpenRepairList('')} />
       </div>
 
       <div className="dashboard-overview-grid">
@@ -1297,13 +1297,17 @@ function Dashboard({
   );
 }
 
-function Metric({ icon, title, value, trend, tone, onClick }) {
+function Metric({ icon, title, value, trend, tone, onClick, variant = 'default' }) {
   const workbenchIcon = workbenchIconMap[icon];
   const iconNode = workbenchIcon ? <WorkbenchIcon name={workbenchIcon} /> : <AssetIcon name={metricIconMap[icon]} />;
-  const content = <><div className="metric-card-header"><span className={`metric-icon ${tone} ${workbenchIcon ? 'workbench' : 'legacy'}`}>{iconNode}</span><p>{title}</p></div><strong>{value}</strong><small>{trend}<b>→</b></small></>;
+  const iconClassName = `metric-icon ${tone} ${workbenchIcon ? 'workbench' : 'legacy'}`;
+  const dashboardContent = <><div className="metric-card-header"><span className={iconClassName}>{iconNode}</span><p>{title}</p></div><strong>{value}</strong><small>{trend}<b>→</b></small></>;
+  const defaultContent = <><span className={iconClassName}>{iconNode}</span><div><p>{title}</p><strong>{value}</strong><small>{trend}</small></div></>;
+  const content = variant === 'dashboard' ? dashboardContent : defaultContent;
+  const className = `metric-card ${variant === 'dashboard' ? `dashboard-metric ${tone}` : ''}`.trim();
   return onClick
-    ? <button type="button" className={`metric-card metric-button ${tone}`} onClick={onClick}>{content}</button>
-    : <article className={`metric-card ${tone}`}>{content}</article>;
+    ? <button type="button" className={`${className} metric-button`} onClick={onClick}>{content}</button>
+    : <article className={className}>{content}</article>;
 }
 
 function StatusSummaryCard({ tone, label, orders, onClick }) {

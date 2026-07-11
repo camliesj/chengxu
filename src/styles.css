@@ -3803,14 +3803,14 @@ dd {
   gap: 10px;
 }
 
-.metric-card .metric-icon.workbench { background: #edf6ff; }
-.metric-card.orange .metric-icon.workbench { background: #fff5e8; }
-.metric-card.red .metric-icon.workbench { background: #fff0ef; }
-.metric-card.green .metric-icon.workbench { background: #eaf8f1; }
-.metric-card small b { color: #1478f2; font-size: 14px; }
-.metric-card.orange small b { color: #f28a00; }
-.metric-card.red small b { color: #ef3b2d; }
-.metric-card.green small b { color: #18a560; }
+.dashboard-metric .metric-icon.workbench { background: #edf6ff; }
+.dashboard-metric.orange .metric-icon.workbench { background: #fff5e8; }
+.dashboard-metric.red .metric-icon.workbench { background: #fff0ef; }
+.dashboard-metric.green .metric-icon.workbench { background: #eaf8f1; }
+.dashboard-metric small b { color: #1478f2; font-size: 14px; }
+.dashboard-metric.orange small b { color: #f28a00; }
+.dashboard-metric.red small b { color: #ef3b2d; }
+.dashboard-metric.green small b { color: #18a560; }
 
 .dashboard-insight-panel,
 .status-section {
