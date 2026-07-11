@@ -3517,64 +3517,70 @@ function ReportRanking({ title, rows, maxAmount }) {
   );
 }
 
-function DictionaryManager({ title, description, entries, draft, collapsed, onToggle, onDraftChange, onEdit, onDelete, onSubmit }) {
+function SettingsModal({ level = 1, title, description, onClose, actions, children, size = 'large' }) {
+  return (
+    <div className={`settings-modal-backdrop level-${level}`} role="presentation" onClick={onClose}>
+      <section className={`settings-modal settings-modal-${size}`} role="dialog" aria-modal="true" aria-label={title} onClick={(event) => event.stopPropagation()}>
+        <header className="settings-modal-header">
+          <div>
+            <h2>{title}</h2>
+            {description ? <p>{description}</p> : null}
+          </div>
+          <button type="button" className="settings-modal-close" onClick={onClose} aria-label={`关闭${title}`}>×</button>
+        </header>
+        <div className="settings-modal-body">{children}</div>
+        {actions ? <footer className="settings-modal-footer">{actions}</footer> : null}
+      </section>
+    </div>
+  );
+}
+
+function DictionaryManager({ title, description, entries, onAdd, onEdit, onDelete }) {
+  return (
+    <div className="settings-management-view">
+      <div className="settings-management-toolbar">
+        <div>
+          <strong>{title}</strong>
+          <span>{entries.length} 项配置</span>
+        </div>
+        <button type="button" className="settings-primary-action" onClick={onAdd}>＋ 新增</button>
+      </div>
+      <p className="settings-management-description">{description}</p>
+      <div className="dictionary-list modal-list">
+        {entries.length === 0 ? (
+          <div className="settings-empty">暂无字典项</div>
+        ) : entries.map((entry) => (
+          <div key={entry.id} className={entry.isActive ? 'dictionary-item active' : 'dictionary-item'}>
+            <div>
+              <strong>{entry.value}</strong>
+              {entry.extra ? <span>{entry.extra}</span> : null}
+            </div>
+            <small>{entry.isActive ? '启用' : '停用'} · 排序 {entry.sortOrder}</small>
+            <button type="button" onClick={() => onEdit(entry)}>编辑</button>
+            <button type="button" className="danger" onClick={() => onDelete(entry)}>删除</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DictionaryEditor({ draft, onDraftChange, onSubmit, onCancel }) {
   const isStaff = draft.category === 'staff';
   return (
-    <article className={collapsed ? 'dictionary-card is-collapsed' : 'dictionary-card'}>
-      <header>
-        <div>
-          <h4>{title}</h4>
-          <p>{description}</p>
-        </div>
-        <div className="collapse-actions">
-          <span>{entries.length} 项</span>
-          <button type="button" onClick={onToggle}>{collapsed ? '展开' : '收起'}</button>
-        </div>
-      </header>
-      {collapsed ? null : (
-        <>
-          <div className="dictionary-list">
-            {entries.length === 0 ? (
-              <div className="settings-empty">暂无字典项</div>
-            ) : entries.map((entry) => (
-              <div key={entry.id} className={entry.isActive ? 'dictionary-item active' : 'dictionary-item'}>
-                <div>
-                  <strong>{entry.value}</strong>
-                  {entry.extra ? <span>{entry.extra}</span> : null}
-                </div>
-                <small>{entry.isActive ? '启用' : '停用'} · 排序 {entry.sortOrder}</small>
-                <button type="button" onClick={() => onEdit(entry)}>编辑</button>
-                <button type="button" className="danger" onClick={() => onDelete(entry)}>删除</button>
-              </div>
-            ))}
-          </div>
-          <form className="dictionary-form" onSubmit={onSubmit}>
-            <label>
-              {isStaff ? '岗位职称' : '保险公司名称'}
-              <input value={draft.value} onChange={(event) => onDraftChange((current) => ({ ...current, value: event.target.value }))} placeholder={isStaff ? '必填，请输入岗位职称' : '必填，请输入保险公司名称'} />
-            </label>
-            {isStaff ? (
-              <label>
-                人员名称
-                <input value={draft.extra} onChange={(event) => onDraftChange((current) => ({ ...current, extra: event.target.value }))} placeholder="必填，请输入人员名称" />
-              </label>
-            ) : null}
-            <label>
-              排序
-              <input type="number" value={draft.sortOrder} onChange={(event) => onDraftChange((current) => ({ ...current, sortOrder: event.target.value }))} />
-            </label>
-            <label className="settings-switch-field">
-              启用
-              <input type="checkbox" checked={draft.isActive} onChange={(event) => onDraftChange((current) => ({ ...current, isActive: event.target.checked }))} />
-            </label>
-            <div className="account-form-actions">
-              <button type="button" onClick={() => onDraftChange(createDictionaryDraft(draft.category))}>清空</button>
-              <button type="submit">{draft.id ? '保存修改' : '新增字典'}</button>
-            </div>
-          </form>
-        </>
-      )}
-    </article>
+    <form className="dictionary-form modal-editor-form" onSubmit={onSubmit}>
+      <label>
+        {isStaff ? '岗位职称' : '保险公司名称'}
+        <input value={draft.value} onChange={(event) => onDraftChange((current) => ({ ...current, value: event.target.value }))} placeholder={isStaff ? '必填，请输入岗位职称' : '必填，请输入保险公司名称'} autoFocus />
+      </label>
+      {isStaff ? <label>人员名称<input value={draft.extra} onChange={(event) => onDraftChange((current) => ({ ...current, extra: event.target.value }))} placeholder="必填，请输入人员名称" /></label> : null}
+      <label>排序<input type="number" value={draft.sortOrder} onChange={(event) => onDraftChange((current) => ({ ...current, sortOrder: event.target.value }))} /></label>
+      <label className="settings-switch-field">启用<input type="checkbox" checked={draft.isActive} onChange={(event) => onDraftChange((current) => ({ ...current, isActive: event.target.checked }))} /></label>
+      <div className="account-form-actions modal-form-actions">
+        <button type="button" onClick={onCancel}>取消</button>
+        <button type="submit">{draft.id ? '保存修改' : '新增字典'}</button>
+      </div>
+    </form>
   );
 }
 
@@ -3616,19 +3622,26 @@ function SystemSettingsPage({ session, cloudState, orders, dictionaries, canView
   const [insurerDraft, setInsurerDraft] = useState(createDictionaryDraft('insurer'));
   const [staffDraft, setStaffDraft] = useState(createDictionaryDraft('staff'));
   const [dictionaryState, setDictionaryState] = useState({ loading: false, message: '', error: '' });
-  const [collapsedSections, setCollapsedSections] = useState({
-    insurerDictionary: true,
-    staffDictionary: true,
-    accounts: true,
-    logs: true,
-  });
+  const [activeSettingsModal, setActiveSettingsModal] = useState('');
+  const [activeEditor, setActiveEditor] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const isAdmin = session?.role === 'admin';
   const canManageSettings = hasUiPermission(session, 'settings');
   const insurerDictionaries = dictionaries.filter((entry) => entry.category === 'insurer');
   const staffDictionaries = dictionaries.filter((entry) => entry.category === 'staff');
 
-  function toggleSettingsSection(section) {
-    setCollapsedSections((current) => ({ ...current, [section]: !current[section] }));
+  function openSettingsModal(section) {
+    setActiveSettingsModal(section);
+    setActiveEditor('');
+    setDeleteTarget(null);
+    if (section === 'accounts') loadAccounts();
+    if (section === 'logs') loadLogs();
+  }
+
+  function closeSettingsModal() {
+    setActiveEditor('');
+    setDeleteTarget(null);
+    setActiveSettingsModal('');
   }
 
   function loadLogs() {
@@ -3656,6 +3669,7 @@ function SystemSettingsPage({ session, cloudState, orders, dictionaries, canView
   function editAccount(account) {
     setAccountDraft(createAccountDraft(account));
     setAccountState({ loading: false, message: '', error: '' });
+    setActiveEditor('account');
   }
 
   function updateAccountPermission(permission, checked) {
@@ -3676,6 +3690,7 @@ function SystemSettingsPage({ session, cloudState, orders, dictionaries, canView
       .then(() => {
         setAccountDraft(createAccountDraft());
         setAccountState({ loading: false, message: '账号已保存', error: '' });
+        setActiveEditor('');
         loadAccounts();
         loadLogs();
       })
@@ -3690,6 +3705,7 @@ function SystemSettingsPage({ session, cloudState, orders, dictionaries, canView
         setAccounts((current) => current.filter((item) => item.id !== account.id));
         setAccountDraft((current) => (current.id === account.id ? createAccountDraft() : current));
         setAccountState({ loading: false, message: `${account.username} 已删除`, error: '' });
+        setDeleteTarget(null);
         loadLogs();
       })
       .catch((error) => setAccountState({ loading: false, message: '', error: error.message || '账号删除失败' }));
@@ -3709,6 +3725,7 @@ function SystemSettingsPage({ session, cloudState, orders, dictionaries, canView
       .then(() => {
         resetDraft(createDictionaryDraft(draft.category));
         setDictionaryState({ loading: false, message: '字典已保存', error: '' });
+        setActiveEditor('');
         refreshDictionaries();
         if (canViewLogs) loadLogs();
       })
@@ -3722,6 +3739,7 @@ function SystemSettingsPage({ session, cloudState, orders, dictionaries, canView
       .then(() => {
         onDictionariesChange(dictionaries.filter((item) => item.id !== entry.id));
         setDictionaryState({ loading: false, message: `${entry.value} 已删除`, error: '' });
+        setDeleteTarget(null);
         if (canViewLogs) loadLogs();
       })
       .catch((error) => setDictionaryState({ loading: false, message: '', error: error.message || '字典删除失败' }));
@@ -3735,6 +3753,23 @@ function SystemSettingsPage({ session, cloudState, orders, dictionaries, canView
       loadLogs();
     }
   }, [isAdmin, canViewLogs]);
+
+  useEffect(() => {
+    if (!activeSettingsModal) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    function closeTopLayer(event) {
+      if (event.key !== 'Escape') return;
+      if (deleteTarget) setDeleteTarget(null);
+      else if (activeEditor) setActiveEditor('');
+      else closeSettingsModal();
+    }
+    window.addEventListener('keydown', closeTopLayer);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', closeTopLayer);
+    };
+  }, [activeSettingsModal, activeEditor, deleteTarget]);
 
   return (
     <section className="settings-layout">
@@ -3775,191 +3810,178 @@ function SystemSettingsPage({ session, cloudState, orders, dictionaries, canView
           </dl>
         </article>
       </div>
-
-      {canManageSettings ? (
-        <section className="settings-card settings-access-card">
-          <div className="settings-access-heading">
-            <div>
-              <h3>基础字典</h3>
-              <p>维护当前公司的保险公司选项和人员岗位，新增工单、保险档案、客户车辆会同步使用。</p>
-            </div>
-            <span>{dictionaries.length} 条字典</span>
-          </div>
-          {dictionaryState.error ? <div className="cloud-banner error">{dictionaryState.error}</div> : null}
-          {dictionaryState.message ? <div className="cloud-banner">{dictionaryState.message}</div> : null}
-          <div className="dictionary-grid">
-            <DictionaryManager
-              title="保险公司字典"
-              description="用于工单、保险档案、客户车辆的保险公司下拉项。"
-              entries={insurerDictionaries}
-              draft={insurerDraft}
-              collapsed={collapsedSections.insurerDictionary}
-              onToggle={() => toggleSettingsSection('insurerDictionary')}
-              onDraftChange={setInsurerDraft}
-              onEdit={(entry) => setInsurerDraft(createDictionaryDraft('insurer', entry))}
-              onDelete={removeDictionary}
-              onSubmit={(event) => submitDictionary(event, insurerDraft, setInsurerDraft)}
-            />
-            <DictionaryManager
-              title="人员岗位字典"
-              description="职称和人员名称会合并显示在工单业务员选项中。"
-              entries={staffDictionaries}
-              draft={staffDraft}
-              collapsed={collapsedSections.staffDictionary}
-              onToggle={() => toggleSettingsSection('staffDictionary')}
-              onDraftChange={setStaffDraft}
-              onEdit={(entry) => setStaffDraft(createDictionaryDraft('staff', entry))}
-              onDelete={removeDictionary}
-              onSubmit={(event) => submitDictionary(event, staffDraft, setStaffDraft)}
-            />
-          </div>
-        </section>
-      ) : null}
-
-      {isAdmin ? (
-        <section className="settings-card settings-access-card">
-          <div className="settings-access-heading">
-            <div>
-              <h3>账号密码管理</h3>
-              <p>维护两家公司登录账号、密码、角色、所属公司和启用状态。原访问码管理暂不使用。</p>
-            </div>
-            <div className="collapse-actions">
-              <span>{accounts.length} 个账号</span>
-              <button type="button" onClick={() => toggleSettingsSection('accounts')}>{collapsedSections.accounts ? '展开' : '收起'}</button>
-            </div>
-          </div>
-          {collapsedSections.accounts ? null : (
-            <>
-              {accountState.error ? <div className="cloud-banner error">{accountState.error}</div> : null}
-              {accountState.message ? <div className="cloud-banner">{accountState.message}</div> : null}
-              <div className="access-code-list">
-                {accounts.map((account) => (
-                  <article key={account.id} className={`${account.isActive ? 'active' : ''} ${accountDraft.id === account.id ? 'selected' : ''}`}>
-                    <div>
-                      <strong>{account.username}</strong>
-                      <p>{account.displayName || account.label}</p>
-                    </div>
-                    <dl>
-                      <div><dt>密码</dt><dd>{account.password || '需重设'}</dd></div>
-                      <div><dt>岗位</dt><dd>{account.role === 'admin' ? '管理员' : account.title || account.label}</dd></div>
-                      <div><dt>角色</dt><dd>{account.role === 'admin' ? '管理员' : '员工'}</dd></div>
-                      <div><dt>公司</dt><dd>{account.role === 'admin' ? '全部公司' : companyById(account.companyId).shortName}</dd></div>
-                      <div><dt>状态</dt><dd>{account.isActive ? '启用中' : '已停用'}</dd></div>
-                      <div><dt>权限</dt><dd>{account.role === 'admin' ? '全部权限' : (account.permissions || []).map((key) => permissionItems.find((item) => item.key === key)?.label).filter(Boolean).join('、') || '未分配'}</dd></div>
-                    </dl>
-                    <div className="access-code-actions">
-                      <button type="button" onClick={() => editAccount(account)}>编辑</button>
-                      <button type="button" className="danger" onClick={() => removeAccount(account)}>删除</button>
-                    </div>
-                  </article>
-                ))}
-              </div>
-              <form className="settings-account-form" onSubmit={submitAccount}>
-                <label>
-                  账号
-                  <input value={accountDraft.username} onChange={(event) => setAccountDraft((current) => ({ ...current, username: event.target.value }))} placeholder="必填，请输入账号" />
-                </label>
-                <label>
-                  密码
-                  <input value={accountDraft.password} onChange={(event) => setAccountDraft((current) => ({ ...current, password: event.target.value }))} placeholder="必填，请输入6-32位密码" />
-                </label>
-                <label>
-                  人员名称
-                  <input value={accountDraft.displayName} onChange={(event) => setAccountDraft((current) => ({ ...current, displayName: event.target.value }))} placeholder="请输入人员名称" />
-                </label>
-                <label>
-                  岗位职称
-                  <input value={accountDraft.title} disabled={accountDraft.role === 'admin'} onChange={(event) => setAccountDraft((current) => ({ ...current, title: event.target.value }))} placeholder="请输入岗位职称" />
-                </label>
-                <label>
-                  角色
-                  <select value={accountDraft.role} onChange={(event) => setAccountDraft((current) => ({ ...current, role: event.target.value }))}>
-                    <option value="admin">管理员</option>
-                    <option value="staff">员工</option>
-                  </select>
-                </label>
-                <label>
-                  所属公司
-                  <select
-                    value={accountDraft.companyId}
-                    disabled={accountDraft.role === 'admin'}
-                    onChange={(event) => setAccountDraft((current) => ({ ...current, companyId: event.target.value }))}
-                  >
-                    {companies.map((company) => <option key={company.id} value={company.id}>{company.shortName}</option>)}
-                  </select>
-                </label>
-                <label className="settings-switch-field">
-                  启用账号
-                  <input type="checkbox" checked={accountDraft.isActive} onChange={(event) => setAccountDraft((current) => ({ ...current, isActive: event.target.checked }))} />
-                </label>
-                <div className="permission-checks">
-                  <span>权限分配</span>
-                  <div>
-                    {permissionItems.map((permission) => (
-                      <label key={permission.key}>
-                        <input
-                          type="checkbox"
-                          disabled={accountDraft.role === 'admin'}
-                          checked={accountDraft.role === 'admin' || accountDraft.permissions.includes(permission.key)}
-                          onChange={(event) => updateAccountPermission(permission.key, event.target.checked)}
-                        />
-                        {permission.label}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-                <div className="account-form-actions">
-                  <button type="button" onClick={() => setAccountDraft(createAccountDraft())}>清空新增</button>
-                  <button type="submit" disabled={accountState.loading}>{accountState.loading ? '保存中...' : accountDraft.id ? '保存账号' : '新增账号'}</button>
-                </div>
-              </form>
-            </>
-          )}
-        </section>
-      ) : null}
-
-      <section className="table-panel">
-        <div className="table-titlebar">
-          <h2>操作日志</h2>
+      <section className="settings-launcher-section">
+        <div className="settings-access-heading">
           <div>
-            {logState.loading ? <span className="settings-note">读取中...</span> : null}
-            {canViewLogs ? <button onClick={loadLogs}>刷新日志</button> : null}
-            <button type="button" className="collapse-toggle" onClick={() => toggleSettingsSection('logs')}>{collapsedSections.logs ? '展开' : '收起'}</button>
+            <h3>管理中心</h3>
+            <p>选择需要维护的内容，数据列表和编辑表单将在独立窗口中打开。</p>
           </div>
         </div>
-        {collapsedSections.logs ? null : !canViewLogs ? (
-          <div className="settings-empty">当前账号未分配操作日志权限。</div>
-        ) : logState.error ? (
-          <div className="cloud-banner error">{logState.error}</div>
-        ) : (
-          <div className="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>时间</th>
-                  <th>操作</th>
-                  <th>对象</th>
-                  <th>角色</th>
-                  <th>说明</th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs.length === 0 ? (
-                  <tr><td colSpan="5" className="empty-table-cell">暂无操作记录</td></tr>
-                ) : logs.map((log) => (
-                  <tr key={log.id}>
-                    <td>{log.created_at}</td>
-                    <td>{log.action}</td>
-                    <td>{log.target_id}</td>
-                    <td>{log.label || log.role}</td>
-                    <td>{log.detail}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <div className="settings-launcher-grid">
+          {canManageSettings ? (
+            <>
+              <button type="button" className="settings-launcher-card blue" onClick={() => openSettingsModal('insurer')}>
+                <span className="settings-launcher-icon">保</span>
+                <div><strong>保险公司字典</strong><p>维护保险公司下拉选项</p></div>
+                <em>{insurerDictionaries.length} 项</em><b>→</b>
+              </button>
+              <button type="button" className="settings-launcher-card green" onClick={() => openSettingsModal('staff')}>
+                <span className="settings-launcher-icon">人</span>
+                <div><strong>人员岗位字典</strong><p>维护岗位职称和人员名称</p></div>
+                <em>{staffDictionaries.length} 项</em><b>→</b>
+              </button>
+            </>
+          ) : null}
+          {isAdmin ? (
+            <button type="button" className="settings-launcher-card orange" onClick={() => openSettingsModal('accounts')}>
+              <span className="settings-launcher-icon">账</span>
+              <div><strong>账号密码管理</strong><p>维护账号、角色和功能权限</p></div>
+              <em>{accounts.length} 个</em><b>→</b>
+            </button>
+          ) : null}
+          <button type="button" className="settings-launcher-card gray" onClick={() => openSettingsModal('logs')}>
+            <span className="settings-launcher-icon">志</span>
+            <div><strong>操作日志</strong><p>{canViewLogs ? '查看系统操作记录' : '当前账号无查看权限'}</p></div>
+            <em>{logs.length} 条</em><b>→</b>
+          </button>
+        </div>
       </section>
+
+      {activeSettingsModal === 'insurer' ? (
+        <SettingsModal title="保险公司字典" description="维护工单、保险档案和客户车辆使用的保险公司选项。" onClose={closeSettingsModal}>
+          {dictionaryState.error ? <div className="cloud-banner error">{dictionaryState.error}</div> : null}
+          {dictionaryState.message ? <div className="cloud-banner">{dictionaryState.message}</div> : null}
+          <DictionaryManager
+            title="保险公司"
+            description="停用的选项不会出现在新建业务记录的下拉列表中。"
+            entries={insurerDictionaries}
+            onAdd={() => { setInsurerDraft(createDictionaryDraft('insurer')); setActiveEditor('dictionary'); }}
+            onEdit={(entry) => { setInsurerDraft(createDictionaryDraft('insurer', entry)); setActiveEditor('dictionary'); }}
+            onDelete={(entry) => setDeleteTarget({ type: 'dictionary', item: entry })}
+          />
+        </SettingsModal>
+      ) : null}
+
+      {activeSettingsModal === 'staff' ? (
+        <SettingsModal title="人员岗位字典" description="维护工单业务员选项中的岗位职称和人员名称。" onClose={closeSettingsModal}>
+          {dictionaryState.error ? <div className="cloud-banner error">{dictionaryState.error}</div> : null}
+          {dictionaryState.message ? <div className="cloud-banner">{dictionaryState.message}</div> : null}
+          <DictionaryManager
+            title="人员岗位"
+            description="岗位职称与人员名称会组合显示，例如：维修顾问 · 王工。"
+            entries={staffDictionaries}
+            onAdd={() => { setStaffDraft(createDictionaryDraft('staff')); setActiveEditor('dictionary'); }}
+            onEdit={(entry) => { setStaffDraft(createDictionaryDraft('staff', entry)); setActiveEditor('dictionary'); }}
+            onDelete={(entry) => setDeleteTarget({ type: 'dictionary', item: entry })}
+          />
+        </SettingsModal>
+      ) : null}
+
+      {activeSettingsModal === 'accounts' ? (
+        <SettingsModal title="账号密码管理" description="维护两家公司登录账号、角色、所属公司和功能权限。" onClose={closeSettingsModal}>
+          {accountState.error ? <div className="cloud-banner error">{accountState.error}</div> : null}
+          {accountState.message ? <div className="cloud-banner">{accountState.message}</div> : null}
+          <div className="settings-management-toolbar">
+            <div><strong>已有账号</strong><span>{accounts.length} 个账号</span></div>
+            <button type="button" className="settings-primary-action" onClick={() => { setAccountDraft(createAccountDraft()); setActiveEditor('account'); }}>＋ 新增账号</button>
+          </div>
+          <div className="access-code-list modal-account-list">
+            {accounts.map((account) => (
+              <article key={account.id} className={account.isActive ? 'active' : ''}>
+                <div><strong>{account.username}</strong><p>{account.displayName || account.label}</p></div>
+                <dl>
+                  <div><dt>密码</dt><dd>{account.password || '需重设'}</dd></div>
+                  <div><dt>岗位</dt><dd>{account.role === 'admin' ? '管理员' : account.title || account.label}</dd></div>
+                  <div><dt>公司</dt><dd>{account.role === 'admin' ? '全部公司' : companyById(account.companyId).shortName}</dd></div>
+                  <div><dt>状态</dt><dd>{account.isActive ? '启用中' : '已停用'}</dd></div>
+                  <div><dt>权限</dt><dd>{account.role === 'admin' ? '全部权限' : (account.permissions || []).map((key) => permissionItems.find((item) => item.key === key)?.label).filter(Boolean).join('、') || '未分配'}</dd></div>
+                </dl>
+                <div className="access-code-actions">
+                  <button type="button" onClick={() => editAccount(account)}>编辑</button>
+                  <button type="button" className="danger" onClick={() => setDeleteTarget({ type: 'account', item: account })}>删除</button>
+                </div>
+              </article>
+            ))}
+          </div>
+        </SettingsModal>
+      ) : null}
+
+      {activeSettingsModal === 'logs' ? (
+        <SettingsModal title="操作日志" description="记录账号、工单、字典和系统数据的关键操作。" onClose={closeSettingsModal}>
+          <div className="settings-management-toolbar">
+            <div><strong>操作记录</strong><span>{logState.loading ? '读取中...' : logs.length + ' 条记录'}</span></div>
+            {canViewLogs ? <button type="button" onClick={loadLogs}>刷新日志</button> : null}
+          </div>
+          {!canViewLogs ? <div className="settings-empty">当前账号未分配操作日志权限。</div> : logState.error ? (
+            <div className="cloud-banner error">{logState.error}</div>
+          ) : (
+            <div className="table-scroll settings-log-table">
+              <table>
+                <thead><tr><th>时间</th><th>操作</th><th>对象</th><th>角色</th><th>说明</th></tr></thead>
+                <tbody>
+                  {logs.length === 0 ? <tr><td colSpan="5" className="empty-table-cell">暂无操作记录</td></tr> : logs.map((log) => (
+                    <tr key={log.id}><td>{log.created_at}</td><td>{log.action}</td><td>{log.target_id}</td><td>{log.label || log.role}</td><td>{log.detail}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </SettingsModal>
+      ) : null}
+
+      {activeEditor === 'dictionary' ? (
+        <SettingsModal
+          level={2}
+          size="medium"
+          title={(activeSettingsModal === 'staff' ? staffDraft : insurerDraft).id ? '编辑字典项' : '新增字典项'}
+          description={activeSettingsModal === 'staff' ? '填写岗位职称和对应人员名称。' : '填写保险公司名称及显示顺序。'}
+          onClose={() => setActiveEditor('')}
+        >
+          <DictionaryEditor
+            draft={activeSettingsModal === 'staff' ? staffDraft : insurerDraft}
+            onDraftChange={activeSettingsModal === 'staff' ? setStaffDraft : setInsurerDraft}
+            onSubmit={(event) => activeSettingsModal === 'staff'
+              ? submitDictionary(event, staffDraft, setStaffDraft)
+              : submitDictionary(event, insurerDraft, setInsurerDraft)}
+            onCancel={() => setActiveEditor('')}
+          />
+        </SettingsModal>
+      ) : null}
+
+      {activeEditor === 'account' ? (
+        <SettingsModal level={2} size="medium" title={accountDraft.id ? '编辑账号' : '新增账号'} description="设置登录信息、人员身份和可使用的系统功能。" onClose={() => setActiveEditor('')}>
+          <form className="settings-account-form modal-editor-form" onSubmit={submitAccount}>
+            <label>账号<input value={accountDraft.username} onChange={(event) => setAccountDraft((current) => ({ ...current, username: event.target.value }))} placeholder="必填，请输入账号" autoFocus /></label>
+            <label>密码<input value={accountDraft.password} onChange={(event) => setAccountDraft((current) => ({ ...current, password: event.target.value }))} placeholder="必填，请输入6-32位密码" /></label>
+            <label>人员名称<input value={accountDraft.displayName} onChange={(event) => setAccountDraft((current) => ({ ...current, displayName: event.target.value }))} placeholder="请输入人员名称" /></label>
+            <label>岗位职称<input value={accountDraft.title} disabled={accountDraft.role === 'admin'} onChange={(event) => setAccountDraft((current) => ({ ...current, title: event.target.value }))} placeholder="请输入岗位职称" /></label>
+            <label>角色<select value={accountDraft.role} onChange={(event) => setAccountDraft((current) => ({ ...current, role: event.target.value }))}><option value="admin">管理员</option><option value="staff">员工</option></select></label>
+            <label>所属公司<select value={accountDraft.companyId} disabled={accountDraft.role === 'admin'} onChange={(event) => setAccountDraft((current) => ({ ...current, companyId: event.target.value }))}>{companies.map((company) => <option key={company.id} value={company.id}>{company.shortName}</option>)}</select></label>
+            <label className="settings-switch-field">启用账号<input type="checkbox" checked={accountDraft.isActive} onChange={(event) => setAccountDraft((current) => ({ ...current, isActive: event.target.checked }))} /></label>
+            <div className="permission-checks">
+              <span>权限分配</span>
+              <div>{permissionItems.map((permission) => <label key={permission.key}><input type="checkbox" disabled={accountDraft.role === 'admin'} checked={accountDraft.role === 'admin' || accountDraft.permissions.includes(permission.key)} onChange={(event) => updateAccountPermission(permission.key, event.target.checked)} />{permission.label}</label>)}</div>
+            </div>
+            <div className="account-form-actions modal-form-actions">
+              <button type="button" onClick={() => setActiveEditor('')}>取消</button>
+              <button type="submit" disabled={accountState.loading}>{accountState.loading ? '保存中...' : '保存账号'}</button>
+            </div>
+          </form>
+        </SettingsModal>
+      ) : null}
+
+      {deleteTarget ? (
+        <SettingsModal level={3} size="small" title="确认删除" description="删除后无法恢复，请确认当前操作。" onClose={() => setDeleteTarget(null)}>
+          <div className="settings-delete-confirm">
+            <strong>{deleteTarget.type === 'account' ? deleteTarget.item.username : deleteTarget.item.value}</strong>
+            <p>{deleteTarget.type === 'account' ? '该账号将无法继续登录系统。' : '该选项将从相关业务下拉列表中移除。'}</p>
+            <div className="settings-delete-actions">
+              <button type="button" onClick={() => setDeleteTarget(null)}>取消</button>
+              <button type="button" className="danger-primary" onClick={() => deleteTarget.type === 'account' ? removeAccount(deleteTarget.item) : removeDictionary(deleteTarget.item)}>确认删除</button>
+            </div>
+          </div>
+        </SettingsModal>
+      ) : null}
     </section>
   );
 }
