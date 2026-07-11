@@ -1497,6 +1497,14 @@ tbody tr.selected-row {
   gap: 14px;
 }
 
+.repair-reception-panel {
+  min-width: 0;
+}
+
+.repair-reception-panel .detail-panel {
+  display: none;
+}
+
 .reception-toolbar {
   display: grid;
   gap: 12px;
@@ -1816,6 +1824,70 @@ dd {
 
 .settlement-modal {
   width: min(620px, 100%);
+}
+
+.work-order-dialog {
+  width: min(980px, 100%);
+  max-height: min(780px, calc(100vh - 44px));
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.94)),
+    url("/assets/ui/backgrounds/modal-flow-overlay.png") center / cover no-repeat;
+  box-shadow: 0 24px 70px rgba(16, 46, 78, 0.24);
+}
+
+.work-order-dialog-heading {
+  position: static;
+  margin: 0;
+  padding: 18px 20px 14px;
+}
+
+.dialog-kicker {
+  display: inline-flex;
+  min-height: 23px;
+  align-items: center;
+  padding: 0 8px;
+  border-radius: 5px;
+  color: #0875de;
+  background: #e8f3ff;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.work-order-dialog-body {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 18px 20px 20px;
+  scrollbar-gutter: stable;
+}
+
+.work-order-dialog-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.work-order-dialog-body::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #b5c6d8;
+}
+
+.work-order-dialog .form-heading {
+  display: none;
+}
+
+.work-order-dialog .form-actions {
+  position: sticky;
+  bottom: -20px;
+  z-index: 2;
+  margin: 0 -20px -20px;
+  padding: 14px 20px 16px;
+  border-top: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 -12px 24px rgba(16, 46, 78, 0.08);
 }
 
 .modal-heading {
@@ -3259,6 +3331,26 @@ dd {
 }
 
 @media (max-width: 760px) {
+  .work-order-dialog {
+    width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .work-order-dialog-heading,
+  .work-order-dialog-body {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .work-order-dialog .form-actions {
+    bottom: -20px;
+    margin-right: -16px;
+    margin-left: -16px;
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
   .app-shell {
     display: block;
     padding-bottom: 72px;

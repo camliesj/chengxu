@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { closedRepairModalState, openRepairModal } from './repairModalState.js';
 
 const navItems = ['首页看板', '维修接待', '历史查询', '车辆保险', '客户车辆', '汇总报表', '数据导出', '系统设置'];
 
@@ -1081,7 +1082,9 @@ function App() {
             orders={filteredOrders}
             company={currentCompany}
             createRequest={createRequest}
+            onCreateHandled={() => setCreateRequest(0)}
             focusRequest={receptionFocus}
+            onFocusHandled={() => setReceptionFocus(null)}
             onSaveOrder={saveOrder}
             onStatusChange={updateOrderStatus}
             cloudState={ordersCloudState}
@@ -1774,7 +1777,9 @@ function RepairReception({
   orders,
   company,
   createRequest,
+  onCreateHandled,
   focusRequest,
+  onFocusHandled,
   onSaveOrder,
   onStatusChange,
   cloudState,
@@ -1788,9 +1793,8 @@ function RepairReception({
   onVoidOrder,
 }) {
   const [selectedId, setSelectedId] = useState(() => orders[0]?.id || '');
-  const [formMode, setFormMode] = useState('view');
+  const [workOrderModal, setWorkOrderModal] = useState(closedRepairModalState);
   const [draft, setDraft] = useState(() => createOrderDraft(orders[0]));
-  const [detailOrder, setDetailOrder] = useState(null);
   const [settlementOrder, setSettlementOrder] = useState(null);
   const [voidOrderTarget, setVoidOrderTarget] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null);
@@ -1816,10 +1820,11 @@ function RepairReception({
 
   useEffect(() => {
     if (createRequest > 0) {
-      setFormMode('create');
       setDraft(createOrderDraft());
+      setWorkOrderModal(openRepairModal('create'));
+      onCreateHandled?.();
     }
-  }, [createRequest]);
+  }, [createRequest, onCreateHandled]);
 
   useEffect(() => {
     if (!visibleOrders.some((order) => order.id === selectedId) && visibleOrders[0]) {
@@ -1832,28 +1837,35 @@ function RepairReception({
   useEffect(() => {
     if (!focusRequest) return;
     const focusedOrder = orders.find((order) => order.id === focusRequest.id);
-    if (!focusedOrder) return;
+    if (!focusedOrder) {
+      onFocusHandled?.();
+      return;
+    }
     setActiveStatus('全部');
     setSelectedId(focusedOrder.id);
-    setFormMode(focusRequest.mode);
     setDraft(createOrderDraft(focusedOrder));
-    if (focusRequest.mode === 'view') {
-      setDetailOrder(focusedOrder);
-    }
-  }, [focusRequest, orders]);
+    setWorkOrderModal(openRepairModal(focusRequest.mode === 'edit' ? 'edit' : 'detail', focusedOrder.id));
+    onFocusHandled?.();
+  }, [focusRequest, orders, onFocusHandled]);
+
+  const modalOrder = workOrderModal.orderId
+    ? orders.find((order) => order.id === workOrderModal.orderId) || null
+    : null;
+
+  function closeWorkOrderModal() {
+    setWorkOrderModal(closedRepairModalState());
+  }
 
   function openView(order) {
     setSelectedId(order.id);
-    setFormMode('view');
     setDraft(createOrderDraft(order));
-    setDetailOrder(order);
+    setWorkOrderModal(openRepairModal('detail', order.id));
   }
 
   function openEdit(order) {
     setSelectedId(order.id);
-    setFormMode('edit');
     setDraft(createOrderDraft(order));
-    setDetailOrder(null);
+    setWorkOrderModal(openRepairModal('edit', order.id));
   }
 
   function saveDraft(event) {
@@ -1861,8 +1873,8 @@ function RepairReception({
     const nextOrder = draftToOrder(draft);
     onSaveOrder(nextOrder);
     setSelectedId(nextOrder.id);
-    setFormMode('view');
     setDraft(createOrderDraft(nextOrder));
+    closeWorkOrderModal();
   }
 
   function applyStatusChange(order, status) {
@@ -1875,7 +1887,6 @@ function RepairReception({
     const nextOrder = { ...order, status };
     onStatusChange(order.id, status);
     setDraft(createOrderDraft(nextOrder));
-    if (detailOrder?.id === order.id) setDetailOrder(nextOrder);
   }
 
   function requestStatusChange(order, status) {
@@ -1918,7 +1929,7 @@ function RepairReception({
     onSaveOrder(nextOrder);
     setSelectedId(nextOrder.id);
     setDraft(createOrderDraft(nextOrder));
-    setDetailOrder(nextOrder);
+    setWorkOrderModal(openRepairModal('detail', nextOrder.id));
   }
 
   function requestReverseSettlement(order) {
@@ -1933,7 +1944,8 @@ function RepairReception({
   }
 
   function printOrder(order) {
-    setDetailOrder(order);
+    setSelectedId(order.id);
+    setWorkOrderModal(openRepairModal('detail', order.id));
     window.setTimeout(() => window.print(), 180);
   }
 
@@ -1943,21 +1955,20 @@ function RepairReception({
     onSaveOrder(nextOrder);
     setSelectedId(nextOrder.id);
     setDraft(createOrderDraft(nextOrder));
-    setDetailOrder(nextOrder);
+    setWorkOrderModal(openRepairModal('detail', nextOrder.id));
     setSettlementOrder(null);
   }
 
   return (
     <>
-      <section className="split-view">
+      <section className="repair-reception-panel">
         <div className="table-panel">
           <div className="table-titlebar">
             <h2>维修接待工单</h2>
             <div>
               <button onClick={() => {
-                setFormMode('create');
-                setDetailOrder(null);
                 setDraft(createOrderDraft());
+                setWorkOrderModal(openRepairModal('create'));
               }}
               >
                 新增工单
@@ -1990,9 +2001,7 @@ function RepairReception({
             selectedId={selected?.id}
             onSelect={(order) => {
               setSelectedId(order.id);
-              setFormMode('view');
               setDraft(createOrderDraft(order));
-              setDetailOrder(null);
             }}
             onView={openView}
             onEdit={openEdit}
@@ -2002,7 +2011,7 @@ function RepairReception({
           />
         </div>
         <aside className="detail-panel">
-          {formMode === 'view' && selected ? (
+          {workOrderModal.kind === 'detail' && selected ? (
             <>
               <div className="detail-heading">
                 <span className={`status-chip ${statusClass(selected.status)}`}>{selected.status}</span>
@@ -2042,14 +2051,14 @@ function RepairReception({
           ) : (
             <OrderForm
               draft={draft}
-              mode={formMode}
+              mode={workOrderModal.kind === 'create' ? 'create' : 'edit'}
               canSettleOrder={canSettleOrder}
               insurerOptions={insurerOptions}
               staffOptions={staffOptions}
               onChange={setDraft}
               onCancel={() => {
-                setFormMode('view');
                 setDraft(createOrderDraft(selected));
+                closeWorkOrderModal();
               }}
               onSubmit={saveDraft}
             />
@@ -2057,15 +2066,31 @@ function RepairReception({
         </aside>
       </section>
 
-      {detailOrder ? (
+      {['create', 'edit'].includes(workOrderModal.kind) ? (
+        <WorkOrderFormDialog
+          draft={draft}
+          mode={workOrderModal.kind}
+          canSettleOrder={canSettleOrder}
+          insurerOptions={insurerOptions}
+          staffOptions={staffOptions}
+          onChange={setDraft}
+          onClose={() => {
+            setDraft(createOrderDraft(selected));
+            closeWorkOrderModal();
+          }}
+          onSubmit={saveDraft}
+        />
+      ) : null}
+
+      {workOrderModal.kind === 'detail' && modalOrder ? (
         <OrderDetailDialog
-          order={detailOrder}
+          order={modalOrder}
           company={company}
-          onClose={() => setDetailOrder(null)}
-          onEdit={() => openEdit(detailOrder)}
-          onPrint={() => printOrder(detailOrder)}
-          onSettle={canSettleOrder ? () => requestSettlement(detailOrder) : null}
-          onReverseSettle={canSettleOrder ? () => requestReverseSettlement(detailOrder) : null}
+          onClose={closeWorkOrderModal}
+          onEdit={() => openEdit(modalOrder)}
+          onPrint={() => printOrder(modalOrder)}
+          onSettle={canSettleOrder ? () => requestSettlement(modalOrder) : null}
+          onReverseSettle={canSettleOrder ? () => requestReverseSettlement(modalOrder) : null}
           onUploadReceipt={(file, order) => onUploadReceipt(file, order.id).then((receipt) => {
             const nextOrder = {
               ...order,
@@ -2076,16 +2101,16 @@ function RepairReception({
               settlementReceiptUploadedAt: receipt.uploadedAt,
             };
             onSaveOrder(nextOrder);
-            setDetailOrder(nextOrder);
+            setWorkOrderModal(openRepairModal('detail', nextOrder.id));
             setDraft(createOrderDraft(nextOrder));
             return nextOrder;
           })}
           onViewReceipt={onViewReceipt}
           onDeleteReceipt={(order) => onDeleteReceipt(order).then((nextOrder) => {
-            setDetailOrder(nextOrder);
+            setWorkOrderModal(openRepairModal('detail', nextOrder.id));
             setDraft(createOrderDraft(nextOrder));
           })}
-          onVoid={canVoidOrder ? () => setVoidOrderTarget(detailOrder) : null}
+          onVoid={canVoidOrder ? () => setVoidOrderTarget(modalOrder) : null}
         />
       ) : null}
       {confirmAction ? (
@@ -2112,7 +2137,7 @@ function RepairReception({
           onClose={() => setVoidOrderTarget(null)}
           onSubmit={(reason) => {
             onVoidOrder(voidOrderTarget.id, reason);
-            setDetailOrder(null);
+            closeWorkOrderModal();
             setVoidOrderTarget(null);
           }}
         />
@@ -2625,6 +2650,44 @@ function OrderForm({ draft, mode, canSettleOrder, insurerOptions, staffOptions, 
         <button type="submit">保存工单</button>
       </div>
     </form>
+  );
+}
+
+function WorkOrderFormDialog({ draft, mode, canSettleOrder, insurerOptions, staffOptions, onChange, onClose, onSubmit }) {
+  useEffect(() => {
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') onClose();
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  return (
+    <div className="modal-backdrop" role="presentation" onClick={onClose}>
+      <section className="work-order-dialog" role="dialog" aria-modal="true" aria-labelledby="work-order-dialog-title" onClick={(event) => event.stopPropagation()}>
+        <header className="modal-heading work-order-dialog-heading">
+          <div>
+            <span className="dialog-kicker">{mode === 'create' ? '新增接待' : '编辑接待'}</span>
+            <h2 id="work-order-dialog-title">{mode === 'create' ? '新增维修工单' : '编辑维修工单'}</h2>
+            <p>{mode === 'create' ? '填写客户、车辆、保险及维修费用信息' : draft.id}</p>
+          </div>
+          <button type="button" aria-label="关闭工单表单" onClick={onClose}>×</button>
+        </header>
+        <div className="work-order-dialog-body">
+          <OrderForm
+            draft={draft}
+            mode={mode}
+            canSettleOrder={canSettleOrder}
+            insurerOptions={insurerOptions}
+            staffOptions={staffOptions}
+            onChange={onChange}
+            onCancel={onClose}
+            onSubmit={onSubmit}
+          />
+        </div>
+      </section>
+    </div>
   );
 }
 
