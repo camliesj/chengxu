@@ -126,10 +126,10 @@ export async function requireSession(request, env, options = {}) {
   return { session };
 }
 
-export async function writeOperationLog(env, session, action, targetType, targetId = '', detail = '') {
+export async function writeOperationLog(env, session, action, targetType, targetId = '', detail = '', options = {}) {
   await env.DB.prepare(`
-    INSERT INTO operation_logs (action, target_type, target_id, role, label, detail)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT OR IGNORE INTO operation_logs (action, target_type, target_id, role, label, detail, event_id, summary, changes)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     action,
     targetType,
@@ -137,5 +137,8 @@ export async function writeOperationLog(env, session, action, targetType, target
     session?.role || '',
     session?.label || '',
     detail,
+    String(options.eventId || ''),
+    String(options.summary || ''),
+    JSON.stringify(options.changes || []),
   ).run();
 }

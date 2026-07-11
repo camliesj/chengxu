@@ -5,7 +5,7 @@ export async function onRequestGet({ request, env }) {
   if (error) return error;
 
   const result = await env.DB.prepare(`
-    SELECT id, action, target_type, target_id, role, label, detail, created_at
+    SELECT id, action, target_type, target_id, role, label, detail, event_id, summary, changes, created_at
     FROM operation_logs
     ORDER BY id DESC
     LIMIT 100

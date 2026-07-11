@@ -1,5 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { closedRepairModalState, openRepairModal } from './repairModalState.js';
+import {
+  filterHistoryOrders as filterArchivedOrders,
+  isHistoryOrder,
+  isReceptionOrder,
+  paginateRows,
+} from './repairHistoryLogic.js';
+import { auditActionLabel, formatAuditTime, groupAuditLogs, parseAuditChanges } from './auditLogLogic.js';
 
 const navItems = ['首页看板', '维修接待', '历史查询', '车辆保险', '客户车辆', '汇总报表', '数据导出', '系统设置'];
 
@@ -140,16 +147,18 @@ async function fetchCloudOrders(session) {
   return Array.isArray(data.orders) ? data.orders : [];
 }
 
-async function saveCloudOrder(order, session) {
+async function saveCloudOrder(order, session, options = {}) {
   const response = await fetch('/api/orders', {
     method: 'POST',
     headers: { 'content-type': 'application/json', ...authHeaders(session) },
-    body: JSON.stringify({ order }),
+    body: JSON.stringify({ order, mode: options.mode || '', eventId: options.eventId || '' }),
   });
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
     const messageMap = {
       SETTLEMENT_ADMIN_REQUIRED: '当前账号无结算或返结算权限，请联系管理员操作',
+      ARCHIVE_EDIT_ADMIN_REQUIRED: '只有管理员可以修改已结算工单档案',
+      ARCHIVE_EDIT_SETTLED_ONLY: '仅已结算工单可以在历史档案中编辑',
     };
     throw new Error(messageMap[data.error] || data.error || `云端保存失败：${response.status}`);
   }
@@ -321,10 +330,12 @@ async function deleteDictionaryEntry(id, session) {
   return response.json();
 }
 
-async function uploadSettlementReceipt(file, orderId, session) {
+async function uploadSettlementReceipt(file, orderId, session, options = {}) {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('orderId', orderId);
+  formData.append('eventId', options.eventId || '');
+  formData.append('logMode', options.logMode || '');
   const response = await fetch('/api/receipts', {
     method: 'POST',
     headers: authHeaders(session),
@@ -357,11 +368,11 @@ async function fetchSettlementReceiptBlob(key, session) {
   return response.blob();
 }
 
-async function deleteSettlementReceipt(key, orderId, session) {
+async function deleteSettlementReceipt(key, orderId, session, options = {}) {
   const response = await fetch('/api/receipts', {
     method: 'DELETE',
     headers: { 'content-type': 'application/json', ...authHeaders(session) },
-    body: JSON.stringify({ key, orderId }),
+    body: JSON.stringify({ key, orderId, eventId: options.eventId || '' }),
   });
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
@@ -592,6 +603,7 @@ function App() {
   const [dictionaries, setDictionaries] = useState([]);
   const [createRequest, setCreateRequest] = useState(0);
   const [receptionFocus, setReceptionFocus] = useState(null);
+  const [historyFocus, setHistoryFocus] = useState(null);
   const [insuranceFocusRequest, setInsuranceFocusRequest] = useState(null);
   const [noticeOpen, setNoticeOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -704,6 +716,8 @@ function App() {
       return inDateRange && inKeyword;
     });
   }, [companyOrders, query, dateRange]);
+  const receptionOrders = useMemo(() => filteredOrders.filter(isReceptionOrder), [filteredOrders]);
+  const historyOrders = useMemo(() => companyOrders.filter(isHistoryOrder), [companyOrders]);
 
   function refreshOrders() {
     if (!accessSession?.token) return;
@@ -718,8 +732,9 @@ function App() {
       .catch((error) => setOrdersCloudState({ loading: false, error: error.message || '云端刷新失败' }));
   }
 
-  function upsertOrder(nextOrder) {
+  function upsertOrder(nextOrder, options = {}) {
     const scopedOrder = { ...nextOrder, companyId: currentCompany.id };
+    const requestOptions = { ...options, eventId: options.eventId || crypto.randomUUID() };
     setOrders((currentOrders) => {
       const exists = currentOrders.some((order) => order.id === scopedOrder.id);
       if (exists) {
@@ -727,7 +742,7 @@ function App() {
       }
       return [scopedOrder, ...currentOrders];
     });
-    saveCloudOrder(scopedOrder, accessSession)
+    saveCloudOrder(scopedOrder, accessSession, requestOptions)
       .then(() => {
         setOrdersCloudState({ loading: false, error: '' });
         setLastRefreshAt(currentTimeLabel());
@@ -737,7 +752,8 @@ function App() {
 
   function clearOrderReceipt(order) {
     if (!order?.settlementReceiptKey) return Promise.resolve(order);
-    return deleteSettlementReceipt(order.settlementReceiptKey, order.id, accessSession)
+    const eventId = crypto.randomUUID();
+    return deleteSettlementReceipt(order.settlementReceiptKey, order.id, accessSession, { eventId })
       .then(() => {
         const nextOrder = {
           ...order,
@@ -747,13 +763,13 @@ function App() {
           settlementReceiptSize: 0,
           settlementReceiptUploadedAt: '',
         };
-        upsertOrder(nextOrder);
+        upsertOrder(nextOrder, { eventId });
         return nextOrder;
       });
   }
 
-  function saveOrder(nextOrder) {
-    upsertOrder(nextOrder);
+  function saveOrder(nextOrder, options = {}) {
+    upsertOrder(nextOrder, options);
     syncCustomerVehicleFromOrder(nextOrder);
     syncInsurancePolicyFromOrder(nextOrder);
   }
@@ -831,6 +847,15 @@ function App() {
     setQuery('');
     setReceptionFocus({ id: order.id, mode, requestId: Date.now() });
     setActivePage('维修接待');
+  }
+
+  function openOrderByStatus(order) {
+    if (isHistoryOrder(order)) {
+      setHistoryFocus({ id: order.id, requestId: Date.now() });
+      setActivePage('历史查询');
+      return;
+    }
+    openOrderInReception(order, 'view');
   }
 
   function openInsurancePolicy(policy) {
@@ -1071,7 +1096,7 @@ function App() {
             cloudState={ordersCloudState}
             onRefreshOrders={refreshOrders}
             onViewInsurance={openInsurancePolicy}
-            onViewOrder={(order) => openOrderInReception(order, 'view')}
+            onViewOrder={openOrderByStatus}
             onOpenRepairList={openRepairDashboardList}
             onOpenInsurance={() => setActivePage('车辆保险')}
             onSetDateRange={setDateRange}
@@ -1079,7 +1104,7 @@ function App() {
         )}
         {activePage === '维修接待' && (
           <RepairReception
-            orders={filteredOrders}
+            orders={receptionOrders}
             company={currentCompany}
             createRequest={createRequest}
             onCreateHandled={() => setCreateRequest(0)}
@@ -1093,7 +1118,7 @@ function App() {
             canVoidOrder={canVoidOrder}
             insurerOptions={insurerChoices}
             staffOptions={staffChoices}
-            onUploadReceipt={(file, orderId) => uploadSettlementReceipt(file, orderId, accessSession)}
+            onUploadReceipt={(file, orderId, options) => uploadSettlementReceipt(file, orderId, accessSession, options)}
             onViewReceipt={(key) => fetchSettlementReceiptBlob(key, accessSession)}
             onDeleteReceipt={clearOrderReceipt}
             onVoidOrder={voidOrder}
@@ -1101,10 +1126,20 @@ function App() {
         )}
         {activePage === '历史查询' && (
           <HistoryQueryPage
-            orders={companyOrders}
+            orders={historyOrders}
+            company={currentCompany}
             insurerOptions={insurerChoices}
-            onView={(order) => openOrderInReception(order, 'view')}
-            onEdit={(order) => openOrderInReception(order, 'edit')}
+            staffOptions={staffChoices}
+            isAdmin={isAdmin}
+            cloudState={ordersCloudState}
+            focusRequest={historyFocus}
+            onFocusHandled={() => setHistoryFocus(null)}
+            onRefresh={refreshOrders}
+            onSaveArchivedOrder={saveOrder}
+            onReverseSettlement={saveOrder}
+            onUploadReceipt={(file, orderId, options) => uploadSettlementReceipt(file, orderId, accessSession, options)}
+            onViewReceipt={(key) => fetchSettlementReceiptBlob(key, accessSession)}
+            onDeleteReceipt={clearOrderReceipt}
           />
         )}
         {activePage === '车辆保险' && (
@@ -1546,9 +1581,9 @@ const historyInitialFilters = {
   plate: '',
   customer: '',
   phone: '',
-  status: '',
   insurer: '',
   type: '',
+  staff: '',
 };
 
 const statusOptions = ['在修中', '已完工', '待结算', '已结算'];
@@ -1669,7 +1704,7 @@ function filterHistoryOrders(orders, filters) {
   });
 }
 
-function HistoryQueryPage({ orders, insurerOptions, onView, onEdit }) {
+function LegacyHistoryQueryPage({ orders, insurerOptions, onView, onEdit }) {
   const [draftFilters, setDraftFilters] = useState(historyInitialFilters);
   const [appliedFilters, setAppliedFilters] = useState(historyInitialFilters);
 
@@ -1773,6 +1808,276 @@ function HistoryQueryPage({ orders, insurerOptions, onView, onEdit }) {
   );
 }
 
+function HistoryOrderTable({ orders, isAdmin, onView, onEdit, onPrint, onReverse }) {
+  function runAction(event, action) {
+    event.stopPropagation();
+    action();
+  }
+
+  return (
+    <div className="history-table-wrap">
+      <table className="history-order-table">
+        <thead>
+          <tr>
+            <th>工单号</th>
+            <th>结算时间</th>
+            <th>车辆</th>
+            <th>客户</th>
+            <th>维修内容</th>
+            <th>金额</th>
+            <th>业务员</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          {orders.length === 0 ? (
+            <tr><td colSpan="8" className="empty-table-cell">暂无符合条件的已结算工单</td></tr>
+          ) : orders.map((order) => (
+            <tr key={order.id} className="clickable-row" onClick={() => onView(order)}>
+              <td data-label="工单号"><strong>{order.id}</strong></td>
+              <td data-label="结算时间"><strong>{order.settlementDate || '未记录'}</strong><span>{order.settlementTime || ''}</span></td>
+              <td data-label="车辆"><strong className="history-plate">{order.plate}</strong><span>{order.car}</span></td>
+              <td data-label="客户"><strong>{order.customer}</strong><span>{order.phone}</span></td>
+              <td data-label="维修内容"><span className="history-record-clamp">{order.record || '未填写'}</span></td>
+              <td data-label="金额"><strong>{formatMoney(order.amount)}</strong></td>
+              <td data-label="业务员">{order.staff || '未填写'}</td>
+              <td data-label="操作">
+                <div className="history-row-actions">
+                  <button type="button" onClick={(event) => runAction(event, () => onView(order))}>查看</button>
+                  <button type="button" onClick={(event) => runAction(event, () => onPrint(order))}>打印</button>
+                  {isAdmin ? <button type="button" onClick={(event) => runAction(event, () => onEdit(order))}>编辑</button> : null}
+                  {isAdmin ? <button type="button" className="danger-link" onClick={(event) => runAction(event, () => onReverse(order))}>返结算</button> : null}
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function HistoryQueryPage({
+  orders,
+  company,
+  insurerOptions,
+  staffOptions,
+  isAdmin,
+  cloudState,
+  focusRequest,
+  onFocusHandled,
+  onRefresh,
+  onSaveArchivedOrder,
+  onReverseSettlement,
+  onUploadReceipt,
+  onViewReceipt,
+  onDeleteReceipt,
+}) {
+  const [draftFilters, setDraftFilters] = useState(historyInitialFilters);
+  const [appliedFilters, setAppliedFilters] = useState(historyInitialFilters);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [detailOrderId, setDetailOrderId] = useState('');
+  const [editOrderId, setEditOrderId] = useState('');
+  const [draft, setDraft] = useState(() => createOrderDraft());
+  const [confirmAction, setConfirmAction] = useState(null);
+
+  const results = useMemo(() => filterArchivedOrders(orders, appliedFilters), [orders, appliedFilters]);
+  const paginated = useMemo(() => paginateRows(results, page, pageSize), [results, page, pageSize]);
+  const detailOrder = orders.find((order) => order.id === detailOrderId) || null;
+  const editOrder = orders.find((order) => order.id === editOrderId) || null;
+  const totalAmount = results.reduce((sum, order) => sum + order.amount, 0);
+  const laborAmount = results.reduce((sum, order) => sum + order.labor, 0);
+  const materialAmount = results.reduce((sum, order) => sum + order.material, 0);
+
+  useEffect(() => {
+    if (!focusRequest) return;
+    const focusedOrder = orders.find((order) => order.id === focusRequest.id);
+    if (focusedOrder) openView(focusedOrder);
+    onFocusHandled?.();
+  }, [focusRequest, orders, onFocusHandled]);
+
+  function updateFilter(field, value) {
+    setDraftFilters((current) => ({ ...current, [field]: value }));
+  }
+
+  function applyFilters(event) {
+    event.preventDefault();
+    setAppliedFilters({ ...draftFilters });
+    setPage(1);
+  }
+
+  function resetFilters() {
+    setDraftFilters({ ...historyInitialFilters });
+    setAppliedFilters({ ...historyInitialFilters });
+    setPage(1);
+  }
+
+  function openView(order) {
+    setEditOrderId('');
+    setDetailOrderId(order.id);
+  }
+
+  function openEdit(order) {
+    if (!isAdmin) return;
+    setDetailOrderId('');
+    setEditOrderId(order.id);
+    setDraft(createOrderDraft(order));
+  }
+
+  function saveArchiveEdit(event) {
+    event.preventDefault();
+    if (!isAdmin || !editOrder) return;
+    const edited = draftToOrder(draft);
+    onSaveArchivedOrder({
+      ...edited,
+      status: editOrder.status,
+      paymentMethod: editOrder.paymentMethod,
+      settlementDate: editOrder.settlementDate,
+      settlementTime: editOrder.settlementTime,
+      settlementRemark: editOrder.settlementRemark,
+      settlementReceiptKey: editOrder.settlementReceiptKey,
+      settlementReceiptName: editOrder.settlementReceiptName,
+      settlementReceiptType: editOrder.settlementReceiptType,
+      settlementReceiptSize: editOrder.settlementReceiptSize,
+      settlementReceiptUploadedAt: editOrder.settlementReceiptUploadedAt,
+    }, { mode: 'archive_edit', eventId: crypto.randomUUID() });
+    setEditOrderId('');
+  }
+
+  function requestReverse(order) {
+    if (!isAdmin) return;
+    setConfirmAction({
+      title: '确认返结算',
+      description: `工单 ${order.id}（${order.plate}）将恢复为待结算，并重新出现在维修接待页面。`,
+      confirmText: '确认返结算',
+      danger: true,
+      onConfirm: () => {
+        onReverseSettlement({
+          ...order,
+          status: REPAIR_STATUS.pendingSettlement,
+          paymentMethod: '待确认',
+          settlementDate: '',
+          settlementTime: '',
+          settlementRemark: '',
+        }, { eventId: crypto.randomUUID() });
+        setDetailOrderId('');
+      },
+    });
+  }
+
+  function printOrder(order) {
+    setDetailOrderId(order.id);
+    window.setTimeout(() => window.print(), 180);
+  }
+
+  return (
+    <section className="history-layout history-archive-layout">
+      <form className="history-filter-panel" onSubmit={applyFilters}>
+        <div className="table-titlebar history-titlebar">
+          <div><h2>已结算工单档案</h2><p>查询、查看和维护已经完成结算的维修记录</p></div>
+          <div>
+            <button type="button" onClick={resetFilters}>重置</button>
+            <button type="submit" className="filter-primary">查询</button>
+          </div>
+        </div>
+        <div className="history-filter-grid">
+          <label>结算开始<input type="date" value={draftFilters.startDate} onChange={(event) => updateFilter('startDate', event.target.value)} /></label>
+          <label>结算结束<input type="date" value={draftFilters.endDate} onChange={(event) => updateFilter('endDate', event.target.value)} /></label>
+          <label>车牌号<input value={draftFilters.plate} onChange={(event) => updateFilter('plate', event.target.value)} placeholder="请输入车牌号" /></label>
+          <label>客户名称<input value={draftFilters.customer} onChange={(event) => updateFilter('customer', event.target.value)} placeholder="请输入客户名称" /></label>
+          <label>手机号<input value={draftFilters.phone} onChange={(event) => updateFilter('phone', event.target.value)} placeholder="请输入手机号" /></label>
+          <label>保险公司<select value={draftFilters.insurer} onChange={(event) => updateFilter('insurer', event.target.value)}><option value="">全部保险公司</option>{insurerOptions.map((insurer) => <option key={insurer}>{insurer}</option>)}</select></label>
+          <label>车辆类型<select value={draftFilters.type} onChange={(event) => updateFilter('type', event.target.value)}><option value="">全部车辆类型</option>{vehicleTypeOptions.map((type) => <option key={type}>{type}</option>)}</select></label>
+          <label>业务员<select value={draftFilters.staff} onChange={(event) => updateFilter('staff', event.target.value)}><option value="">全部业务员</option>{staffOptions.map((staff) => <option key={staff}>{staff}</option>)}</select></label>
+        </div>
+      </form>
+
+      <div className="history-summary">
+        <Metric icon="order" title="归档工单" value={`${results.length} 单`} trend="当前查询结果" tone="blue" />
+        <Metric icon="yuan" title="结算金额" value={formatMoney(totalAmount)} trend="当前结果合计" tone="green" />
+        <Metric icon="order" title="工时费" value={formatMoney(laborAmount)} trend="维修工时收入" tone="blue" />
+        <Metric icon="shield" title="材料费" value={formatMoney(materialAmount)} trend="领料费用合计" tone="orange" />
+      </div>
+
+      <section className="table-panel history-results-panel">
+        <div className="table-titlebar">
+          <div><h2>历史档案</h2><p>共 {results.length} 条已结算记录</p></div>
+          <button type="button" onClick={onRefresh} disabled={cloudState?.loading}>{cloudState?.loading ? '刷新中...' : '刷新云端数据'}</button>
+        </div>
+        {cloudState?.error ? <div className="cloud-banner error">{cloudState.error}</div> : null}
+        <HistoryOrderTable
+          orders={paginated.rows}
+          isAdmin={isAdmin}
+          onView={openView}
+          onEdit={openEdit}
+          onPrint={printOrder}
+          onReverse={requestReverse}
+        />
+        <footer className="table-footer history-table-footer">
+          <span>第 {paginated.page} / {paginated.pageCount} 页</span>
+          <select value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(1); }} aria-label="每页条数">
+            <option value="10">10条/页</option><option value="20">20条/页</option><option value="50">50条/页</option>
+          </select>
+          <div className="pagination">
+            <button type="button" disabled={paginated.page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>‹</button>
+            <button type="button" className="active">{paginated.page}</button>
+            <button type="button" disabled={paginated.page >= paginated.pageCount} onClick={() => setPage((current) => Math.min(paginated.pageCount, current + 1))}>›</button>
+          </div>
+        </footer>
+      </section>
+
+      {detailOrder ? (
+        <OrderDetailDialog
+          order={detailOrder}
+          company={company}
+          onClose={() => setDetailOrderId('')}
+          onEdit={isAdmin ? () => openEdit(detailOrder) : null}
+          onPrint={() => printOrder(detailOrder)}
+          onReverseSettle={isAdmin ? () => requestReverse(detailOrder) : null}
+          onUploadReceipt={isAdmin ? (file, order) => onUploadReceipt(file, order.id).then((receipt) => {
+            const nextOrder = {
+              ...order,
+              settlementReceiptKey: receipt.key,
+              settlementReceiptName: receipt.name,
+              settlementReceiptType: receipt.type,
+              settlementReceiptSize: receipt.size,
+              settlementReceiptUploadedAt: receipt.uploadedAt,
+            };
+            onSaveArchivedOrder(nextOrder, { mode: 'archive_edit', eventId: crypto.randomUUID() });
+            return nextOrder;
+          }) : null}
+          onViewReceipt={onViewReceipt}
+          onDeleteReceipt={isAdmin ? onDeleteReceipt : null}
+          canManageReceipt={isAdmin}
+        />
+      ) : null}
+
+      {editOrderId ? (
+        <WorkOrderFormDialog
+          draft={draft}
+          mode="edit"
+          archiveMode
+          canSettleOrder={false}
+          insurerOptions={insurerOptions}
+          staffOptions={staffOptions}
+          onChange={setDraft}
+          onClose={() => setEditOrderId('')}
+          onSubmit={saveArchiveEdit}
+        />
+      ) : null}
+
+      {confirmAction ? (
+        <ConfirmActionDialog
+          action={confirmAction}
+          onClose={() => setConfirmAction(null)}
+          onConfirm={() => { confirmAction.onConfirm(); setConfirmAction(null); }}
+        />
+      ) : null}
+    </section>
+  );
+}
+
 function RepairReception({
   orders,
   company,
@@ -1806,7 +2111,7 @@ function RepairReception({
   );
 
   const statusFilters = useMemo(
-    () => ['全部', ...statusOptions].map((status) => ({
+    () => ['全部', ...statusOptions.filter((status) => status !== REPAIR_STATUS.settled)].map((status) => ({
       status,
       count: status === '全部' ? orders.length : orders.filter((order) => order.status === status).length,
     })),
@@ -1952,7 +2257,7 @@ function RepairReception({
   function completeSettlement(settlementDraft) {
     if (!settlementOrder) return;
     const nextOrder = settleOrder(settlementOrder, settlementDraft);
-    onSaveOrder(nextOrder);
+    onSaveOrder(nextOrder, { eventId: settlementDraft.auditEventId || crypto.randomUUID() });
     setSelectedId(nextOrder.id);
     setDraft(createOrderDraft(nextOrder));
     setWorkOrderModal(openRepairModal('detail', nextOrder.id));
@@ -2175,7 +2480,7 @@ function ConfirmActionDialog({ action, onClose, onConfirm }) {
   );
 }
 
-function OrderDetailDialog({ order, company, onClose, onEdit, onPrint, onSettle, onReverseSettle, onUploadReceipt, onViewReceipt, onDeleteReceipt, onVoid }) {
+function OrderDetailDialog({ order, company, onClose, onEdit, onPrint, onSettle, onReverseSettle, onUploadReceipt, onViewReceipt, onDeleteReceipt, onVoid, canManageReceipt = true }) {
   const [receiptState, setReceiptState] = useState({ loading: false, error: '', previewUrl: '' });
   const [receiptFile, setReceiptFile] = useState(null);
   const printTime = new Date().toLocaleString('zh-CN', { hour12: false });
@@ -2269,12 +2574,12 @@ function OrderDetailDialog({ order, company, onClose, onEdit, onPrint, onSettle,
               </div>
               <div>
                 <button type="button" onClick={viewReceipt} disabled={receiptState.loading}>{receiptState.loading ? '处理中...' : '查看回执'}</button>
-                <button type="button" className="danger" onClick={deleteReceipt} disabled={receiptState.loading}>删除回执</button>
+                {canManageReceipt && onDeleteReceipt ? <button type="button" className="danger" onClick={deleteReceipt} disabled={receiptState.loading}>删除回执</button> : null}
               </div>
               {receiptState.error ? <p className="form-error">{receiptState.error}</p> : null}
               {receiptState.previewUrl ? <img src={receiptState.previewUrl} alt="到账回执截图" /> : null}
             </section>
-          ) : (
+          ) : canManageReceipt && onUploadReceipt ? (
             <section className="receipt-panel">
               <div>
                 <strong>补传到账回执</strong>
@@ -2297,14 +2602,14 @@ function OrderDetailDialog({ order, company, onClose, onEdit, onPrint, onSettle,
               </div>
               {receiptState.error ? <p className="form-error">{receiptState.error}</p> : null}
             </section>
-          )}
+          ) : <section className="receipt-panel"><div><strong>到账回执</strong><span>该历史工单未上传到账回执。</span></div></section>}
 
           <footer className="modal-actions">
             <button type="button" onClick={onPrint}>打印工单</button>
             {onSettle && order.status !== REPAIR_STATUS.settled ? <button type="button" onClick={onSettle}>结算工单</button> : null}
             {onReverseSettle && order.status === REPAIR_STATUS.settled ? <button type="button" onClick={onReverseSettle}>返结算</button> : null}
             {onVoid ? <button type="button" onClick={onVoid}>作废工单</button> : null}
-            <button type="button" onClick={onEdit}>编辑工单</button>
+            {onEdit ? <button type="button" onClick={onEdit}>编辑工单</button> : null}
           </footer>
         </div>
 
@@ -2417,6 +2722,7 @@ function VoidOrderDialog({ order, onClose, onSubmit }) {
 
 function SettlementDialog({ order, onClose, onUploadReceipt, onSubmit }) {
   const [draft, setDraft] = useState(() => createSettlementDraft(order));
+  const [auditEventId] = useState(() => crypto.randomUUID());
   const [receiptFile, setReceiptFile] = useState(null);
   const [uploadState, setUploadState] = useState({ loading: false, error: '' });
   const hasExistingReceipt = Boolean(draft.settlementReceiptKey);
@@ -2429,7 +2735,7 @@ function SettlementDialog({ order, onClose, onUploadReceipt, onSubmit }) {
     event.preventDefault();
     setUploadState({ loading: true, error: '' });
     const uploadPromise = receiptFile
-      ? onUploadReceipt(receiptFile, order.id)
+      ? onUploadReceipt(receiptFile, order.id, { eventId: auditEventId, logMode: 'defer' })
       : hasExistingReceipt
         ? Promise.resolve({
           key: draft.settlementReceiptKey,
@@ -2444,6 +2750,7 @@ function SettlementDialog({ order, onClose, onUploadReceipt, onSubmit }) {
       .then((receipt) => {
         onSubmit({
           ...draft,
+          auditEventId,
           settlementReceiptKey: receipt.key,
           settlementReceiptName: receipt.name,
           settlementReceiptType: receipt.type,
@@ -2518,7 +2825,7 @@ function SettlementDialog({ order, onClose, onUploadReceipt, onSubmit }) {
   );
 }
 
-function OrderForm({ draft, mode, canSettleOrder, insurerOptions, staffOptions, onChange, onCancel, onSubmit }) {
+function OrderForm({ draft, mode, archiveMode = false, canSettleOrder, insurerOptions, staffOptions, onChange, onCancel, onSubmit }) {
   const labor = normalizeMoney(draft.labor);
   const material = normalizeMoney(draft.material);
   const visibleInsurerOptions = Array.from(new Set([draft.insurer, ...insurerOptions].filter(Boolean)));
@@ -2588,7 +2895,7 @@ function OrderForm({ draft, mode, canSettleOrder, insurerOptions, staffOptions, 
         </label>
         <label>
           付款方式
-          <select value={draft.paymentMethod} onChange={(event) => updateField('paymentMethod', event.target.value)}>
+          <select value={draft.paymentMethod} disabled={archiveMode} onChange={(event) => updateField('paymentMethod', event.target.value)}>
             <option>待确认</option>
             <option>现金</option>
             <option>微信</option>
@@ -2615,7 +2922,7 @@ function OrderForm({ draft, mode, canSettleOrder, insurerOptions, staffOptions, 
         </label>
         <label>
           维修状态
-          <select value={draft.status} onChange={(event) => updateField('status', event.target.value)}>
+          <select value={draft.status} disabled={archiveMode} onChange={(event) => updateField('status', event.target.value)}>
             {visibleStatusOptions.map((status) => (
               <option key={status} disabled={!canSettleOrder && !employeeStatusOptions.includes(status)}>{status}</option>
             ))}
@@ -2653,7 +2960,7 @@ function OrderForm({ draft, mode, canSettleOrder, insurerOptions, staffOptions, 
   );
 }
 
-function WorkOrderFormDialog({ draft, mode, canSettleOrder, insurerOptions, staffOptions, onChange, onClose, onSubmit }) {
+function WorkOrderFormDialog({ draft, mode, archiveMode = false, canSettleOrder, insurerOptions, staffOptions, onChange, onClose, onSubmit }) {
   useEffect(() => {
     function handleKeyDown(event) {
       if (event.key === 'Escape') onClose();
@@ -2668,9 +2975,9 @@ function WorkOrderFormDialog({ draft, mode, canSettleOrder, insurerOptions, staf
       <section className="work-order-dialog" role="dialog" aria-modal="true" aria-labelledby="work-order-dialog-title" onClick={(event) => event.stopPropagation()}>
         <header className="modal-heading work-order-dialog-heading">
           <div>
-            <span className="dialog-kicker">{mode === 'create' ? '新增接待' : '编辑接待'}</span>
-            <h2 id="work-order-dialog-title">{mode === 'create' ? '新增维修工单' : '编辑维修工单'}</h2>
-            <p>{mode === 'create' ? '填写客户、车辆、保险及维修费用信息' : draft.id}</p>
+            <span className="dialog-kicker">{archiveMode ? '历史档案' : mode === 'create' ? '新增接待' : '编辑接待'}</span>
+            <h2 id="work-order-dialog-title">{archiveMode ? '修正已结算工单档案' : mode === 'create' ? '新增维修工单' : '编辑维修工单'}</h2>
+            <p>{archiveMode ? `${draft.id} · 状态与结算信息保持不变` : mode === 'create' ? '填写客户、车辆、保险及维修费用信息' : draft.id}</p>
           </div>
           <button type="button" aria-label="关闭工单表单" onClick={onClose}>×</button>
         </header>
@@ -2678,6 +2985,7 @@ function WorkOrderFormDialog({ draft, mode, canSettleOrder, insurerOptions, staf
           <OrderForm
             draft={draft}
             mode={mode}
+            archiveMode={archiveMode}
             canSettleOrder={canSettleOrder}
             insurerOptions={insurerOptions}
             staffOptions={staffOptions}
@@ -3679,6 +3987,8 @@ function createDictionaryDraft(category = 'insurer', entry = null) {
 function SystemSettingsPage({ session, cloudState, orders, dictionaries, canViewLogs, onDictionariesChange, onRefreshOrders }) {
   const [logs, setLogs] = useState([]);
   const [logState, setLogState] = useState({ loading: false, error: '' });
+  const [logFilters, setLogFilters] = useState({ date: '', actor: '', action: '', target: '' });
+  const [expandedLogIds, setExpandedLogIds] = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [accountDraft, setAccountDraft] = useState(createAccountDraft());
   const [accountState, setAccountState] = useState({ loading: false, message: '', error: '' });
@@ -3692,6 +4002,15 @@ function SystemSettingsPage({ session, cloudState, orders, dictionaries, canView
   const canManageSettings = hasUiPermission(session, 'settings');
   const insurerDictionaries = dictionaries.filter((entry) => entry.category === 'insurer');
   const staffDictionaries = dictionaries.filter((entry) => entry.category === 'staff');
+  const groupedLogs = useMemo(() => groupAuditLogs(logs), [logs]);
+  const logActors = useMemo(() => [...new Set(groupedLogs.map((group) => group.actor).filter(Boolean))], [groupedLogs]);
+  const logActions = useMemo(() => [...new Set(groupedLogs.map((group) => group.action).filter(Boolean))], [groupedLogs]);
+  const visibleLogGroups = useMemo(() => groupedLogs.filter((group) => (
+    (!logFilters.date || formatAuditTime(group.createdAt).startsWith(logFilters.date))
+    && (!logFilters.actor || group.actor === logFilters.actor)
+    && (!logFilters.action || group.action === logFilters.action)
+    && (!logFilters.target || group.targetId.toLowerCase().includes(logFilters.target.toLowerCase()))
+  )), [groupedLogs, logFilters]);
 
   function openSettingsModal(section) {
     setActiveSettingsModal(section);
@@ -3716,6 +4035,12 @@ function SystemSettingsPage({ session, cloudState, orders, dictionaries, canView
         setLogState({ loading: false, error: '' });
       })
       .catch((error) => setLogState({ loading: false, error: error.message || '日志读取失败' }));
+  }
+
+  function toggleLogGroup(groupId) {
+    setExpandedLogIds((current) => current.includes(groupId)
+      ? current.filter((id) => id !== groupId)
+      : [...current, groupId]);
   }
 
   function loadAccounts() {
@@ -3970,23 +4295,49 @@ function SystemSettingsPage({ session, cloudState, orders, dictionaries, canView
       ) : null}
 
       {activeSettingsModal === 'logs' ? (
-        <SettingsModal title="操作日志" description="记录账号、工单、字典和系统数据的关键操作。" onClose={closeSettingsModal}>
+        <SettingsModal title="操作日志" description="按一次业务动作归纳记录，时间统一显示为北京时间。" onClose={closeSettingsModal}>
           <div className="settings-management-toolbar">
-            <div><strong>操作记录</strong><span>{logState.loading ? '读取中...' : logs.length + ' 条记录'}</span></div>
+            <div><strong>业务事件</strong><span>{logState.loading ? '读取中...' : `${visibleLogGroups.length} 个事件 · ${logs.length} 个步骤`}</span></div>
             {canViewLogs ? <button type="button" onClick={loadLogs}>刷新日志</button> : null}
           </div>
           {!canViewLogs ? <div className="settings-empty">当前账号未分配操作日志权限。</div> : logState.error ? (
             <div className="cloud-banner error">{logState.error}</div>
           ) : (
-            <div className="table-scroll settings-log-table">
-              <table>
-                <thead><tr><th>时间</th><th>操作</th><th>对象</th><th>角色</th><th>说明</th></tr></thead>
-                <tbody>
-                  {logs.length === 0 ? <tr><td colSpan="5" className="empty-table-cell">暂无操作记录</td></tr> : logs.map((log) => (
-                    <tr key={log.id}><td>{log.created_at}</td><td>{log.action}</td><td>{log.target_id}</td><td>{log.label || log.role}</td><td>{log.detail}</td></tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="audit-log-view">
+              <div className="audit-log-filters">
+                <label>日期<input type="date" value={logFilters.date} onChange={(event) => setLogFilters((current) => ({ ...current, date: event.target.value }))} /></label>
+                <label>操作人<select value={logFilters.actor} onChange={(event) => setLogFilters((current) => ({ ...current, actor: event.target.value }))}><option value="">全部操作人</option>{logActors.map((actor) => <option key={actor}>{actor}</option>)}</select></label>
+                <label>操作类型<select value={logFilters.action} onChange={(event) => setLogFilters((current) => ({ ...current, action: event.target.value }))}><option value="">全部操作</option>{logActions.map((action) => <option key={action} value={action}>{auditActionLabel(action)}</option>)}</select></label>
+                <label>工单号 / 对象<input value={logFilters.target} onChange={(event) => setLogFilters((current) => ({ ...current, target: event.target.value }))} placeholder="请输入工单号或对象" /></label>
+              </div>
+              <div className="audit-event-list">
+                {visibleLogGroups.length === 0 ? <div className="settings-empty">暂无符合条件的操作记录</div> : visibleLogGroups.map((group) => {
+                  const expanded = expandedLogIds.includes(group.id);
+                  const changes = group.changes.length > 0
+                    ? group.changes
+                    : group.steps.flatMap((step) => parseAuditChanges(step.changes));
+                  return (
+                    <article key={group.id} className={expanded ? 'audit-event expanded' : 'audit-event'}>
+                      <button type="button" className="audit-event-summary" onClick={() => toggleLogGroup(group.id)}>
+                        <time>{formatAuditTime(group.createdAt)}</time>
+                        <span className="audit-event-action">{auditActionLabel(group.action)}</span>
+                        <span className="audit-event-target">{group.targetId || '系统'}</span>
+                        <span className="audit-event-actor">{group.actor || group.role || '系统'}</span>
+                        <span className="audit-event-detail">{group.summary || auditActionLabel(group.action)}</span>
+                        <span className="audit-event-count">{group.steps.length > 1 ? `${group.steps.length} 个步骤` : '详情'} {expanded ? '收起' : '展开'}</span>
+                      </button>
+                      {expanded ? (
+                        <div className="audit-event-body">
+                          {changes.length > 0 ? <div className="audit-change-list">{changes.map((change, index) => <div key={`${change.field}-${index}`}><strong>{change.label || change.field}</strong><span>{String(change.before || '空')} → {String(change.after || '空')}</span></div>)}</div> : null}
+                          <div className="audit-step-list">
+                            {group.steps.map((step) => <div key={step.id}><time>{formatAuditTime(step.created_at)}</time><strong>{auditActionLabel(step.action)}</strong><span>{step.detail || step.summary || '无补充说明'}</span></div>)}
+                          </div>
+                        </div>
+                      ) : null}
+                    </article>
+                  );
+                })}
+              </div>
             </div>
           )}
         </SettingsModal>

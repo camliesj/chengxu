@@ -1,4 +1,5 @@
 import { json, requireSession, writeOperationLog } from '../_shared/auth.js';
+import { buildOrderAuditEvent, protectArchiveEdit, settledEditAccessError } from '../_shared/order-audit.js';
 
 const ORDER_COLUMNS = [
   'id',
@@ -165,10 +166,19 @@ export async function onRequestPost({ request, env }) {
   if (error) return error;
 
   const payload = await request.json();
-  const order = normalizeOrder(payload.order || payload, session);
-  const existing = await env.DB.prepare('SELECT id, status FROM repair_orders WHERE id = ? AND company_id = ?')
+  const mode = cleanText(payload.mode);
+  const eventId = cleanText(payload.eventId);
+  let order = normalizeOrder(payload.order || payload, session);
+  const existing = await env.DB.prepare('SELECT * FROM repair_orders WHERE id = ? AND company_id = ?')
     .bind(order.id, session.company_id || 'tongda')
     .first();
+  const settledAccessError = settledEditAccessError(existing, session.role);
+  if (settledAccessError) return json({ error: settledAccessError }, { status: 403 });
+  if (mode === 'archive_edit') {
+    if (session.role !== 'admin') return json({ error: 'ARCHIVE_EDIT_ADMIN_REQUIRED' }, { status: 403 });
+    if (!existing || existing.status !== '已结算') return json({ error: 'ARCHIVE_EDIT_SETTLED_ONLY' }, { status: 400 });
+    order = protectArchiveEdit(order, existing);
+  }
   const validationError = validateOrder(order, existing);
   if (validationError) {
     return json({ error: validationError }, { status: 400 });
@@ -190,14 +200,18 @@ export async function onRequestPost({ request, env }) {
     ON CONFLICT(id) DO UPDATE SET ${updates}, updated_at = CURRENT_TIMESTAMP
   `).bind(...ORDER_COLUMNS.map((column) => order[column])).run();
 
-  const action = !existing
-    ? 'create_order'
-    : order.status === '已结算' && existing.status !== '已结算'
-      ? 'settle_order'
-      : existing.status === '已结算' && order.status !== '已结算'
-        ? 'reverse_settlement'
-        : 'update_order';
-  await writeOperationLog(env, session, action, 'repair_order', order.id, `${order.plate} ${order.customer}`);
+  const auditEvent = buildOrderAuditEvent(existing, order);
+  if (auditEvent) {
+    await writeOperationLog(
+      env,
+      session,
+      auditEvent.action,
+      'repair_order',
+      order.id,
+      `${order.plate} ${order.customer}`,
+      { eventId, summary: auditEvent.summary, changes: auditEvent.changes },
+    );
+  }
 
   return json({ order: toOrder(order) });
 }

@@ -119,6 +119,8 @@ export async function onRequestPost({ request, env }) {
   const formData = await request.formData();
   const file = formData.get('file');
   const orderId = cleanText(formData.get('orderId'));
+  const eventId = cleanText(formData.get('eventId'));
+  const logMode = cleanText(formData.get('logMode'));
   if (!file || typeof file.arrayBuffer !== 'function' || typeof file.size !== 'number') {
     return json({ error: 'FILE_REQUIRED' }, { status: 400 });
   }
@@ -138,7 +140,13 @@ export async function onRequestPost({ request, env }) {
   if (cosError) return cosError;
   if (!response.ok) return cosFailure(response, 'RECEIPT_UPLOAD_FAILED');
 
-  await writeOperationLog(env, session, 'upload_receipt', 'repair_order', orderId, file.name);
+  if (logMode !== 'defer') {
+    await writeOperationLog(env, session, 'upload_receipt', 'repair_order', orderId, file.name, {
+      eventId,
+      summary: `补传到账回执：${file.name}`,
+      changes: [{ field: 'settlement_receipt', label: '到账回执', before: '', after: file.name }],
+    });
+  }
 
   return json({
     receipt: {
@@ -158,13 +166,18 @@ export async function onRequestDelete({ request, env }) {
   const payload = await request.json().catch(() => ({}));
   const key = cleanText(payload.key);
   const orderId = cleanText(payload.orderId);
+  const eventId = cleanText(payload.eventId);
   if (!key || !receiptKeyAllowed(key, session)) return json({ error: 'RECEIPT_NOT_FOUND' }, { status: 404 });
 
   const { response, error: cosError } = await cosFetch('DELETE', key, env);
   if (cosError) return cosError;
   if (!response.ok && response.status !== 404) return cosFailure(response, 'RECEIPT_DELETE_FAILED');
 
-  await writeOperationLog(env, session, 'delete_receipt', 'repair_order', orderId, key);
+  await writeOperationLog(env, session, 'delete_receipt', 'repair_order', orderId, key, {
+    eventId,
+    summary: '删除到账回执',
+    changes: [{ field: 'settlement_receipt', label: '到账回执', before: key, after: '' }],
+  });
 
   return json({ ok: true });
 }
