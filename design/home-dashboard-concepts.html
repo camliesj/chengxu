@@ -1,0 +1,599 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>首页看板优化方案</title>
+  <style>
+    :root {
+      --blue: #1478f2;
+      --blue-deep: #0b63ce;
+      --green: #18a560;
+      --orange: #f28a00;
+      --red: #ef3b2d;
+      --text: #12233c;
+      --muted: #66768a;
+      --line: #dce8f5;
+      --soft: #f4f8fc;
+      font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: #eef4fa;
+      color: var(--text);
+    }
+
+    .board {
+      display: grid;
+      gap: 28px;
+      padding: 28px;
+    }
+
+    .board-title {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .board-title h1 {
+      margin: 0;
+      font-size: 26px;
+      line-height: 1.2;
+    }
+
+    .board-title p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .concept {
+      overflow: hidden;
+      border: 1px solid #cbdced;
+      border-radius: 14px;
+      background: #fff;
+      box-shadow: 0 20px 56px rgba(40, 86, 132, 0.13);
+    }
+
+    .concept-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      border-bottom: 1px solid #e2edf8;
+      background: #fbfdff;
+    }
+
+    .concept-label h2 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .concept-label span {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .mockup {
+      display: grid;
+      grid-template-columns: 218px 1fr;
+      min-height: 720px;
+      background: #f6f9fc;
+    }
+
+    .sidebar {
+      border-right: 1px solid var(--line);
+      background: linear-gradient(180deg, #fff, #eef7ff);
+      padding: 22px 14px;
+    }
+
+    .brand strong {
+      display: block;
+      font-size: 20px;
+      line-height: 1.2;
+    }
+
+    .brand span {
+      display: block;
+      margin-top: 6px;
+      color: #45617f;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .nav {
+      display: grid;
+      gap: 8px;
+      margin-top: 28px;
+    }
+
+    .nav div {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 42px;
+      border-radius: 8px;
+      padding: 0 12px;
+      color: #36526f;
+      font-weight: 900;
+    }
+
+    .nav .active {
+      color: var(--blue);
+      background: #e8f3ff;
+      box-shadow: inset 3px 0 0 var(--blue);
+    }
+
+    .main {
+      min-width: 0;
+      padding: 0 18px 18px;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: 330px 1fr auto auto 130px;
+      align-items: center;
+      gap: 12px;
+      min-height: 70px;
+      margin: 0 -18px 18px;
+      padding: 0 18px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255,255,255,0.9);
+    }
+
+    .control,
+    .search,
+    .ghost,
+    .primary {
+      display: flex;
+      align-items: center;
+      min-height: 40px;
+      border: 1px solid #cddff1;
+      border-radius: 8px;
+      padding: 0 12px;
+      background: #fff;
+      color: #314966;
+      font-weight: 800;
+    }
+
+    .search {
+      color: #91a2b5;
+      font-weight: 700;
+    }
+
+    .primary {
+      border-color: var(--blue);
+      background: linear-gradient(180deg, #1684ff, #056bd8);
+      color: #fff;
+      justify-content: center;
+      min-width: 120px;
+    }
+
+    .ghost {
+      color: #079556;
+      justify-content: center;
+      min-width: 120px;
+    }
+
+    .user {
+      display: grid;
+      justify-items: end;
+      font-weight: 900;
+    }
+
+    .user span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .hero {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 14px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+    }
+
+    .hero h3 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .metric {
+      display: grid;
+      gap: 8px;
+      min-height: 112px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 14px;
+      background: #fff;
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .metric strong {
+      color: #06182e;
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    .metric em {
+      color: var(--green);
+      font-style: normal;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .section-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+      gap: 14px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      padding: 16px;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .panel-header h3 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .todo-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .todo {
+      display: grid;
+      grid-template-columns: 8px 1fr auto;
+      align-items: center;
+      gap: 12px;
+      min-height: 76px;
+      border: 1px solid #d8e6f5;
+      border-radius: 8px;
+      padding: 12px;
+      background: #fbfdff;
+    }
+
+    .todo i {
+      width: 8px;
+      height: 42px;
+      border-radius: 999px;
+      background: var(--orange);
+    }
+
+    .todo.red i { background: var(--red); }
+    .todo.blue i { background: var(--blue); }
+    .todo b { font-size: 20px; }
+    .todo strong { display: block; font-size: 15px; }
+    .todo span { color: var(--muted); font-size: 12px; font-weight: 800; }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    .lane {
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fbfdff;
+    }
+
+    .lane h4 {
+      margin: 0;
+      padding: 8px 12px;
+      color: #fff;
+      background: #8fa0af;
+      font-size: 15px;
+    }
+
+    .lane:nth-child(1) h4 { background: var(--blue); }
+    .lane:nth-child(2) h4 { background: var(--green); }
+    .lane:nth-child(3) h4 { background: var(--orange); }
+
+    .lane-card {
+      margin: 10px;
+      border: 1px solid #cfe0f4;
+      border-radius: 8px;
+      padding: 10px;
+      background: #fff;
+      font-weight: 900;
+    }
+
+    .lane-card span {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .charts {
+      display: grid;
+      grid-template-columns: 1.3fr 1fr 1fr;
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .chart-line {
+      height: 150px;
+      border-radius: 8px;
+      background:
+        linear-gradient(180deg, transparent 24%, #e7eef6 25%, transparent 26%),
+        linear-gradient(90deg, #fff, #f8fbff);
+      position: relative;
+    }
+
+    .chart-line::after {
+      content: "";
+      position: absolute;
+      left: 20px;
+      right: 20px;
+      top: 78px;
+      height: 3px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--blue), #6db7ff, var(--blue));
+      transform: skewY(-10deg);
+    }
+
+    .donut {
+      width: 118px;
+      height: 118px;
+      margin: 12px auto;
+      border-radius: 50%;
+      background: conic-gradient(var(--blue) 0 40%, var(--green) 40% 72%, var(--orange) 72% 88%, #bac7d4 88%);
+      box-shadow: inset 0 0 0 34px #fff;
+    }
+
+    .concept-a .hero {
+      grid-template-columns: 1fr auto;
+      align-items: center;
+    }
+
+    .concept-a .metric {
+      box-shadow: 0 10px 28px rgba(38, 92, 150, 0.06);
+    }
+
+    .concept-b .mockup {
+      background: linear-gradient(180deg, #eef7ff, #f7fafc);
+    }
+
+    .concept-b .hero {
+      grid-template-columns: 1fr 330px;
+      align-items: center;
+      min-height: 126px;
+      background: linear-gradient(135deg, #ffffff, #edf7ff);
+      box-shadow: 0 18px 42px rgba(20, 120, 242, 0.09);
+    }
+
+    .concept-b .hero-side {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .concept-b .hero-side div {
+      border: 1px solid #cfe0f4;
+      border-radius: 8px;
+      padding: 10px;
+      background: #fff;
+      text-align: center;
+      font-weight: 900;
+    }
+
+    .concept-b .metric {
+      min-height: 126px;
+      border-top: 4px solid var(--blue);
+    }
+
+    .concept-b .metric.orange { border-top-color: var(--orange); }
+    .concept-b .metric.red { border-top-color: var(--red); }
+    .concept-b .section-grid {
+      grid-template-columns: 390px 1fr;
+    }
+
+    .concept-b .todo-panel { order: -1; }
+
+    .concept-c .mockup {
+      grid-template-columns: 210px 1fr;
+      background: #f7f9fb;
+    }
+
+    .concept-c .hero {
+      display: none;
+    }
+
+    .concept-c .topbar {
+      grid-template-columns: 300px 1fr auto auto 120px;
+      min-height: 64px;
+    }
+
+    .concept-c .metric-grid {
+      grid-template-columns: repeat(5, 1fr);
+    }
+
+    .concept-c .metric {
+      min-height: 86px;
+      padding: 12px;
+    }
+
+    .concept-c .metric strong {
+      font-size: 24px;
+    }
+
+    .concept-c .section-grid {
+      grid-template-columns: 1fr 330px;
+    }
+
+    .concept-c .flow {
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    .concept-c .lane {
+      min-height: 250px;
+    }
+
+    .table-preview {
+      display: grid;
+      margin-top: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr 1fr 1fr 0.8fr;
+      min-height: 38px;
+      border-bottom: 1px solid var(--line);
+      align-items: center;
+      padding: 0 10px;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .row.head {
+      background: #eef5fc;
+      color: #43566f;
+    }
+
+    @media (max-width: 1100px) {
+      .mockup { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .topbar,
+      .metric-grid,
+      .section-grid,
+      .charts,
+      .concept-b .section-grid,
+      .concept-c .section-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="board">
+    <div class="board-title">
+      <div>
+        <h1>首页看板优化效果图</h1>
+        <p>方向：第一屏聚焦“今日经营重点”，图表与历史信息下移。</p>
+      </div>
+    </div>
+
+    <section class="concept concept-a">
+      <div class="concept-label">
+        <h2>方案A 清爽后台</h2>
+        <span>适合：稳定、耐看、上手成本低</span>
+      </div>
+      <div class="mockup">
+        <aside class="sidebar">
+          <div class="brand"><strong>通达汽车服务中心</strong><span>维修接待与车辆保险管理</span></div>
+          <div class="nav">
+            <div class="active">首页看板</div><div>维修接待</div><div>历史查询</div><div>车辆保险</div><div>客户车辆</div><div>汇总报表</div><div>数据导出</div><div>系统设置</div>
+          </div>
+        </aside>
+        <section class="main">
+          <div class="topbar"><div class="control">2026/07/01 至 2026/07/31</div><div class="search">搜索客户 / 车牌 / 手机号 / 工单号</div><div class="primary">+ 新增工单</div><div class="ghost">导出Excel</div><div class="user">管理员<span>管理员</span></div></div>
+          <div class="hero"><div><h3>今日经营概览</h3><p>当前统计范围：2026-07-01 至 2026-07-31；最后刷新：12:31</p></div><div class="ghost">刷新云端数据</div></div>
+          <div class="metric-grid">
+            <div class="metric"><span>今日产值</span><strong>¥0</strong><em>查看今日工单</em></div>
+            <div class="metric"><span>今日台次</span><strong>0台</strong><em>查看今日进厂</em></div>
+            <div class="metric"><span>待结算</span><strong>¥0</strong><em>待处理 0 单</em></div>
+            <div class="metric"><span>保险到期</span><strong>1台</strong><em>查看保险档案</em></div>
+            <div class="metric"><span>在修车辆</span><strong>0台</strong><em>状态正常</em></div>
+          </div>
+          <div class="section-grid">
+            <div class="panel"><div class="panel-header"><h3>维修流程看板</h3><span>查看全部工单</span></div><div class="flow"><div class="lane"><h4>在修 0</h4></div><div class="lane"><h4>完工 0</h4></div><div class="lane"><h4>待结算 0</h4></div><div class="lane"><h4>已结算 3</h4><div class="lane-card">TEST-88888<span>TEST CUSTOMER · 已结算</span></div></div></div></div>
+            <div class="panel"><div class="panel-header"><h3>今日待办</h3></div><div class="todo-list"><div class="todo"><i></i><div><strong>待结算工单</strong><span>当前没有待结算工单</span></div><b>0单</b></div><div class="todo red"><i></i><div><strong>保险到期</strong><span>7天内到期或已过期</span></div><b>1台</b></div><div class="todo blue"><i></i><div><strong>长期未更新</strong><span>状态更新正常</span></div><b>0单</b></div></div></div>
+          </div>
+          <div class="charts"><div class="panel"><div class="panel-header"><h3>产值趋势</h3></div><div class="chart-line"></div></div><div class="panel"><div class="panel-header"><h3>维修状态</h3></div><div class="donut"></div></div><div class="panel"><div class="panel-header"><h3>费用占比</h3></div><div class="donut"></div></div></div>
+        </section>
+      </div>
+    </section>
+
+    <section class="concept concept-b">
+      <div class="concept-label">
+        <h2>方案B 经营驾驶舱</h2>
+        <span>适合：老板/管理者打开后先看风险和待办</span>
+      </div>
+      <div class="mockup">
+        <aside class="sidebar">
+          <div class="brand"><strong>通达汽车服务中心</strong><span>维修接待与车辆保险管理</span></div>
+          <div class="nav"><div class="active">首页看板</div><div>维修接待</div><div>历史查询</div><div>车辆保险</div><div>客户车辆</div><div>汇总报表</div><div>数据导出</div><div>系统设置</div></div>
+        </aside>
+        <section class="main">
+          <div class="topbar"><div class="control">2026年7月</div><div class="search">全局搜索</div><div class="primary">+ 新增工单</div><div class="ghost">导出Excel</div><div class="user">管理员<span>管理员</span></div></div>
+          <div class="hero"><div><h3>今日经营概览</h3><p>优先处理待结算、保险到期和长期未更新工单。</p></div><div class="hero-side"><div>0<br>待结算</div><div>1<br>保险到期</div><div>0<br>未更新</div></div></div>
+          <div class="metric-grid"><div class="metric"><span>今日产值</span><strong>¥0</strong><em>今日实时</em></div><div class="metric"><span>今日台次</span><strong>0台</strong><em>今日实时</em></div><div class="metric orange"><span>待结算金额</span><strong>¥0</strong><em>待处理 0 单</em></div><div class="metric red"><span>保险到期</span><strong>1台</strong><em>需跟进</em></div><div class="metric"><span>本月产值</span><strong>¥8,184</strong><em>按当前筛选</em></div></div>
+          <div class="section-grid">
+            <div class="panel todo-panel"><div class="panel-header"><h3>今日待办</h3><span>优先级排序</span></div><div class="todo-list"><div class="todo red"><i></i><div><strong>保险到期</strong><span>建议先联系客户续保</span></div><b>1台</b></div><div class="todo"><i></i><div><strong>待结算工单</strong><span>暂无待结算</span></div><b>0单</b></div><div class="todo blue"><i></i><div><strong>长期未更新</strong><span>暂无异常</span></div><b>0单</b></div></div></div>
+            <div class="panel"><div class="panel-header"><h3>维修流程看板</h3><span>查看全部</span></div><div class="flow"><div class="lane"><h4>在修 0</h4></div><div class="lane"><h4>完工 0</h4></div><div class="lane"><h4>待结算 0</h4></div><div class="lane"><h4>已结算 3</h4><div class="lane-card">蒙K-12345<span>丰田霸道 · 已结算</span></div></div></div></div>
+          </div>
+          <div class="charts"><div class="panel"><div class="panel-header"><h3>产值趋势</h3></div><div class="chart-line"></div></div><div class="panel"><div class="panel-header"><h3>保险提醒</h3></div><div class="todo-list"><div class="todo red"><i></i><div><strong>粤B-7D555</strong><span>保险已过期</span></div><b>查看</b></div></div></div><div class="panel"><div class="panel-header"><h3>费用结构</h3></div><div class="donut"></div></div></div>
+        </section>
+      </div>
+    </section>
+
+    <section class="concept concept-c">
+      <div class="concept-label">
+        <h2>方案C 高密度工作台</h2>
+        <span>适合：前台/接待每天高频录入和查询</span>
+      </div>
+      <div class="mockup">
+        <aside class="sidebar">
+          <div class="brand"><strong>通达汽车服务中心</strong><span>维修接待与车辆保险管理</span></div>
+          <div class="nav"><div class="active">首页看板</div><div>维修接待</div><div>历史查询</div><div>车辆保险</div><div>客户车辆</div><div>汇总报表</div><div>数据导出</div><div>系统设置</div></div>
+        </aside>
+        <section class="main">
+          <div class="topbar"><div class="control">2026/07/01 至 2026/07/31</div><div class="search">搜索客户 / 车牌 / 手机号 / 工单号</div><div class="primary">+ 新增工单</div><div class="ghost">导出Excel</div><div class="user">管理员<span>管理员</span></div></div>
+          <div class="metric-grid"><div class="metric"><span>今日产值</span><strong>¥0</strong><em>今日</em></div><div class="metric"><span>今日台次</span><strong>0台</strong><em>今日</em></div><div class="metric"><span>待结算</span><strong>¥0</strong><em>0单</em></div><div class="metric"><span>保险到期</span><strong>1台</strong><em>需跟进</em></div><div class="metric"><span>本月产值</span><strong>¥8,184</strong><em>当前筛选</em></div></div>
+          <div class="section-grid">
+            <div class="panel"><div class="panel-header"><h3>维修流程看板</h3><span>查看全部工单</span></div><div class="flow"><div class="lane"><h4>在修 0</h4></div><div class="lane"><h4>完工 0</h4></div><div class="lane"><h4>待结算 0</h4></div><div class="lane"><h4>已结算 3</h4><div class="lane-card">TEST-88888<span>TEST CUSTOMER</span></div><div class="lane-card">蒙K-12345<span>张先生 · 丰田霸道</span></div></div></div><div class="table-preview"><div class="row head"><span>工单号</span><span>车牌</span><span>客户</span><span>项目</span><span>金额</span></div><div class="row"><span>ROTEST180156</span><span>TEST-88888</span><span>TEST CUSTOMER</span><span>Receipt upload</span><span>¥150</span></div><div class="row"><span>RO20260701131</span><span>蒙K-12345</span><span>张先生</span><span>更换前保险杠</span><span>¥7,534</span></div></div></div>
+            <div class="panel"><div class="panel-header"><h3>今日待办</h3></div><div class="todo-list"><div class="todo red"><i></i><div><strong>保险到期</strong><span>7天内到期或已过期</span></div><b>1台</b></div><div class="todo"><i></i><div><strong>待结算</strong><span>当前没有待结算</span></div><b>0单</b></div><div class="todo blue"><i></i><div><strong>长期未更新</strong><span>状态更新正常</span></div><b>0单</b></div></div></div>
+          </div>
+          <div class="charts"><div class="panel"><div class="panel-header"><h3>产值趋势</h3></div><div class="chart-line"></div></div><div class="panel"><div class="panel-header"><h3>状态分布</h3></div><div class="donut"></div></div><div class="panel"><div class="panel-header"><h3>费用占比</h3></div><div class="donut"></div></div></div>
+        </section>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
