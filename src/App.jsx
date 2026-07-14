@@ -12,6 +12,7 @@ import { findLegacyImportCandidates } from './cloudRecordLogic.js';
 import LegacyCloudImportDialog from './components/LegacyCloudImportDialog.jsx';
 import ClientDownloadsDialog from './components/ClientDownloadsDialog.jsx';
 import NetworkStatusBar from './components/NetworkStatusBar.jsx';
+import { printCurrentDocument, saveBytes } from './platform/files.js';
 import { useNetworkStatus } from './platform/useNetworkStatus.js';
 
 const navItems = ['首页看板', '维修接待', '历史查询', '车辆保险', '客户车辆', '汇总报表', '数据导出', '系统设置'];
@@ -707,7 +708,6 @@ function AccessGate({ onUnlock }) {
       <ClientDownloadsDialog
         open={downloadsOpen}
         onClose={() => setDownloadsOpen(false)}
-        onDownload={(url) => window.open(url, '_blank', 'noopener,noreferrer')}
       />
     </main>
   );
@@ -2231,7 +2231,7 @@ function HistoryQueryPage({
 
   function printOrder(order) {
     setDetailOrderId(order.id);
-    window.setTimeout(() => window.print(), 180);
+    void printCurrentDocument();
   }
 
   return (
@@ -2518,7 +2518,7 @@ function RepairReception({
   function printOrder(order) {
     setSelectedId(order.id);
     setWorkOrderModal(openRepairModal('detail', order.id));
-    window.setTimeout(() => window.print(), 180);
+    void printCurrentDocument();
   }
 
   function completeSettlement(settlementDraft) {
@@ -3614,16 +3614,14 @@ function buildExcelWorkbook(sheetName, headers, rows) {
 </html>`;
 }
 
-function downloadExcel(filename, htmlContent) {
+async function downloadExcel(filename, htmlContent) {
   const blob = new Blob(['\uFEFF' + htmlContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  return saveBytes({
+    suggestedName: filename,
+    bytes,
+    filters: [{ name: 'Excel 工作簿', extensions: ['xls'] }],
+  });
 }
 
 function CustomerVehiclesPage({ vehicles, orders, policies, insurerOptions, onSaveVehicle, cloudReadOnly = false }) {
@@ -3876,6 +3874,7 @@ function DataExportPage({ orders, policies, vehicles, cloudReadOnly = false }) {
   const [activeType, setActiveType] = useState('orders');
   const [keyword, setKeyword] = useState('');
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+  const [exportError, setExportError] = useState('');
 
   const exportData = {
     orders,
@@ -3914,10 +3913,15 @@ function DataExportPage({ orders, policies, vehicles, cloudReadOnly = false }) {
     setSelectedRowKeys(isAllSelected ? [] : filteredRowKeys);
   }
 
-  function exportCurrentRows() {
+  async function exportCurrentRows() {
     const workbook = buildExcelWorkbook(config.title, config.columns, rowsToExport);
     const today = '2026-07-21';
-    downloadExcel(`${config.filename}-${today}.xls`, workbook);
+    setExportError('');
+    try {
+      await downloadExcel(`${config.filename}-${today}.xls`, workbook);
+    } catch (error) {
+      setExportError(error.message || 'Excel 保存失败，请稍后重试');
+    }
   }
 
   return (
@@ -3949,6 +3953,7 @@ function DataExportPage({ orders, policies, vehicles, cloudReadOnly = false }) {
             <button className="filter-primary" disabled={cloudReadOnly} title={cloudReadOnly ? '网络不可用，暂时不能导出' : undefined} onClick={exportCurrentRows}>导出Excel</button>
           </div>
         </div>
+        {exportError ? <div className="cloud-banner error" role="alert">{exportError}</div> : null}
         <div className="customer-search-panel export-search">
           <AssetIcon name="action-search.png" className="field-icon" />
           <input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="按客户、车牌、手机号、编号等关键词筛选导出内容" />

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { normalizeClientReleases } from '../clientReleaseLogic.js';
 import { apiFetch } from '../platform/apiClient.js';
+import { openExternal } from '../platform/files.js';
 
 const emptyReleases = normalizeClientReleases();
 
@@ -12,7 +13,7 @@ function releaseMeta(release) {
   ].filter(Boolean).join(' · ');
 }
 
-export default function ClientDownloadsDialog({ open, onClose, onDownload }) {
+export default function ClientDownloadsDialog({ open, onClose }) {
   const [state, setState] = useState({ loading: false, error: '', releases: emptyReleases });
   const requestIdRef = useRef(0);
 
@@ -36,6 +37,17 @@ export default function ClientDownloadsDialog({ open, onClose, onDownload }) {
         ...current,
         loading: false,
         error: error.message || '暂时无法读取客户端版本信息',
+      }));
+    }
+  }
+
+  async function downloadRelease(url) {
+    try {
+      await openExternal(url);
+    } catch (error) {
+      setState((current) => ({
+        ...current,
+        error: error.message || '暂时无法打开客户端下载地址',
       }));
     }
   }
@@ -103,7 +115,7 @@ export default function ClientDownloadsDialog({ open, onClose, onDownload }) {
                   type="button"
                   className={release.canDownload ? 'client-download-action primary' : 'client-download-action'}
                   disabled={!release.canDownload || state.loading}
-                  onClick={() => onDownload(release.downloadUrl)}
+                  onClick={() => downloadRelease(release.downloadUrl)}
                 >
                   {state.loading ? '读取中...' : release.actionLabel}
                 </button>
