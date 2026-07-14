@@ -13,10 +13,15 @@ test('package exposes the Windows desktop commands', () => {
 });
 
 test('Tauri config targets the Windows NSIS application shell', () => {
+  const packageJson = readJson(new URL('../package.json', import.meta.url));
   const config = readJson(new URL('../src-tauri/tauri.conf.json', import.meta.url));
+  const cargoToml = readFileSync(new URL('../src-tauri/Cargo.toml', import.meta.url), 'utf8');
   const [window] = config.app.windows;
 
   assert.equal(config.productName, '汽修接待与车辆保险管理');
+  assert.equal(config.version, '0.1.1');
+  assert.equal(packageJson.version, config.version);
+  assert.match(cargoToml, /^version = "0\.1\.1"$/m);
   assert.equal(config.identifier, 'com.chengxu.repairmanager');
   assert.equal(config.build.frontendDist, '../dist');
   assert.equal(config.build.devUrl, 'http://localhost:5173');
