@@ -1,0 +1,30 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main-capability",
+  "description": "Narrow permissions for the Windows repair management client",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    {
+      "identifier": "http:default",
+      "allow": [
+        { "url": "https://chengxu.pages.dev/**" }
+      ]
+    },
+    "dialog:allow-open",
+    "dialog:allow-save",
+    "fs:allow-read-file",
+    "fs:allow-write-file",
+    "fs:allow-write-text-file",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        { "url": "https://chengxu.pages.dev/**" },
+        { "url": "https://tupian-1449816068.cos.ap-guangzhou.myqcloud.com/**" }
+      ]
+    },
+    "updater:default",
+    "process:allow-restart",
+    "window-state:default"
+  ]
+}

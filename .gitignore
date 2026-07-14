@@ -49,3 +49,10 @@ Thumbs.db
 *.msi
 *.dmg
 *.AppImage
+
+# Tauri local artifacts and signing secrets
+src-tauri/target/
+src-tauri/gen/schemas/
+.tauri/
+*.key
+*.key.pub
