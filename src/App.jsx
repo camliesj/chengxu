@@ -10,6 +10,8 @@ import { auditActionLabel, formatAuditTime, groupAuditLogs, parseAuditChanges } 
 import { apiFetch, setSessionExpiredReporter } from './platform/apiClient.js';
 import { findLegacyImportCandidates } from './cloudRecordLogic.js';
 import LegacyCloudImportDialog from './components/LegacyCloudImportDialog.jsx';
+import NetworkStatusBar from './components/NetworkStatusBar.jsx';
+import { useNetworkStatus } from './platform/useNetworkStatus.js';
 
 const navItems = ['首页看板', '维修接待', '历史查询', '车辆保险', '客户车辆', '汇总报表', '数据导出', '系统设置'];
 
@@ -699,6 +701,7 @@ function AccessGate({ onUnlock }) {
 }
 
 function App() {
+  const network = useNetworkStatus();
   const [accessSession, setAccessSession] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem(ACCESS_SESSION_KEY) || 'null');
@@ -764,6 +767,11 @@ function App() {
   const staffChoices = useMemo(() => staffEntries.map(dictionaryStaffLabel).filter(Boolean), [staffEntries]);
   const currentYear = (dateRange.start || currentDateValue()).slice(0, 4);
   const monthShortcut = monthShortcutValue(dateRange);
+  const cloudReadOnly = !network.isOnline;
+  const requireOnline = {
+    disabled: cloudReadOnly,
+    title: cloudReadOnly ? '网络不可用，暂时不能执行此操作' : undefined,
+  };
 
   useEffect(() => {
     localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(orders));
@@ -1122,10 +1130,15 @@ function App() {
   }
 
   if (!isUnlocked) {
-    return <AccessGate onUnlock={(session) => {
-      setAccessSession(session);
-      setIsUnlocked(true);
-    }} />;
+    return (
+      <div className="access-shell">
+        <NetworkStatusBar status={network.status} lastSyncedAt={network.lastSyncedAt} onRetry={network.checkNow} />
+        <AccessGate onUnlock={(session) => {
+          setAccessSession(session);
+          setIsUnlocked(true);
+        }} />
+      </div>
+    );
   }
 
   return (
@@ -1169,7 +1182,8 @@ function App() {
         </button>
       </aside>
 
-      <main className="workspace">
+      <main className={`workspace ${cloudReadOnly ? 'network-offline' : ''}`}>
+        <NetworkStatusBar status={network.status} lastSyncedAt={network.lastSyncedAt} onRetry={network.checkNow} />
         <header className="topbar">
           <button className="menu-button" aria-label="展开菜单">☰</button>
           <div className="date-range">
@@ -1200,6 +1214,7 @@ function App() {
           </div>
           <button
             className="primary-action"
+            {...requireOnline}
             onClick={() => {
               setActivePage('维修接待');
               setCreateRequest((value) => value + 1);
@@ -1208,7 +1223,7 @@ function App() {
             ＋ 新增工单
           </button>
           {canExportData ? (
-            <button className="secondary-action" onClick={() => setActivePage('数据导出')}><AssetIcon name="action-excel.png" className="button-icon" />导出Excel</button>
+            <button className="secondary-action" {...requireOnline} onClick={() => setActivePage('数据导出')}><AssetIcon name="action-excel.png" className="button-icon" />导出Excel</button>
           ) : null}
           <div className="topbar-user">
             <button
@@ -1343,6 +1358,7 @@ function App() {
             onViewReceipt={(key) => fetchSettlementReceiptBlob(key, accessSession)}
             onDeleteReceipt={clearOrderReceipt}
             onVoidOrder={voidOrder}
+            cloudReadOnly={cloudReadOnly}
           />
         )}
         {activePage === '历史查询' && (
@@ -1361,10 +1377,11 @@ function App() {
             onUploadReceipt={(file, orderId, options) => uploadSettlementReceipt(file, orderId, accessSession, options)}
             onViewReceipt={(key) => fetchSettlementReceiptBlob(key, accessSession)}
             onDeleteReceipt={clearOrderReceipt}
+            cloudReadOnly={cloudReadOnly}
           />
         )}
         {activePage === '车辆保险' && (
-          <InsuranceLedger policies={companyInsurancePolicies} insurerOptions={insurerChoices} onSavePolicy={saveInsurancePolicy} focusPolicyRequest={insuranceFocusRequest} />
+          <InsuranceLedger policies={companyInsurancePolicies} insurerOptions={insurerChoices} onSavePolicy={saveInsurancePolicy} focusPolicyRequest={insuranceFocusRequest} cloudReadOnly={cloudReadOnly} />
         )}
         {activePage === '客户车辆' && (
           <CustomerVehiclesPage
@@ -1373,6 +1390,7 @@ function App() {
             policies={companyInsurancePolicies}
             insurerOptions={insurerChoices}
             onSaveVehicle={saveCustomerVehicle}
+            cloudReadOnly={cloudReadOnly}
           />
         )}
         {activePage === '数据导出' && canExportData && (
@@ -1380,6 +1398,7 @@ function App() {
             orders={companyOrders}
             policies={companyInsurancePolicies}
             vehicles={companyCustomerVehicles}
+            cloudReadOnly={cloudReadOnly}
           />
         )}
         {activePage === '数据导出' && !canExportData && <NoPermissionPage title="数据导出" />}
@@ -1392,6 +1411,7 @@ function App() {
             canViewLogs={canViewLogs}
             onDictionariesChange={setDictionaries}
             onRefreshOrders={refreshOrders}
+            cloudReadOnly={cloudReadOnly}
           />
         )}
         {activePage === '系统设置' && !canOpenSettings && <NoPermissionPage title="系统设置" />}
@@ -2037,7 +2057,7 @@ function LegacyHistoryQueryPage({ orders, insurerOptions, onView, onEdit }) {
   );
 }
 
-function HistoryOrderTable({ orders, isAdmin, onView, onEdit, onPrint, onReverse }) {
+function HistoryOrderTable({ orders, isAdmin, onView, onEdit, onPrint, onReverse, cloudReadOnly = false }) {
   function runAction(event, action) {
     event.stopPropagation();
     action();
@@ -2074,8 +2094,8 @@ function HistoryOrderTable({ orders, isAdmin, onView, onEdit, onPrint, onReverse
                 <div className="history-row-actions">
                   <button type="button" onClick={(event) => runAction(event, () => onView(order))}>查看</button>
                   <button type="button" onClick={(event) => runAction(event, () => onPrint(order))}>打印</button>
-                  {isAdmin ? <button type="button" onClick={(event) => runAction(event, () => onEdit(order))}>编辑</button> : null}
-                  {isAdmin ? <button type="button" className="danger-link" onClick={(event) => runAction(event, () => onReverse(order))}>返结算</button> : null}
+                  {isAdmin ? <button type="button" disabled={cloudReadOnly} title={cloudReadOnly ? '网络不可用，暂时不能编辑' : undefined} onClick={(event) => runAction(event, () => onEdit(order))}>编辑</button> : null}
+                  {isAdmin ? <button type="button" disabled={cloudReadOnly} title={cloudReadOnly ? '网络不可用，暂时不能返结算' : undefined} className="danger-link" onClick={(event) => runAction(event, () => onReverse(order))}>返结算</button> : null}
                 </div>
               </td>
             </tr>
@@ -2101,6 +2121,7 @@ function HistoryQueryPage({
   onUploadReceipt,
   onViewReceipt,
   onDeleteReceipt,
+  cloudReadOnly = false,
 }) {
   const [draftFilters, setDraftFilters] = useState(historyInitialFilters);
   const [appliedFilters, setAppliedFilters] = useState(historyInitialFilters);
@@ -2242,6 +2263,7 @@ function HistoryQueryPage({
           onEdit={openEdit}
           onPrint={printOrder}
           onReverse={requestReverse}
+          cloudReadOnly={cloudReadOnly}
         />
         <footer className="table-footer history-table-footer">
           <span>第 {paginated.page} / {paginated.pageCount} 页</span>
@@ -2279,6 +2301,7 @@ function HistoryQueryPage({
           onViewReceipt={onViewReceipt}
           onDeleteReceipt={isAdmin ? onDeleteReceipt : null}
           canManageReceipt={isAdmin}
+          cloudReadOnly={cloudReadOnly}
         />
       ) : null}
 
@@ -2293,6 +2316,7 @@ function HistoryQueryPage({
           onChange={setDraft}
           onClose={() => setEditOrderId('')}
           onSubmit={saveArchiveEdit}
+          cloudReadOnly={cloudReadOnly}
         />
       ) : null}
 
@@ -2325,6 +2349,7 @@ function RepairReception({
   onViewReceipt,
   onDeleteReceipt,
   onVoidOrder,
+  cloudReadOnly = false,
 }) {
   const [selectedId, setSelectedId] = useState(() => orders[0]?.id || '');
   const [workOrderModal, setWorkOrderModal] = useState(closedRepairModalState);
@@ -2500,14 +2525,14 @@ function RepairReception({
           <div className="table-titlebar">
             <h2>维修接待工单</h2>
             <div>
-              <button onClick={() => {
+              <button disabled={cloudReadOnly} title={cloudReadOnly ? '网络不可用，暂时不能新增工单' : undefined} onClick={() => {
                 setDraft(createOrderDraft());
                 setWorkOrderModal(openRepairModal('create'));
               }}
               >
                 新增工单
               </button>
-              <button>批量导出</button>
+              <button disabled={cloudReadOnly} title={cloudReadOnly ? '网络不可用，暂时不能导出' : undefined}>批量导出</button>
             </div>
           </div>
           {cloudState?.loading ? <div className="cloud-banner">正在从云端加载维修工单...</div> : null}
@@ -2574,13 +2599,13 @@ function RepairReception({
                 <div className="total"><span>工单金额</span><strong>{formatMoney(selected.amount)}</strong></div>
               </div>
               <div className="state-actions">
-                <button onClick={() => requestStatusChange(selected, REPAIR_STATUS.repairing)}>切为在修</button>
-                <button onClick={() => requestStatusChange(selected, REPAIR_STATUS.completed)}>切为完工</button>
-                {canSettleOrder ? <button onClick={() => requestStatusChange(selected, REPAIR_STATUS.pendingSettlement)}>待结算</button> : null}
-                {canSettleOrder && selected.status !== REPAIR_STATUS.settled ? <button onClick={() => requestSettlement(selected)}>完成结算</button> : null}
-                {canSettleOrder && selected.status === REPAIR_STATUS.settled ? <button onClick={() => requestReverseSettlement(selected)}>返结算</button> : null}
+                <button disabled={cloudReadOnly} onClick={() => requestStatusChange(selected, REPAIR_STATUS.repairing)}>切为在修</button>
+                <button disabled={cloudReadOnly} onClick={() => requestStatusChange(selected, REPAIR_STATUS.completed)}>切为完工</button>
+                {canSettleOrder ? <button disabled={cloudReadOnly} onClick={() => requestStatusChange(selected, REPAIR_STATUS.pendingSettlement)}>待结算</button> : null}
+                {canSettleOrder && selected.status !== REPAIR_STATUS.settled ? <button disabled={cloudReadOnly} onClick={() => requestSettlement(selected)}>完成结算</button> : null}
+                {canSettleOrder && selected.status === REPAIR_STATUS.settled ? <button disabled={cloudReadOnly} onClick={() => requestReverseSettlement(selected)}>返结算</button> : null}
               </div>
-              <button className="wide-edit-button" onClick={() => openEdit(selected)}>编辑当前工单</button>
+              <button className="wide-edit-button" disabled={cloudReadOnly} title={cloudReadOnly ? '网络不可用，暂时不能编辑' : undefined} onClick={() => openEdit(selected)}>编辑当前工单</button>
             </>
           ) : (
             <OrderForm
@@ -2595,6 +2620,7 @@ function RepairReception({
                 closeWorkOrderModal();
               }}
               onSubmit={saveDraft}
+              cloudReadOnly={cloudReadOnly}
             />
           )}
         </aside>
@@ -2613,6 +2639,7 @@ function RepairReception({
             closeWorkOrderModal();
           }}
           onSubmit={saveDraft}
+          cloudReadOnly={cloudReadOnly}
         />
       ) : null}
 
@@ -2645,6 +2672,7 @@ function RepairReception({
             setDraft(createOrderDraft(nextOrder));
           })}
           onVoid={canVoidOrder ? () => setVoidOrderTarget(modalOrder) : null}
+          cloudReadOnly={cloudReadOnly}
         />
       ) : null}
       {confirmAction ? (
@@ -2709,7 +2737,7 @@ function ConfirmActionDialog({ action, onClose, onConfirm }) {
   );
 }
 
-function OrderDetailDialog({ order, company, onClose, onEdit, onPrint, onSettle, onReverseSettle, onUploadReceipt, onViewReceipt, onDeleteReceipt, onVoid, canManageReceipt = true }) {
+function OrderDetailDialog({ order, company, onClose, onEdit, onPrint, onSettle, onReverseSettle, onUploadReceipt, onViewReceipt, onDeleteReceipt, onVoid, canManageReceipt = true, cloudReadOnly = false }) {
   const [receiptState, setReceiptState] = useState({ loading: false, error: '', previewUrl: '' });
   const [receiptFile, setReceiptFile] = useState(null);
   const printTime = new Date().toLocaleString('zh-CN', { hour12: false });
@@ -2803,7 +2831,7 @@ function OrderDetailDialog({ order, company, onClose, onEdit, onPrint, onSettle,
               </div>
               <div>
                 <button type="button" onClick={viewReceipt} disabled={receiptState.loading}>{receiptState.loading ? '处理中...' : '查看回执'}</button>
-                {canManageReceipt && onDeleteReceipt ? <button type="button" className="danger" onClick={deleteReceipt} disabled={receiptState.loading}>删除回执</button> : null}
+                {canManageReceipt && onDeleteReceipt ? <button type="button" className="danger" onClick={deleteReceipt} disabled={receiptState.loading || cloudReadOnly}>删除回执</button> : null}
               </div>
               {receiptState.error ? <p className="form-error">{receiptState.error}</p> : null}
               {receiptState.previewUrl ? <img src={receiptState.previewUrl} alt="到账回执截图" /> : null}
@@ -2819,6 +2847,7 @@ function OrderDetailDialog({ order, company, onClose, onEdit, onPrint, onSettle,
                 <input
                   type="file"
                   accept="image/png,image/jpeg,image/webp"
+                  disabled={cloudReadOnly}
                   onChange={(event) => {
                     setReceiptFile(event.target.files?.[0] || null);
                     setReceiptState((current) => ({ ...current, error: '' }));
@@ -2827,7 +2856,7 @@ function OrderDetailDialog({ order, company, onClose, onEdit, onPrint, onSettle,
                 <span>{receiptFile ? receiptFile.name : '请选择 JPG、PNG 或 WEBP 图片'}</span>
               </label>
               <div>
-                <button type="button" onClick={uploadReceipt} disabled={receiptState.loading}>{receiptState.loading ? '上传中...' : '上传回执'}</button>
+                <button type="button" onClick={uploadReceipt} disabled={receiptState.loading || cloudReadOnly}>{receiptState.loading ? '上传中...' : '上传回执'}</button>
               </div>
               {receiptState.error ? <p className="form-error">{receiptState.error}</p> : null}
             </section>
@@ -2835,10 +2864,10 @@ function OrderDetailDialog({ order, company, onClose, onEdit, onPrint, onSettle,
 
           <footer className="modal-actions">
             <button type="button" onClick={onPrint}>打印工单</button>
-            {onSettle && order.status !== REPAIR_STATUS.settled ? <button type="button" onClick={onSettle}>结算工单</button> : null}
-            {onReverseSettle && order.status === REPAIR_STATUS.settled ? <button type="button" onClick={onReverseSettle}>返结算</button> : null}
-            {onVoid ? <button type="button" onClick={onVoid}>作废工单</button> : null}
-            {onEdit ? <button type="button" onClick={onEdit}>编辑工单</button> : null}
+            {onSettle && order.status !== REPAIR_STATUS.settled ? <button type="button" disabled={cloudReadOnly} onClick={onSettle}>结算工单</button> : null}
+            {onReverseSettle && order.status === REPAIR_STATUS.settled ? <button type="button" disabled={cloudReadOnly} onClick={onReverseSettle}>返结算</button> : null}
+            {onVoid ? <button type="button" disabled={cloudReadOnly} onClick={onVoid}>作废工单</button> : null}
+            {onEdit ? <button type="button" disabled={cloudReadOnly} onClick={onEdit}>编辑工单</button> : null}
           </footer>
         </div>
 
@@ -3054,7 +3083,7 @@ function SettlementDialog({ order, onClose, onUploadReceipt, onSubmit }) {
   );
 }
 
-function OrderForm({ draft, mode, archiveMode = false, canSettleOrder, insurerOptions, staffOptions, onChange, onCancel, onSubmit }) {
+function OrderForm({ draft, mode, archiveMode = false, canSettleOrder, insurerOptions, staffOptions, onChange, onCancel, onSubmit, cloudReadOnly = false }) {
   const labor = normalizeMoney(draft.labor);
   const material = normalizeMoney(draft.material);
   const visibleInsurerOptions = Array.from(new Set([draft.insurer, ...insurerOptions].filter(Boolean)));
@@ -3183,13 +3212,13 @@ function OrderForm({ draft, mode, archiveMode = false, canSettleOrder, insurerOp
       </div>
       <div className="form-actions">
         <button type="button" onClick={onCancel}>取消</button>
-        <button type="submit">保存工单</button>
+        <button type="submit" disabled={cloudReadOnly} title={cloudReadOnly ? '网络不可用，暂时不能保存工单' : undefined}>保存工单</button>
       </div>
     </form>
   );
 }
 
-function WorkOrderFormDialog({ draft, mode, archiveMode = false, canSettleOrder, insurerOptions, staffOptions, onChange, onClose, onSubmit }) {
+function WorkOrderFormDialog({ draft, mode, archiveMode = false, canSettleOrder, insurerOptions, staffOptions, onChange, onClose, onSubmit, cloudReadOnly = false }) {
   useEffect(() => {
     function handleKeyDown(event) {
       if (event.key === 'Escape') onClose();
@@ -3221,6 +3250,7 @@ function WorkOrderFormDialog({ draft, mode, archiveMode = false, canSettleOrder,
             onChange={onChange}
             onCancel={onClose}
             onSubmit={onSubmit}
+            cloudReadOnly={cloudReadOnly}
           />
         </div>
       </section>
@@ -3336,7 +3366,7 @@ function draftToInsurancePolicy(draft) {
   });
 }
 
-function InsuranceLedger({ policies, insurerOptions, onSavePolicy, focusPolicyRequest }) {
+function InsuranceLedger({ policies, insurerOptions, onSavePolicy, focusPolicyRequest, cloudReadOnly = false }) {
   const [activeFilter, setActiveFilter] = useState('7天内到期');
   const [formMode, setFormMode] = useState('create');
   const [draft, setDraft] = useState(createInsuranceDraft);
@@ -3394,7 +3424,7 @@ function InsuranceLedger({ policies, insurerOptions, onSavePolicy, focusPolicyRe
             </button>
           ))}
         </div>
-        <button className="wide-edit-button insurance-add-button" onClick={startCreate}>新增保险</button>
+        <button className="wide-edit-button insurance-add-button" disabled={cloudReadOnly} title={cloudReadOnly ? '网络不可用，暂时不能新增保险' : undefined} onClick={startCreate}>新增保险</button>
       </div>
 
       <div className="history-summary">
@@ -3423,7 +3453,7 @@ function InsuranceLedger({ policies, insurerOptions, onSavePolicy, focusPolicyRe
                   <div><dt>车型</dt><dd>{row.car}</dd></div>
                   <div><dt>车架号</dt><dd>{row.vin}</dd></div>
                 </dl>
-                <button className="insurance-card-action" onClick={() => startEdit(row)}>编辑保险</button>
+                <button className="insurance-card-action" disabled={cloudReadOnly} onClick={() => startEdit(row)}>编辑保险</button>
               </article>
             );
           })}
@@ -3480,7 +3510,7 @@ function InsuranceLedger({ policies, insurerOptions, onSavePolicy, focusPolicyRe
           </div>
           <div className="form-actions">
             <button type="button" onClick={startCreate}>清空新增</button>
-            <button type="submit">保存保险</button>
+            <button type="submit" disabled={cloudReadOnly}>保存保险</button>
           </div>
         </form>
       </div>
@@ -3583,7 +3613,7 @@ function downloadExcel(filename, htmlContent) {
   URL.revokeObjectURL(url);
 }
 
-function CustomerVehiclesPage({ vehicles, orders, policies, insurerOptions, onSaveVehicle }) {
+function CustomerVehiclesPage({ vehicles, orders, policies, insurerOptions, onSaveVehicle, cloudReadOnly = false }) {
   const [keyword, setKeyword] = useState('');
   const [activeFilter, setActiveFilter] = useState('全部车辆');
   const [formMode, setFormMode] = useState('create');
@@ -3648,7 +3678,7 @@ function CustomerVehiclesPage({ vehicles, orders, policies, insurerOptions, onSa
             </button>
           ))}
         </div>
-        <button className="wide-edit-button insurance-add-button" onClick={startCreate}>新增客户车辆</button>
+        <button className="wide-edit-button insurance-add-button" disabled={cloudReadOnly} title={cloudReadOnly ? '网络不可用，暂时不能新增客户车辆' : undefined} onClick={startCreate}>新增客户车辆</button>
       </div>
 
       <div className="history-summary">
@@ -3672,7 +3702,7 @@ function CustomerVehiclesPage({ vehicles, orders, policies, insurerOptions, onSa
               <article key={vehicle.id} className="customer-vehicle-card">
                 <div className="customer-card-heading">
                   <span className={`status-chip ${vehicle.vehicleType === '标的车' ? 'repairing' : 'pending'}`}>{vehicle.vehicleType}</span>
-                  <button onClick={() => startEdit(vehicle)}>编辑</button>
+                  <button disabled={cloudReadOnly} onClick={() => startEdit(vehicle)}>编辑</button>
                 </div>
                 <h2>{vehicle.plate}</h2>
                 <p>{vehicle.customer} · {vehicle.phone || '未填写手机号'}</p>
@@ -3750,7 +3780,7 @@ function CustomerVehiclesPage({ vehicles, orders, policies, insurerOptions, onSa
           </div>
           <div className="form-actions">
             <button type="button" onClick={startCreate}>清空新增</button>
-            <button type="submit">保存档案</button>
+            <button type="submit" disabled={cloudReadOnly}>保存档案</button>
           </div>
         </form>
       </div>
@@ -3829,7 +3859,7 @@ const exportConfigs = {
   },
 };
 
-function DataExportPage({ orders, policies, vehicles }) {
+function DataExportPage({ orders, policies, vehicles, cloudReadOnly = false }) {
   const [activeType, setActiveType] = useState('orders');
   const [keyword, setKeyword] = useState('');
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
@@ -3895,7 +3925,7 @@ function DataExportPage({ orders, policies, vehicles }) {
         <Metric icon="order" title="当前类型" value={config.title} trend="Excel 格式" tone="blue" />
         <Metric icon="car" title="筛选记录" value={`${filteredRows.length} 条`} trend="按关键词过滤" tone="green" />
         <Metric icon="shield" title="已选择" value={`${selectedRows.length} 条`} trend={selectedRows.length > 0 ? '仅导出已选记录' : '未选择则导出筛选结果'} tone="orange" />
-        <Metric icon="yuan" title="数据来源" value="本地数据" trend="localStorage" tone="blue" />
+        <Metric icon="yuan" title="数据来源" value="云端数据" trend="断网时显示上次同步缓存" tone="blue" />
       </div>
 
       <section className="table-panel">
@@ -3903,7 +3933,7 @@ function DataExportPage({ orders, policies, vehicles }) {
           <h2>{config.title}导出</h2>
           <div>
             <button onClick={() => setKeyword('')}>重置</button>
-            <button className="filter-primary" onClick={exportCurrentRows}>导出Excel</button>
+            <button className="filter-primary" disabled={cloudReadOnly} title={cloudReadOnly ? '网络不可用，暂时不能导出' : undefined} onClick={exportCurrentRows}>导出Excel</button>
           </div>
         </div>
         <div className="customer-search-panel export-search">
@@ -4135,7 +4165,7 @@ function SettingsModal({ level = 1, title, description, onClose, actions, childr
   );
 }
 
-function DictionaryManager({ title, description, entries, onAdd, onEdit, onDelete }) {
+function DictionaryManager({ title, description, entries, onAdd, onEdit, onDelete, cloudReadOnly = false }) {
   return (
     <div className="settings-management-view">
       <div className="settings-management-toolbar">
@@ -4143,7 +4173,7 @@ function DictionaryManager({ title, description, entries, onAdd, onEdit, onDelet
           <strong>{title}</strong>
           <span>{entries.length} 项配置</span>
         </div>
-        <button type="button" className="settings-primary-action" onClick={onAdd}>＋ 新增</button>
+        <button type="button" className="settings-primary-action" disabled={cloudReadOnly} onClick={onAdd}>＋ 新增</button>
       </div>
       <p className="settings-management-description">{description}</p>
       <div className="dictionary-list modal-list">
@@ -4156,8 +4186,8 @@ function DictionaryManager({ title, description, entries, onAdd, onEdit, onDelet
               {entry.extra ? <span>{entry.extra}</span> : null}
             </div>
             <small>{entry.isActive ? '启用' : '停用'} · 排序 {entry.sortOrder}</small>
-            <button type="button" onClick={() => onEdit(entry)}>编辑</button>
-            <button type="button" className="danger" onClick={() => onDelete(entry)}>删除</button>
+            <button type="button" disabled={cloudReadOnly} onClick={() => onEdit(entry)}>编辑</button>
+            <button type="button" disabled={cloudReadOnly} className="danger" onClick={() => onDelete(entry)}>删除</button>
           </div>
         ))}
       </div>
@@ -4165,7 +4195,7 @@ function DictionaryManager({ title, description, entries, onAdd, onEdit, onDelet
   );
 }
 
-function DictionaryEditor({ draft, onDraftChange, onSubmit, onCancel }) {
+function DictionaryEditor({ draft, onDraftChange, onSubmit, onCancel, cloudReadOnly = false }) {
   const isStaff = draft.category === 'staff';
   return (
     <form className="dictionary-form modal-editor-form" onSubmit={onSubmit}>
@@ -4178,7 +4208,7 @@ function DictionaryEditor({ draft, onDraftChange, onSubmit, onCancel }) {
       <label className="settings-switch-field">启用<input type="checkbox" checked={draft.isActive} onChange={(event) => onDraftChange((current) => ({ ...current, isActive: event.target.checked }))} /></label>
       <div className="account-form-actions modal-form-actions">
         <button type="button" onClick={onCancel}>取消</button>
-        <button type="submit">{draft.id ? '保存修改' : '新增字典'}</button>
+        <button type="submit" disabled={cloudReadOnly}>{draft.id ? '保存修改' : '新增字典'}</button>
       </div>
     </form>
   );
@@ -4213,7 +4243,7 @@ function createDictionaryDraft(category = 'insurer', entry = null) {
   };
 }
 
-function SystemSettingsPage({ session, cloudState, orders, dictionaries, canViewLogs, onDictionariesChange, onRefreshOrders }) {
+function SystemSettingsPage({ session, cloudState, orders, dictionaries, canViewLogs, onDictionariesChange, onRefreshOrders, cloudReadOnly = false }) {
   const [logs, setLogs] = useState([]);
   const [logState, setLogState] = useState({ loading: false, error: '' });
   const [logFilters, setLogFilters] = useState({ date: '', actor: '', action: '', target: '' });
@@ -4301,7 +4331,7 @@ function SystemSettingsPage({ session, cloudState, orders, dictionaries, canView
 
   function submitAccount(event) {
     event.preventDefault();
-    if (!isAdmin) return;
+    if (!isAdmin || cloudReadOnly) return;
     setAccountState({ loading: true, message: '', error: '' });
     saveAccount(accountDraft, session)
       .then(() => {
@@ -4315,7 +4345,7 @@ function SystemSettingsPage({ session, cloudState, orders, dictionaries, canView
   }
 
   function removeAccount(account) {
-    if (!isAdmin) return;
+    if (!isAdmin || cloudReadOnly) return;
     setAccountState({ loading: true, message: '', error: '' });
     deleteAccount(account.id, session)
       .then(() => {
@@ -4336,7 +4366,7 @@ function SystemSettingsPage({ session, cloudState, orders, dictionaries, canView
 
   function submitDictionary(event, draft, resetDraft) {
     event.preventDefault();
-    if (!canManageSettings) return;
+    if (!canManageSettings || cloudReadOnly) return;
     setDictionaryState({ loading: true, message: '', error: '' });
     saveDictionaryEntry(draft, session)
       .then(() => {
@@ -4350,7 +4380,7 @@ function SystemSettingsPage({ session, cloudState, orders, dictionaries, canView
   }
 
   function removeDictionary(entry) {
-    if (!canManageSettings) return;
+    if (!canManageSettings || cloudReadOnly) return;
     setDictionaryState({ loading: true, message: '', error: '' });
     deleteDictionaryEntry(entry.id, session)
       .then(() => {
@@ -4475,6 +4505,7 @@ function SystemSettingsPage({ session, cloudState, orders, dictionaries, canView
             onAdd={() => { setInsurerDraft(createDictionaryDraft('insurer')); setActiveEditor('dictionary'); }}
             onEdit={(entry) => { setInsurerDraft(createDictionaryDraft('insurer', entry)); setActiveEditor('dictionary'); }}
             onDelete={(entry) => setDeleteTarget({ type: 'dictionary', item: entry })}
+            cloudReadOnly={cloudReadOnly}
           />
         </SettingsModal>
       ) : null}
@@ -4490,6 +4521,7 @@ function SystemSettingsPage({ session, cloudState, orders, dictionaries, canView
             onAdd={() => { setStaffDraft(createDictionaryDraft('staff')); setActiveEditor('dictionary'); }}
             onEdit={(entry) => { setStaffDraft(createDictionaryDraft('staff', entry)); setActiveEditor('dictionary'); }}
             onDelete={(entry) => setDeleteTarget({ type: 'dictionary', item: entry })}
+            cloudReadOnly={cloudReadOnly}
           />
         </SettingsModal>
       ) : null}
@@ -4500,7 +4532,7 @@ function SystemSettingsPage({ session, cloudState, orders, dictionaries, canView
           {accountState.message ? <div className="cloud-banner">{accountState.message}</div> : null}
           <div className="settings-management-toolbar">
             <div><strong>已有账号</strong><span>{accounts.length} 个账号</span></div>
-            <button type="button" className="settings-primary-action" onClick={() => { setAccountDraft(createAccountDraft()); setActiveEditor('account'); }}>＋ 新增账号</button>
+            <button type="button" className="settings-primary-action" disabled={cloudReadOnly} onClick={() => { setAccountDraft(createAccountDraft()); setActiveEditor('account'); }}>＋ 新增账号</button>
           </div>
           <div className="access-code-list modal-account-list">
             {accounts.map((account) => (
@@ -4514,8 +4546,8 @@ function SystemSettingsPage({ session, cloudState, orders, dictionaries, canView
                   <div><dt>权限</dt><dd>{account.role === 'admin' ? '全部权限' : (account.permissions || []).map((key) => permissionItems.find((item) => item.key === key)?.label).filter(Boolean).join('、') || '未分配'}</dd></div>
                 </dl>
                 <div className="access-code-actions">
-                  <button type="button" onClick={() => editAccount(account)}>编辑</button>
-                  <button type="button" className="danger" onClick={() => setDeleteTarget({ type: 'account', item: account })}>删除</button>
+                  <button type="button" disabled={cloudReadOnly} onClick={() => editAccount(account)}>编辑</button>
+                  <button type="button" disabled={cloudReadOnly} className="danger" onClick={() => setDeleteTarget({ type: 'account', item: account })}>删除</button>
                 </div>
               </article>
             ))}
@@ -4587,6 +4619,7 @@ function SystemSettingsPage({ session, cloudState, orders, dictionaries, canView
               ? submitDictionary(event, staffDraft, setStaffDraft)
               : submitDictionary(event, insurerDraft, setInsurerDraft)}
             onCancel={() => setActiveEditor('')}
+            cloudReadOnly={cloudReadOnly}
           />
         </SettingsModal>
       ) : null}
@@ -4607,7 +4640,7 @@ function SystemSettingsPage({ session, cloudState, orders, dictionaries, canView
             </div>
             <div className="account-form-actions modal-form-actions">
               <button type="button" onClick={() => setActiveEditor('')}>取消</button>
-              <button type="submit" disabled={accountState.loading}>{accountState.loading ? '保存中...' : '保存账号'}</button>
+              <button type="submit" disabled={accountState.loading || cloudReadOnly}>{accountState.loading ? '保存中...' : '保存账号'}</button>
             </div>
           </form>
         </SettingsModal>
@@ -4620,7 +4653,7 @@ function SystemSettingsPage({ session, cloudState, orders, dictionaries, canView
             <p>{deleteTarget.type === 'account' ? '该账号将无法继续登录系统。' : '该选项将从相关业务下拉列表中移除。'}</p>
             <div className="settings-delete-actions">
               <button type="button" onClick={() => setDeleteTarget(null)}>取消</button>
-              <button type="button" className="danger-primary" onClick={() => deleteTarget.type === 'account' ? removeAccount(deleteTarget.item) : removeDictionary(deleteTarget.item)}>确认删除</button>
+              <button type="button" className="danger-primary" disabled={cloudReadOnly} onClick={() => deleteTarget.type === 'account' ? removeAccount(deleteTarget.item) : removeDictionary(deleteTarget.item)}>确认删除</button>
             </div>
           </div>
         </SettingsModal>

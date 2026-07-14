@@ -4772,6 +4772,67 @@ dd {
   margin: 14px 18px 0;
 }
 
+.network-status-bar {
+  position: sticky;
+  top: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 46px;
+  padding: 8px 20px;
+  color: #7f1d1d;
+  background: #fff1f2;
+  border-bottom: 1px solid #fecdd3;
+  box-shadow: 0 8px 20px rgba(127, 29, 29, 0.08);
+}
+
+.workspace > .network-status-bar {
+  margin: 0 -18px;
+}
+
+.workspace.network-offline .topbar {
+  top: 46px;
+}
+
+.network-status-bar div {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.network-status-bar span {
+  color: #9f3a44;
+  font-size: 13px;
+}
+
+.network-status-bar button {
+  min-height: 32px;
+  border: 1px solid #fda4af;
+  border-radius: 6px;
+  padding: 6px 12px;
+  color: #9f1239;
+  background: #fff;
+  font-weight: 800;
+}
+
+.access-shell .network-status-bar {
+  position: fixed;
+  right: 0;
+  left: 0;
+}
+
+.access-shell .access-page {
+  padding-top: 74px;
+}
+
+button:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .legacy-import-backdrop {
   position: fixed;
   z-index: 1200;
@@ -4933,4 +4994,7 @@ dd {
   .legacy-import-counts { padding-right: 18px; padding-left: 18px; }
   .legacy-import-counts { grid-template-columns: 1fr; }
   .legacy-import-dialog footer { padding-right: 18px; padding-left: 18px; }
+  .network-status-bar { align-items: flex-start; padding: 8px 12px; }
+  .network-status-bar div { display: grid; gap: 2px; }
+  .network-status-bar span { font-size: 11px; }
 }
