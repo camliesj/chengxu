@@ -13,7 +13,7 @@ export function validateReleaseArtifact(version, fileName) {
 
 export function releaseArtifactKey(version, fileName) {
   const artifact = validateReleaseArtifact(version, fileName);
-  return `releases/windows/${artifact.version}/${artifact.fileName}`;
+  return `releases/windows/${artifact.version}/chengxu_${artifact.version}_x64-setup.exe`;
 }
 
 export function releaseDownloadPath(version, fileName) {

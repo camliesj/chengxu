@@ -31,7 +31,7 @@ function sessionDb(role = 'admin') {
 test('Windows release artifacts use a version-scoped COS key', () => {
   assert.equal(
     releaseArtifactKey('0.1.1', '汽修接待与车辆保险管理_0.1.1_x64-setup.exe'),
-    'releases/windows/0.1.1/汽修接待与车辆保险管理_0.1.1_x64-setup.exe',
+    'releases/windows/0.1.1/chengxu_0.1.1_x64-setup.exe',
   );
 });
 
@@ -75,7 +75,7 @@ test('only an administrator can upload a Windows installer', async () => {
     assert.equal(response.status, 200);
     assert.equal(payload.size, 3);
     assert.match(payload.downloadUrl, /client-downloads\/windows\/0\.1\.1/);
-    assert.match(uploadedUrl, /releases\/windows\/0\.1\.1/);
+    assert.match(uploadedUrl, /releases\/windows\/0\.1\.1\/chengxu_0\.1\.1_x64-setup\.exe/);
   } finally {
     globalThis.fetch = originalFetch;
   }
