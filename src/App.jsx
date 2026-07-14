@@ -7,6 +7,7 @@ import {
   paginateRows,
 } from './repairHistoryLogic.js';
 import { auditActionLabel, formatAuditTime, groupAuditLogs, parseAuditChanges } from './auditLogLogic.js';
+import { apiFetch, setSessionExpiredReporter } from './platform/apiClient.js';
 
 const navItems = ['首页看板', '维修接待', '历史查询', '车辆保险', '客户车辆', '汇总报表', '数据导出', '系统设置'];
 
@@ -125,7 +126,7 @@ function authHeaders(session) {
 }
 
 async function validateAccess(credentials) {
-  const response = await fetch('/api/access', {
+  const response = await apiFetch('/api/access', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(credentials),
@@ -137,7 +138,7 @@ async function validateAccess(credentials) {
 }
 
 async function fetchCloudOrders(session) {
-  const response = await fetch('/api/orders', {
+  const response = await apiFetch('/api/orders', {
     headers: authHeaders(session),
   });
   if (!response.ok) {
@@ -148,7 +149,7 @@ async function fetchCloudOrders(session) {
 }
 
 async function saveCloudOrder(order, session, options = {}) {
-  const response = await fetch('/api/orders', {
+  const response = await apiFetch('/api/orders', {
     method: 'POST',
     headers: { 'content-type': 'application/json', ...authHeaders(session) },
     body: JSON.stringify({ order, mode: options.mode || '', eventId: options.eventId || '' }),
@@ -166,7 +167,7 @@ async function saveCloudOrder(order, session, options = {}) {
 }
 
 async function voidCloudOrder(orderId, reason, session) {
-  const response = await fetch(`/api/orders/${encodeURIComponent(orderId)}/void`, {
+  const response = await apiFetch(`/api/orders/${encodeURIComponent(orderId)}/void`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', ...authHeaders(session) },
     body: JSON.stringify({ reason }),
@@ -179,7 +180,7 @@ async function voidCloudOrder(orderId, reason, session) {
 }
 
 async function fetchOperationLogs(session) {
-  const response = await fetch('/api/operation-logs', {
+  const response = await apiFetch('/api/operation-logs', {
     headers: authHeaders(session),
   });
   if (!response.ok) {
@@ -191,7 +192,7 @@ async function fetchOperationLogs(session) {
 }
 
 async function updateAccessCode(role, code, session, id = '') {
-  const response = await fetch('/api/access-code', {
+  const response = await apiFetch('/api/access-code', {
     method: 'POST',
     headers: { 'content-type': 'application/json', ...authHeaders(session) },
     body: JSON.stringify({ id, role, code }),
@@ -208,7 +209,7 @@ async function updateAccessCode(role, code, session, id = '') {
 }
 
 async function deleteAccessCode(id, session) {
-  const response = await fetch('/api/access-code', {
+  const response = await apiFetch('/api/access-code', {
     method: 'POST',
     headers: { 'content-type': 'application/json', ...authHeaders(session) },
     body: JSON.stringify({ action: 'delete', id }),
@@ -225,7 +226,7 @@ async function deleteAccessCode(id, session) {
 }
 
 async function unlockAccessCodePanel(adminCode, session) {
-  const response = await fetch('/api/access-code', {
+  const response = await apiFetch('/api/access-code', {
     method: 'POST',
     headers: { 'content-type': 'application/json', ...authHeaders(session) },
     body: JSON.stringify({ action: 'unlock', adminCode }),
@@ -239,7 +240,7 @@ async function unlockAccessCodePanel(adminCode, session) {
 }
 
 async function fetchAccounts(session) {
-  const response = await fetch('/api/accounts', {
+  const response = await apiFetch('/api/accounts', {
     headers: authHeaders(session),
   });
   if (!response.ok) {
@@ -251,7 +252,7 @@ async function fetchAccounts(session) {
 }
 
 async function saveAccount(account, session) {
-  const response = await fetch('/api/accounts', {
+  const response = await apiFetch('/api/accounts', {
     method: 'POST',
     headers: { 'content-type': 'application/json', ...authHeaders(session) },
     body: JSON.stringify(account),
@@ -271,7 +272,7 @@ async function saveAccount(account, session) {
 }
 
 async function deleteAccount(id, session) {
-  const response = await fetch('/api/accounts', {
+  const response = await apiFetch('/api/accounts', {
     method: 'POST',
     headers: { 'content-type': 'application/json', ...authHeaders(session) },
     body: JSON.stringify({ action: 'delete', id }),
@@ -288,7 +289,7 @@ async function deleteAccount(id, session) {
 }
 
 async function fetchDictionaries(session) {
-  const response = await fetch('/api/dictionaries', {
+  const response = await apiFetch('/api/dictionaries', {
     headers: authHeaders(session),
   });
   if (!response.ok) {
@@ -300,7 +301,7 @@ async function fetchDictionaries(session) {
 }
 
 async function saveDictionaryEntry(entry, session) {
-  const response = await fetch('/api/dictionaries', {
+  const response = await apiFetch('/api/dictionaries', {
     method: 'POST',
     headers: { 'content-type': 'application/json', ...authHeaders(session) },
     body: JSON.stringify(entry),
@@ -318,7 +319,7 @@ async function saveDictionaryEntry(entry, session) {
 }
 
 async function deleteDictionaryEntry(id, session) {
-  const response = await fetch('/api/dictionaries', {
+  const response = await apiFetch('/api/dictionaries', {
     method: 'POST',
     headers: { 'content-type': 'application/json', ...authHeaders(session) },
     body: JSON.stringify({ action: 'delete', id }),
@@ -336,7 +337,7 @@ async function uploadSettlementReceipt(file, orderId, session, options = {}) {
   formData.append('orderId', orderId);
   formData.append('eventId', options.eventId || '');
   formData.append('logMode', options.logMode || '');
-  const response = await fetch('/api/receipts', {
+  const response = await apiFetch('/api/receipts', {
     method: 'POST',
     headers: authHeaders(session),
     body: formData,
@@ -358,7 +359,7 @@ async function uploadSettlementReceipt(file, orderId, session, options = {}) {
 }
 
 async function fetchSettlementReceiptBlob(key, session) {
-  const response = await fetch(`/api/receipts?key=${encodeURIComponent(key)}`, {
+  const response = await apiFetch(`/api/receipts?key=${encodeURIComponent(key)}`, {
     headers: authHeaders(session),
   });
   if (!response.ok) {
@@ -369,7 +370,7 @@ async function fetchSettlementReceiptBlob(key, session) {
 }
 
 async function deleteSettlementReceipt(key, orderId, session, options = {}) {
-  const response = await fetch('/api/receipts', {
+  const response = await apiFetch('/api/receipts', {
     method: 'DELETE',
     headers: { 'content-type': 'application/json', ...authHeaders(session) },
     body: JSON.stringify({ key, orderId, eventId: options.eventId || '' }),
@@ -609,6 +610,11 @@ function App() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [ordersCloudState, setOrdersCloudState] = useState({ loading: false, error: '' });
   const [lastRefreshAt, setLastRefreshAt] = useState('');
+
+  useEffect(() => {
+    setSessionExpiredReporter(() => logout());
+    return () => setSessionExpiredReporter(null);
+  }, []);
 
   const currentCompany = companyById(accessSession?.companyId || 'tongda');
   const isAdmin = accessSession?.role === 'admin';
