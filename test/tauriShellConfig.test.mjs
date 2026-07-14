@@ -26,7 +26,7 @@ test('Tauri config targets the Windows NSIS application shell', () => {
   );
   assert.deepEqual(config.bundle.targets, ['nsis']);
   assert.equal(config.bundle.windows.nsis.installMode, 'currentUser');
-  assert.equal(config.bundle.createUpdaterArtifacts, false);
+  assert.equal(config.bundle.createUpdaterArtifacts, true);
   assert.deepEqual(config.plugins.updater.endpoints, [
     'https://chengxu.pages.dev/api/client-updates/{{target}}/{{arch}}/{{current_version}}',
   ]);

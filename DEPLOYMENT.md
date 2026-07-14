@@ -20,6 +20,41 @@ npm run deploy
 
 当前 Cloudflare Pages 项目 `chengxu` 已按以上规则配置，后续推送 `main` 分支会自动构建并发布 `dist`。
 
+## Windows 客户端签名发布
+
+Windows 客户端使用 Tauri 2 的 updater 签名机制。仓库只保存更新公钥，私钥和密码必须保存在本机被忽略的 `.tauri/` 目录或安全的 CI 密钥中，严禁提交到 Git。
+
+本机现有签名文件：
+
+```text
+.tauri/chengxu-updater.key
+.tauri/chengxu-updater.password
+```
+
+构建签名安装包前，在同一个 PowerShell 会话中设置：
+
+```powershell
+$env:TAURI_SIGNING_PRIVATE_KEY=(Resolve-Path -LiteralPath '.tauri\chengxu-updater.key').Path
+$env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD=(Get-Content -LiteralPath '.tauri\chengxu-updater.password' -Raw).Trim()
+npm.cmd run desktop:build
+```
+
+构建完成后，`src-tauri/target/release/bundle/nsis/` 应同时包含 NSIS 安装包和对应的 `.sig` 签名文件。发布前按照 [Windows 发布检查清单](docs/windows-release-checklist.md) 完成版本、上传、Cloudflare 变量和跨版本升级验证。
+
+Cloudflare Pages 使用以下公开版本变量生成下载信息和 updater 响应：
+
+```text
+DESKTOP_RELEASE_VERSION
+DESKTOP_RELEASE_PUBLISHED_AT
+DESKTOP_RELEASE_SIZE
+DESKTOP_RELEASE_NOTES
+DESKTOP_RELEASE_DOWNLOAD_URL
+DESKTOP_RELEASE_UPDATE_URL
+DESKTOP_RELEASE_SIGNATURE
+```
+
+安装包和 updater 文件建议上传到腾讯云 COS 的独立公开发布目录。到账回执图片仍使用私有目录，两类文件不要混用权限策略。
+
 ## 云端数据库
 
 维修工单已接入 Cloudflare D1：
@@ -66,10 +101,7 @@ COS_REGION
 
 ## 访问权限
 
-访问码已改为云端校验：
-
-- 管理员：`888888`
-- 员工：`666666`
+登录已改为云端账号密码校验，并按公司、角色和权限隔离数据。
 
 接口：
 
@@ -82,9 +114,9 @@ POST /api/orders/:id/void
 
 说明：
 
-- `GET /api/orders` 和 `POST /api/orders` 需要携带访问码登录后返回的 Bearer token。
-- 员工可以查看、新增、编辑、结算工单。
-- 管理员额外可以作废工单、查看最近 100 条操作记录。
+- `GET /api/orders` 和 `POST /api/orders` 需要携带账号密码登录后返回的 Bearer token。
+- 员工可以按分配权限查看、新增和编辑工单，并将工单推进到完工状态。
+- 结算、返结算、导出、账号权限管理和其他管理操作仅管理员可用。
 - 作废不会物理删除数据，工单会标记为 `voided = 1` 并保留操作日志。
 
 ## 第一次部署前

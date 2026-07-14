@@ -49,6 +49,7 @@ Thumbs.db
 *.msi
 *.dmg
 *.AppImage
+*.sig
 
 # Tauri local artifacts and signing secrets
 src-tauri/target/
