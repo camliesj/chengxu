@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { closedRepairModalState, openRepairModal } from './repairModalState.js';
 import {
   filterHistoryOrders as filterArchivedOrders,
@@ -11,9 +11,19 @@ import { apiFetch, setSessionExpiredReporter } from './platform/apiClient.js';
 import { findLegacyImportCandidates } from './cloudRecordLogic.js';
 import LegacyCloudImportDialog from './components/LegacyCloudImportDialog.jsx';
 import ClientDownloadsDialog from './components/ClientDownloadsDialog.jsx';
+import DesktopUpdatePanel from './components/DesktopUpdatePanel.jsx';
+import DesktopUpdatePrompt from './components/DesktopUpdatePrompt.jsx';
 import NetworkStatusBar from './components/NetworkStatusBar.jsx';
 import { printCurrentDocument, saveBytes } from './platform/files.js';
+import { isTauriRuntime } from './platform/runtime.js';
+import {
+  checkForDesktopUpdate,
+  getDesktopVersion,
+  installDesktopUpdate as installUpdatePackage,
+  relaunchDesktopApp,
+} from './platform/updater.js';
 import { useNetworkStatus } from './platform/useNetworkStatus.js';
+import { createUpdateProgress } from './updateLogic.js';
 
 const navItems = ['首页看板', '维修接待', '历史查询', '车辆保险', '客户车辆', '汇总报表', '数据导出', '系统设置'];
 
@@ -62,6 +72,9 @@ const ORDER_STORAGE_KEY = 'chengxu-repair-orders';
 const INSURANCE_STORAGE_KEY = 'chengxu-insurance-policies';
 const CUSTOMER_VEHICLE_STORAGE_KEY = 'chengxu-customer-vehicles';
 const ACCESS_SESSION_KEY = 'chengxu-access-session';
+const DESKTOP_UPDATE_CHECKED_AT_KEY = 'chengxu-desktop-update-checked-at';
+const DESKTOP_UPDATE_CHECK_INTERVAL = 24 * 60 * 60 * 1000;
+const DESKTOP_UPDATE_TIMER_INTERVAL = 60 * 60 * 1000;
 const INSURANCE_BASE_DATE = '2026-07-21';
 const defaultInsurerOptions = ['人保财险', '平安保险', '太平洋保险', '阳光保险'];
 const defaultStaffEntries = [
@@ -82,6 +95,19 @@ const permissionItems = [
 ];
 const allPermissionKeys = permissionItems.map((item) => item.key);
 const defaultStaffPermissions = ['repair', 'history', 'insurance', 'customers', 'reports'];
+
+function createDesktopUpdateState(supported = false) {
+  return {
+    supported,
+    currentVersion: '',
+    checking: false,
+    update: null,
+    error: '',
+    progress: createUpdateProgress(),
+    installing: false,
+    installed: false,
+  };
+}
 
 function companyById(companyId) {
   return companies.find((company) => company.id === companyId) || companies[0];
@@ -740,11 +766,112 @@ function App() {
   const [recordCloudState, setRecordCloudState] = useState({ loading: false, error: '' });
   const [legacyImport, setLegacyImport] = useState({ open: false, insurance: [], customers: [] });
   const [lastRefreshAt, setLastRefreshAt] = useState('');
+  const desktopRuntime = useMemo(() => isTauriRuntime(), []);
+  const [desktopUpdateState, setDesktopUpdateState] = useState(() => createDesktopUpdateState(isTauriRuntime()));
+  const [desktopUpdatePromptDismissed, setDesktopUpdatePromptDismissed] = useState(false);
+  const desktopUpdateCheckRef = useRef(false);
+
+  const runDesktopUpdateCheck = useCallback(async ({ manual = false } = {}) => {
+    if (!desktopRuntime || desktopUpdateCheckRef.current) return null;
+    desktopUpdateCheckRef.current = true;
+    setDesktopUpdateState((current) => ({ ...current, checking: true, error: '' }));
+
+    try {
+      const [currentVersion, update] = await Promise.all([
+        getDesktopVersion(),
+        checkForDesktopUpdate(),
+      ]);
+      setDesktopUpdateState((current) => ({
+        ...current,
+        currentVersion,
+        checking: false,
+        update,
+        error: '',
+        progress: createUpdateProgress(),
+        installing: false,
+        installed: false,
+      }));
+      if (update) setDesktopUpdatePromptDismissed(false);
+      return update;
+    } catch (error) {
+      setDesktopUpdateState((current) => ({
+        ...current,
+        checking: false,
+        error: error.message || '暂时无法检查客户端更新',
+      }));
+      return null;
+    } finally {
+      desktopUpdateCheckRef.current = false;
+      localStorage.setItem(DESKTOP_UPDATE_CHECKED_AT_KEY, String(Date.now()));
+      if (manual) setDesktopUpdatePromptDismissed(false);
+    }
+  }, [desktopRuntime]);
+
+  const downloadDesktopUpdate = useCallback(async () => {
+    if (!desktopUpdateState.update || desktopUpdateState.installing) return;
+    setDesktopUpdateState((current) => ({
+      ...current,
+      installing: true,
+      installed: false,
+      error: '',
+      progress: createUpdateProgress(),
+    }));
+    try {
+      await installUpdatePackage(desktopUpdateState.update, (progress) => {
+        setDesktopUpdateState((current) => ({ ...current, progress }));
+      });
+      setDesktopUpdateState((current) => ({
+        ...current,
+        installing: false,
+        installed: true,
+        progress: { ...current.progress, complete: true },
+      }));
+      setDesktopUpdatePromptDismissed(true);
+    } catch (error) {
+      setDesktopUpdateState((current) => ({
+        ...current,
+        installing: false,
+        error: error.message || '客户端更新下载失败',
+      }));
+    }
+  }, [desktopUpdateState.installing, desktopUpdateState.update]);
+
+  const restartDesktopApp = useCallback(async () => {
+    try {
+      await relaunchDesktopApp();
+    } catch (error) {
+      setDesktopUpdateState((current) => ({
+        ...current,
+        error: error.message || '客户端重启失败，请手动关闭后重新打开',
+      }));
+    }
+  }, []);
 
   useEffect(() => {
     setSessionExpiredReporter(() => logout());
     return () => setSessionExpiredReporter(null);
   }, []);
+
+  useEffect(() => {
+    if (!desktopRuntime) return undefined;
+
+    getDesktopVersion()
+      .then((currentVersion) => {
+        setDesktopUpdateState((current) => ({ ...current, currentVersion }));
+      })
+      .catch(() => {});
+
+    function checkWhenDue() {
+      const lastCheckedAt = Number(localStorage.getItem(DESKTOP_UPDATE_CHECKED_AT_KEY)) || 0;
+      if (Date.now() - lastCheckedAt >= DESKTOP_UPDATE_CHECK_INTERVAL) {
+        runDesktopUpdateCheck();
+      }
+    }
+
+    checkWhenDue();
+    const timer = window.setInterval(checkWhenDue, DESKTOP_UPDATE_TIMER_INTERVAL);
+    return () => window.clearInterval(timer);
+  }, [desktopRuntime, runDesktopUpdateCheck]);
 
   const currentCompany = companyById(accessSession?.companyId || 'tongda');
   const isAdmin = accessSession?.role === 'admin';
@@ -1142,15 +1269,31 @@ function App() {
     setNoticeOpen(false);
   }
 
+  const desktopUpdatePrompt = desktopRuntime
+    && desktopUpdateState.update
+    && !desktopUpdateState.installed
+    && !desktopUpdatePromptDismissed ? (
+      <DesktopUpdatePrompt
+        update={desktopUpdateState.update}
+        installing={desktopUpdateState.installing}
+        progress={desktopUpdateState.progress}
+        onInstall={downloadDesktopUpdate}
+        onDismiss={() => setDesktopUpdatePromptDismissed(true)}
+      />
+    ) : null;
+
   if (!isUnlocked) {
     return (
-      <div className="access-shell">
-        <NetworkStatusBar status={network.status} lastSyncedAt={network.lastSyncedAt} onRetry={network.checkNow} />
-        <AccessGate onUnlock={(session) => {
-          setAccessSession(session);
-          setIsUnlocked(true);
-        }} />
-      </div>
+      <>
+        <div className="access-shell">
+          <NetworkStatusBar status={network.status} lastSyncedAt={network.lastSyncedAt} onRetry={network.checkNow} />
+          <AccessGate onUnlock={(session) => {
+            setAccessSession(session);
+            setIsUnlocked(true);
+          }} />
+        </div>
+        {desktopUpdatePrompt}
+      </>
     );
   }
 
@@ -1425,6 +1568,14 @@ function App() {
             onDictionariesChange={setDictionaries}
             onRefreshOrders={refreshOrders}
             cloudReadOnly={cloudReadOnly}
+            desktopUpdate={{
+              supported: desktopRuntime,
+              currentVersion: desktopUpdateState.currentVersion,
+              state: desktopUpdateState,
+              onCheck: () => runDesktopUpdateCheck({ manual: true }),
+              onInstall: downloadDesktopUpdate,
+              onRestart: restartDesktopApp,
+            }}
           />
         )}
         {activePage === '系统设置' && !canOpenSettings && <NoPermissionPage title="系统设置" />}
@@ -1442,6 +1593,7 @@ function App() {
           onSkip={() => setLegacyImport((current) => ({ ...current, open: false }))}
         />
       ) : null}
+      {desktopUpdatePrompt}
     </div>
   );
 }
@@ -4261,7 +4413,7 @@ function createDictionaryDraft(category = 'insurer', entry = null) {
   };
 }
 
-function SystemSettingsPage({ session, cloudState, orders, dictionaries, canViewLogs, onDictionariesChange, onRefreshOrders, cloudReadOnly = false }) {
+function SystemSettingsPage({ session, cloudState, orders, dictionaries, canViewLogs, onDictionariesChange, onRefreshOrders, cloudReadOnly = false, desktopUpdate = null }) {
   const [logs, setLogs] = useState([]);
   const [logState, setLogState] = useState({ loading: false, error: '' });
   const [logFilters, setLogFilters] = useState({ date: '', actor: '', action: '', target: '' });
@@ -4275,6 +4427,14 @@ function SystemSettingsPage({ session, cloudState, orders, dictionaries, canView
   const [activeSettingsModal, setActiveSettingsModal] = useState('');
   const [activeEditor, setActiveEditor] = useState('');
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const updater = desktopUpdate || {
+    supported: false,
+    currentVersion: '',
+    state: createDesktopUpdateState(false),
+    onCheck: () => {},
+    onInstall: () => {},
+    onRestart: () => {},
+  };
   const isAdmin = session?.role === 'admin';
   const canManageSettings = hasUiPermission(session, 'settings');
   const insurerDictionaries = dictionaries.filter((entry) => entry.category === 'insurer');
@@ -4509,6 +4669,11 @@ function SystemSettingsPage({ session, cloudState, orders, dictionaries, canView
             <div><strong>操作日志</strong><p>{canViewLogs ? '查看系统操作记录' : '当前账号无查看权限'}</p></div>
             <em>{logs.length} 条</em><b>→</b>
           </button>
+          <button type="button" className="settings-launcher-card blue" onClick={() => openSettingsModal('about')}>
+            <span className="settings-launcher-icon">版</span>
+            <div><strong>关于与更新</strong><p>查看客户端版本并检查更新</p></div>
+            <em>{updater.supported ? updater.currentVersion || 'Windows' : '网页端'}</em><b>→</b>
+          </button>
         </div>
       </section>
 
@@ -4619,6 +4784,24 @@ function SystemSettingsPage({ session, cloudState, orders, dictionaries, canView
               </div>
             </div>
           )}
+        </SettingsModal>
+      ) : null}
+
+      {activeSettingsModal === 'about' ? (
+        <SettingsModal
+          size="medium"
+          title="关于与更新"
+          description="查看当前版本、版本说明和 Windows 客户端更新状态。"
+          onClose={closeSettingsModal}
+        >
+          <DesktopUpdatePanel
+            supported={updater.supported}
+            currentVersion={updater.currentVersion}
+            state={updater.state}
+            onCheck={updater.onCheck}
+            onInstall={updater.onInstall}
+            onRestart={updater.onRestart}
+          />
         </SettingsModal>
       ) : null}
 
