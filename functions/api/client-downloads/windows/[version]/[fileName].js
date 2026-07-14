@@ -8,7 +8,7 @@ import {
 export async function onRequestGet({ env, params }) {
   let artifact;
   try {
-    artifact = validateReleaseArtifact(params.version, params.fileName);
+    artifact = validateReleaseArtifact(params.version, decodeURIComponent(params.fileName));
   } catch {
     return new Response(null, { status: 404 });
   }

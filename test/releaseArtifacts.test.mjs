@@ -90,11 +90,12 @@ test('public release download streams the private COS object', async () => {
   try {
     const response = await downloadReleaseArtifact({
       env: cosEnv,
-      params: { version: '0.1.1', fileName: installerName },
+      params: { version: '0.1.1', fileName: encodeURIComponent(installerName) },
     });
     assert.equal(response.status, 200);
     assert.equal(response.headers.get('content-length'), '3');
     assert.match(response.headers.get('content-disposition'), /filename\*=UTF-8''/);
+    assert.doesNotMatch(response.headers.get('content-disposition'), /%25E6/);
     assert.deepEqual([...new Uint8Array(await response.arrayBuffer())], [7, 8, 9]);
   } finally {
     globalThis.fetch = originalFetch;
