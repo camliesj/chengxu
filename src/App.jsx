@@ -10,6 +10,7 @@ import { auditActionLabel, formatAuditTime, groupAuditLogs, parseAuditChanges } 
 import { apiFetch, setSessionExpiredReporter } from './platform/apiClient.js';
 import { findLegacyImportCandidates } from './cloudRecordLogic.js';
 import LegacyCloudImportDialog from './components/LegacyCloudImportDialog.jsx';
+import ClientDownloadsDialog from './components/ClientDownloadsDialog.jsx';
 import NetworkStatusBar from './components/NetworkStatusBar.jsx';
 import { useNetworkStatus } from './platform/useNetworkStatus.js';
 
@@ -636,6 +637,7 @@ function AccessGate({ onUnlock }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [downloadsOpen, setDownloadsOpen] = useState(false);
 
   async function submitAccess(event) {
     event.preventDefault();
@@ -695,7 +697,18 @@ function AccessGate({ onUnlock }) {
           {error ? <span className="form-error">{error}</span> : null}
           <button type="submit" disabled={isSubmitting}>{isSubmitting ? '登录中...' : '进入系统'}</button>
         </form>
+        <footer className="access-footer">
+          <button type="button" className="access-download-link" onClick={() => setDownloadsOpen(true)}>
+            客户端下载
+          </button>
+          <span>Windows · Android</span>
+        </footer>
       </section>
+      <ClientDownloadsDialog
+        open={downloadsOpen}
+        onClose={() => setDownloadsOpen(false)}
+        onDownload={(url) => window.open(url, '_blank', 'noopener,noreferrer')}
+      />
     </main>
   );
 }
