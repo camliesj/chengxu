@@ -33,6 +33,7 @@ pnpm-debug.log*
 
 # Runtime/cache files
 .cache/
+.wrangler/
 .tmp/
 tmp/
 temp/

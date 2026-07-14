@@ -8,6 +8,8 @@ import {
 } from './repairHistoryLogic.js';
 import { auditActionLabel, formatAuditTime, groupAuditLogs, parseAuditChanges } from './auditLogLogic.js';
 import { apiFetch, setSessionExpiredReporter } from './platform/apiClient.js';
+import { findLegacyImportCandidates } from './cloudRecordLogic.js';
+import LegacyCloudImportDialog from './components/LegacyCloudImportDialog.jsx';
 
 const navItems = ['首页看板', '维修接待', '历史查询', '车辆保险', '客户车辆', '汇总报表', '数据导出', '系统设置'];
 
@@ -331,6 +333,82 @@ async function deleteDictionaryEntry(id, session) {
   return response.json();
 }
 
+async function fetchCloudInsurancePolicies(session) {
+  const response = await apiFetch('/api/insurance-policies', { headers: authHeaders(session) });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `保险档案读取失败：${response.status}`);
+  }
+  const data = await response.json();
+  return Array.isArray(data.policies) ? data.policies.map(normalizeInsurancePolicy) : [];
+}
+
+async function saveCloudInsurancePolicy(policy, session) {
+  const response = await apiFetch('/api/insurance-policies', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...authHeaders(session) },
+    body: JSON.stringify({ policy }),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `保险档案保存失败：${response.status}`);
+  }
+  const data = await response.json();
+  return normalizeInsurancePolicy(data.policy);
+}
+
+async function importCloudInsurancePolicies(records, session) {
+  const response = await apiFetch('/api/insurance-policies', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...authHeaders(session) },
+    body: JSON.stringify({ action: 'import', records }),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `保险档案导入失败：${response.status}`);
+  }
+  const data = await response.json();
+  return Array.isArray(data.policies) ? data.policies.map(normalizeInsurancePolicy) : [];
+}
+
+async function fetchCloudCustomerVehicles(session) {
+  const response = await apiFetch('/api/customer-vehicles', { headers: authHeaders(session) });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `客户车辆读取失败：${response.status}`);
+  }
+  const data = await response.json();
+  return Array.isArray(data.vehicles) ? data.vehicles.map(normalizeCustomerVehicle) : [];
+}
+
+async function saveCloudCustomerVehicle(vehicle, session) {
+  const response = await apiFetch('/api/customer-vehicles', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...authHeaders(session) },
+    body: JSON.stringify({ vehicle }),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `客户车辆保存失败：${response.status}`);
+  }
+  const data = await response.json();
+  return normalizeCustomerVehicle(data.vehicle);
+}
+
+async function importCloudCustomerVehicles(records, session) {
+  const response = await apiFetch('/api/customer-vehicles', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...authHeaders(session) },
+    body: JSON.stringify({ action: 'import', records }),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `客户车辆导入失败：${response.status}`);
+  }
+  const data = await response.json();
+  return Array.isArray(data.vehicles) ? data.vehicles.map(normalizeCustomerVehicle) : [];
+}
+
 async function uploadSettlementReceipt(file, orderId, session, options = {}) {
   const formData = new FormData();
   formData.append('file', file);
@@ -401,13 +479,11 @@ function normalizeInsurancePolicy(policy, index = 0) {
 function readStoredInsurancePolicies() {
   try {
     const rawPolicies = localStorage.getItem(INSURANCE_STORAGE_KEY);
-    if (!rawPolicies) return insuranceRows;
+    if (!rawPolicies) return [];
     const parsedPolicies = JSON.parse(rawPolicies);
-    return Array.isArray(parsedPolicies) && parsedPolicies.length > 0
-      ? parsedPolicies.map(normalizeInsurancePolicy)
-      : insuranceRows;
+    return Array.isArray(parsedPolicies) ? parsedPolicies.map(normalizeInsurancePolicy) : [];
   } catch {
-    return insuranceRows;
+    return [];
   }
 }
 
@@ -489,28 +565,64 @@ function normalizeCustomerVehicle(vehicle, index = 0) {
 function readStoredCustomerVehicles() {
   try {
     const rawVehicles = localStorage.getItem(CUSTOMER_VEHICLE_STORAGE_KEY);
-    if (!rawVehicles) return customerVehicleRows;
+    if (!rawVehicles) return [];
     const parsedVehicles = JSON.parse(rawVehicles);
-    return Array.isArray(parsedVehicles) && parsedVehicles.length > 0
-      ? parsedVehicles.map(normalizeCustomerVehicle)
-      : customerVehicleRows;
+    return Array.isArray(parsedVehicles) ? parsedVehicles.map(normalizeCustomerVehicle) : [];
   } catch {
-    return customerVehicleRows;
+    return [];
   }
 }
 
-const insuranceRows = [
-  { id: 'IP20260725001', plate: '粤B·8A123', customer: '陈先生', phone: '138****5678', car: '本田 凯美瑞', vin: 'LFV3A24G6N30***21', expiry: '2026-07-25', amount: 6520, type: '交强险 / 商业险', insurer: '人保财险' },
-  { id: 'IP20260811002', plate: '粤A·3C789', customer: '李女士', phone: '139****1234', car: '大众 迈腾', vin: 'LBV8W3109P0***82', expiry: '2026-08-11', amount: 7340, type: '车损 / 三者 / 座位', insurer: '平安保险' },
-  { id: 'IP20260629003', plate: '粤B·7D555', customer: '刘先生', phone: '137****8888', car: '大众 迈腾', vin: 'LC0CE4CD8N0***47', expiry: '2026-06-29', amount: 5100, type: '交强险 / 三者', insurer: '太平洋保险' },
-];
+function legacyBackupKey(type, companyId) {
+  return `chengxu-legacy-${type}-backup-${companyId}`;
+}
 
-const customerVehicleRows = [
-  { id: 'CV20260723001', customer: '陈先生', phone: '138****5678', plate: '粤B·8A123', car: '本田 凯美瑞', vin: 'LFV3A24G6N30***21', insurer: '人保财险', vehicleType: '标的车', source: '维修接待', remark: '常规保养客户，保险即将到期。' },
-  { id: 'CV20260723002', customer: '李女士', phone: '139****1234', plate: '粤A·3C789', car: '大众 迈腾', vin: 'LBV8W3109P0***82', insurer: '平安保险', vehicleType: '三者车', source: '维修接待', remark: '已完工，待交车。' },
-  { id: 'CV20260723003', customer: '刘先生', phone: '137****8888', plate: '粤B·7D555', car: '大众 迈腾', vin: 'LC0CE4CD8N0***47', insurer: '太平洋保险', vehicleType: '标的车', source: '保险台账', remark: '保险已过期，需优先跟进。' },
-  { id: 'CV20260722004', customer: '周女士', phone: '135****8766', plate: '粤B·2F333', car: '别克 英朗', vin: 'LSGKE5418NW0***33', insurer: '人保财险', vehicleType: '标的车', source: '历史维修', remark: '已结算客户。' },
-];
+function cloudCacheMarkerKey(type, companyId) {
+  return `chengxu-cloud-${type}-cache-v1-${companyId}`;
+}
+
+function readBackupRecords(key) {
+  try {
+    const records = JSON.parse(localStorage.getItem(key) || '[]');
+    return Array.isArray(records) ? records : [];
+  } catch {
+    return [];
+  }
+}
+
+function ensureLegacyBackup(storageKey, type, companyId) {
+  const backupKey = legacyBackupKey(type, companyId);
+  if (localStorage.getItem(backupKey) !== null) return readBackupRecords(backupKey);
+  try {
+    const records = JSON.parse(localStorage.getItem(storageKey) || '[]');
+    const scopedRecords = Array.isArray(records)
+      ? records.filter((record) => record?.id && (record.companyId || 'tongda') === companyId)
+      : [];
+    if (scopedRecords.length > 0) localStorage.setItem(backupKey, JSON.stringify(scopedRecords));
+    return scopedRecords;
+  } catch {
+    return [];
+  }
+}
+
+function replaceCompanyRecords(currentRecords, nextRecords, companyId) {
+  return [
+    ...currentRecords.filter((record) => (record.companyId || 'tongda') !== companyId),
+    ...nextRecords,
+  ];
+}
+
+function upsertRecord(currentRecords, nextRecord) {
+  const exists = currentRecords.some((record) => (
+    record.id === nextRecord.id && (record.companyId || 'tongda') === nextRecord.companyId
+  ));
+  if (!exists) return [nextRecord, ...currentRecords];
+  return currentRecords.map((record) => (
+    record.id === nextRecord.id && (record.companyId || 'tongda') === nextRecord.companyId
+      ? nextRecord
+      : record
+  ));
+}
 
 const productionTrend = [68, 68, 82, 92, 125, 112, 132, 158, 98, 92, 112, 108, 152, 158, 120, 98, 70, 138];
 
@@ -609,6 +721,8 @@ function App() {
   const [noticeOpen, setNoticeOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [ordersCloudState, setOrdersCloudState] = useState({ loading: false, error: '' });
+  const [recordCloudState, setRecordCloudState] = useState({ loading: false, error: '' });
+  const [legacyImport, setLegacyImport] = useState({ open: false, insurance: [], customers: [] });
   const [lastRefreshAt, setLastRefreshAt] = useState('');
 
   useEffect(() => {
@@ -679,6 +793,60 @@ function App() {
   useEffect(() => {
     if (!isUnlocked || !accessSession?.token) return undefined;
     let isCancelled = false;
+    const companyId = accessSession.companyId || 'tongda';
+    const insuranceBackupKey = legacyBackupKey('insurance', companyId);
+    const customerBackupKey = legacyBackupKey('customers', companyId);
+    const insuranceBackup = localStorage.getItem(cloudCacheMarkerKey('insurance', companyId)) === 'true'
+      ? readBackupRecords(insuranceBackupKey)
+      : ensureLegacyBackup(INSURANCE_STORAGE_KEY, 'insurance', companyId);
+    const customerBackup = localStorage.getItem(cloudCacheMarkerKey('customers', companyId)) === 'true'
+      ? readBackupRecords(customerBackupKey)
+      : ensureLegacyBackup(CUSTOMER_VEHICLE_STORAGE_KEY, 'customers', companyId);
+    const canReadInsurance = hasUiPermission(accessSession, 'insurance');
+    const canReadCustomers = hasUiPermission(accessSession, 'customers');
+
+    setRecordCloudState({ loading: true, error: '' });
+    setLegacyImport({ open: false, insurance: [], customers: [] });
+
+    Promise.allSettled([
+      canReadInsurance ? fetchCloudInsurancePolicies(accessSession) : Promise.resolve(null),
+      canReadCustomers ? fetchCloudCustomerVehicles(accessSession) : Promise.resolve(null),
+    ]).then(([insuranceResult, customerResult]) => {
+      if (isCancelled) return;
+      const errors = [];
+      let insuranceCandidates = [];
+      let customerCandidates = [];
+
+      if (insuranceResult.status === 'fulfilled' && insuranceResult.value !== null) {
+        setInsurancePolicies((current) => replaceCompanyRecords(current, insuranceResult.value, companyId));
+        localStorage.setItem(cloudCacheMarkerKey('insurance', companyId), 'true');
+        insuranceCandidates = findLegacyImportCandidates(insuranceBackup, insuranceResult.value, companyId);
+      } else if (insuranceResult.status === 'rejected') {
+        errors.push(insuranceResult.reason?.message || '保险档案读取失败');
+      }
+
+      if (customerResult.status === 'fulfilled' && customerResult.value !== null) {
+        setCustomerVehicles((current) => replaceCompanyRecords(current, customerResult.value, companyId));
+        localStorage.setItem(cloudCacheMarkerKey('customers', companyId), 'true');
+        customerCandidates = findLegacyImportCandidates(customerBackup, customerResult.value, companyId);
+      } else if (customerResult.status === 'rejected') {
+        errors.push(customerResult.reason?.message || '客户车辆读取失败');
+      }
+
+      setRecordCloudState({ loading: false, error: errors.join('；') });
+      if (accessSession.role === 'admin' && (insuranceCandidates.length > 0 || customerCandidates.length > 0)) {
+        setLegacyImport({ open: true, insurance: insuranceCandidates, customers: customerCandidates });
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isUnlocked, accessSession]);
+
+  useEffect(() => {
+    if (!isUnlocked || !accessSession?.token) return undefined;
+    let isCancelled = false;
     fetchDictionaries(accessSession)
       .then((nextDictionaries) => {
         if (!isCancelled) setDictionaries(nextDictionaries);
@@ -738,29 +906,28 @@ function App() {
       .catch((error) => setOrdersCloudState({ loading: false, error: error.message || '云端刷新失败' }));
   }
 
-  function upsertOrder(nextOrder, options = {}) {
+  async function upsertOrder(nextOrder, options = {}) {
     const scopedOrder = { ...nextOrder, companyId: currentCompany.id };
     const requestOptions = { ...options, eventId: options.eventId || crypto.randomUUID() };
-    setOrders((currentOrders) => {
-      const exists = currentOrders.some((order) => order.id === scopedOrder.id);
-      if (exists) {
-        return currentOrders.map((order) => (order.id === scopedOrder.id ? scopedOrder : order));
-      }
-      return [scopedOrder, ...currentOrders];
-    });
-    saveCloudOrder(scopedOrder, accessSession, requestOptions)
-      .then(() => {
-        setOrdersCloudState({ loading: false, error: '' });
-        setLastRefreshAt(currentTimeLabel());
-      })
-      .catch((error) => setOrdersCloudState({ loading: false, error: error.message || '云端保存失败' }));
+    setOrdersCloudState({ loading: true, error: '' });
+    try {
+      const data = await saveCloudOrder(scopedOrder, accessSession, requestOptions);
+      const savedOrder = data.order || scopedOrder;
+      setOrders((currentOrders) => upsertRecord(currentOrders, savedOrder));
+      setOrdersCloudState({ loading: false, error: '' });
+      setLastRefreshAt(currentTimeLabel());
+      return savedOrder;
+    } catch (error) {
+      setOrdersCloudState({ loading: false, error: error.message || '云端保存失败' });
+      throw error;
+    }
   }
 
   function clearOrderReceipt(order) {
     if (!order?.settlementReceiptKey) return Promise.resolve(order);
     const eventId = crypto.randomUUID();
     return deleteSettlementReceipt(order.settlementReceiptKey, order.id, accessSession, { eventId })
-      .then(() => {
+      .then(async () => {
         const nextOrder = {
           ...order,
           settlementReceiptKey: '',
@@ -769,19 +936,36 @@ function App() {
           settlementReceiptSize: 0,
           settlementReceiptUploadedAt: '',
         };
-        upsertOrder(nextOrder, { eventId });
-        return nextOrder;
+        return upsertOrder(nextOrder, { eventId });
       });
   }
 
-  function saveOrder(nextOrder, options = {}) {
-    upsertOrder(nextOrder, options);
-    syncCustomerVehicleFromOrder(nextOrder);
-    syncInsurancePolicyFromOrder(nextOrder);
+  async function saveOrder(nextOrder, options = {}) {
+    let savedOrder;
+    try {
+      savedOrder = await upsertOrder(nextOrder, options);
+    } catch {
+      return null;
+    }
+
+    const syncResults = await Promise.allSettled([
+      syncCustomerVehicleFromOrder(savedOrder),
+      syncInsurancePolicyFromOrder(savedOrder),
+    ]);
+    const failedSyncs = syncResults.filter((result) => result.status === 'rejected');
+    if (failedSyncs.length > 0) {
+      setRecordCloudState({ loading: false, error: '工单已保存，但客户车辆或保险档案同步失败，请稍后重试' });
+    }
+    return savedOrder;
   }
 
   function syncCustomerVehicleFromOrder(order) {
+    const existing = companyCustomerVehicles.find((vehicle) => (
+      vehicle.plate === order.plate || (vehicle.plate === order.plate && vehicle.phone === order.phone)
+    ));
     const normalizedVehicle = normalizeCustomerVehicle({
+      ...(existing || {}),
+      id: existing?.id || `CV${Date.now()}`,
       companyId: currentCompany.id,
       customer: order.customer,
       phone: order.phone,
@@ -793,48 +977,33 @@ function App() {
       source: '维修接待',
       remark: `最近工单：${order.id}`,
     });
-
-    setCustomerVehicles((currentVehicles) => {
-      const existing = currentVehicles.find((vehicle) =>
-        (vehicle.companyId || 'tongda') === currentCompany.id &&
-        (vehicle.plate === order.plate || (vehicle.plate === order.plate && vehicle.phone === order.phone)),
-      );
-      if (!existing) return [normalizedVehicle, ...currentVehicles];
-      return currentVehicles.map((vehicle) => (
-        vehicle.id === existing.id ? { ...existing, ...normalizedVehicle, id: existing.id } : vehicle
-      ));
-    });
+    return persistCustomerVehicle(normalizedVehicle);
   }
 
   function syncInsurancePolicyFromOrder(order) {
-    if (!order.insuranceExpiry) return;
-    setInsurancePolicies((currentPolicies) => {
-      const existing = currentPolicies.find((policy) =>
-        (policy.companyId || 'tongda') === currentCompany.id && policy.plate === order.plate,
-      );
-      const normalizedPolicy = normalizeInsurancePolicy({
-        ...(existing || {}),
-        id: existing?.id || `IP${Date.now()}`,
-        companyId: currentCompany.id,
-        plate: order.plate,
-        customer: order.customer,
-        phone: order.phone,
-        car: order.car,
-        vin: order.vin,
-        expiry: order.insuranceExpiry,
-        amount: existing?.amount || 0,
-        type: existing?.type || '交强险 / 商业险',
-        insurer: order.insurer,
-      });
-      if (!existing) return [normalizedPolicy, ...currentPolicies];
-      return currentPolicies.map((policy) => (policy.id === existing.id ? normalizedPolicy : policy));
+    if (!order.insuranceExpiry) return Promise.resolve(null);
+    const existing = companyInsurancePolicies.find((policy) => policy.plate === order.plate);
+    const normalizedPolicy = normalizeInsurancePolicy({
+      ...(existing || {}),
+      id: existing?.id || `IP${Date.now()}`,
+      companyId: currentCompany.id,
+      plate: order.plate,
+      customer: order.customer,
+      phone: order.phone,
+      car: order.car,
+      vin: order.vin,
+      expiry: order.insuranceExpiry,
+      amount: existing?.amount || 0,
+      type: existing?.type || '交强险 / 商业险',
+      insurer: order.insurer,
     });
+    return persistInsurancePolicy(normalizedPolicy);
   }
 
   function updateOrderStatus(orderId, status) {
     const currentOrder = companyOrders.find((order) => order.id === orderId);
     if (!currentOrder) return;
-    upsertOrder({ ...currentOrder, status });
+    upsertOrder({ ...currentOrder, status }).catch(() => {});
   }
 
   function voidOrder(orderId, reason) {
@@ -877,26 +1046,68 @@ function App() {
     setIsUnlocked(false);
   }
 
+  async function persistInsurancePolicy(policy) {
+    const savedPolicy = await saveCloudInsurancePolicy(policy, accessSession);
+    setInsurancePolicies((currentPolicies) => upsertRecord(currentPolicies, savedPolicy));
+    return savedPolicy;
+  }
+
+  async function persistCustomerVehicle(vehicle) {
+    const savedVehicle = await saveCloudCustomerVehicle(vehicle, accessSession);
+    setCustomerVehicles((currentVehicles) => upsertRecord(currentVehicles, savedVehicle));
+    return savedVehicle;
+  }
+
   function saveInsurancePolicy(nextPolicy) {
-    setInsurancePolicies((currentPolicies) => {
-      const normalizedPolicy = normalizeInsurancePolicy({ ...nextPolicy, companyId: currentCompany.id });
-      const exists = currentPolicies.some((policy) => policy.id === normalizedPolicy.id);
-      if (exists) {
-        return currentPolicies.map((policy) => (policy.id === normalizedPolicy.id ? normalizedPolicy : policy));
-      }
-      return [normalizedPolicy, ...currentPolicies];
-    });
+    const normalizedPolicy = normalizeInsurancePolicy({ ...nextPolicy, companyId: currentCompany.id });
+    setRecordCloudState({ loading: true, error: '' });
+    return persistInsurancePolicy(normalizedPolicy)
+      .then((savedPolicy) => {
+        setRecordCloudState({ loading: false, error: '' });
+        return savedPolicy;
+      })
+      .catch((error) => {
+        setRecordCloudState({ loading: false, error: error.message || '保险档案保存失败' });
+        return null;
+      });
   }
 
   function saveCustomerVehicle(nextVehicle) {
-    setCustomerVehicles((currentVehicles) => {
-      const normalizedVehicle = normalizeCustomerVehicle({ ...nextVehicle, companyId: currentCompany.id });
-      const exists = currentVehicles.some((vehicle) => vehicle.id === normalizedVehicle.id);
-      if (exists) {
-        return currentVehicles.map((vehicle) => (vehicle.id === normalizedVehicle.id ? normalizedVehicle : vehicle));
-      }
-      return [normalizedVehicle, ...currentVehicles];
-    });
+    const normalizedVehicle = normalizeCustomerVehicle({ ...nextVehicle, companyId: currentCompany.id });
+    setRecordCloudState({ loading: true, error: '' });
+    return persistCustomerVehicle(normalizedVehicle)
+      .then((savedVehicle) => {
+        setRecordCloudState({ loading: false, error: '' });
+        return savedVehicle;
+      })
+      .catch((error) => {
+        setRecordCloudState({ loading: false, error: error.message || '客户车辆保存失败' });
+        return null;
+      });
+  }
+
+  async function importLegacyRecords() {
+    setRecordCloudState({ loading: true, error: '' });
+    const companyId = currentCompany.id;
+    try {
+      const [nextPolicies, nextVehicles] = await Promise.all([
+        legacyImport.insurance.length > 0
+          ? importCloudInsurancePolicies(legacyImport.insurance, accessSession)
+          : fetchCloudInsurancePolicies(accessSession),
+        legacyImport.customers.length > 0
+          ? importCloudCustomerVehicles(legacyImport.customers, accessSession)
+          : fetchCloudCustomerVehicles(accessSession),
+      ]);
+      setInsurancePolicies((current) => replaceCompanyRecords(current, nextPolicies, companyId));
+      setCustomerVehicles((current) => replaceCompanyRecords(current, nextVehicles, companyId));
+      localStorage.removeItem(legacyBackupKey('insurance', companyId));
+      localStorage.removeItem(legacyBackupKey('customers', companyId));
+      setLegacyImport({ open: false, insurance: [], customers: [] });
+      setRecordCloudState({ loading: false, error: '' });
+    } catch (error) {
+      setRecordCloudState({ loading: false, error: error.message || '历史档案导入失败' });
+      throw error;
+    }
   }
 
   const urgentInsurancePolicies = companyInsurancePolicies.filter(isInsuranceUrgent);
@@ -1093,6 +1304,10 @@ function App() {
           </div>
         </header>
 
+        {recordCloudState.error ? (
+          <div className="cloud-banner error archive-cloud-banner" role="alert">{recordCloudState.error}</div>
+        ) : null}
+
         {activePage === '首页看板' && (
           <Dashboard
             filteredOrders={filteredOrders}
@@ -1186,6 +1401,14 @@ function App() {
       </main>
 
       <MobileTabs activePage={activePage} setActivePage={setActivePage} />
+      {legacyImport.open ? (
+        <LegacyCloudImportDialog
+          insuranceCount={legacyImport.insurance.length}
+          customerCount={legacyImport.customers.length}
+          onImport={importLegacyRecords}
+          onSkip={() => setLegacyImport((current) => ({ ...current, open: false }))}
+        />
+      ) : null}
     </div>
   );
 }
@@ -3178,7 +3401,7 @@ function InsuranceLedger({ policies, insurerOptions, onSavePolicy, focusPolicyRe
         <Metric icon="shield" title="7天内到期" value={`${within7Count} 台`} trend="优先跟进" tone="red" />
         <Metric icon="car" title="30天内到期" value={`${within30Count} 台`} trend="续保提醒" tone="orange" />
         <Metric icon="order" title="已过期" value={`${expiredCount} 台`} trend="需立即处理" tone="red" />
-        <Metric icon="yuan" title="保险记录" value={`${policies.length} 条`} trend="本地保存" tone="blue" />
+        <Metric icon="yuan" title="保险记录" value={`${policies.length} 条`} trend="云端保存" tone="blue" />
       </div>
 
       <div className="insurance-workspace">
@@ -3429,7 +3652,7 @@ function CustomerVehiclesPage({ vehicles, orders, policies, insurerOptions, onSa
       </div>
 
       <div className="history-summary">
-        <Metric icon="car" title="车辆档案" value={`${vehicles.length} 台`} trend="本地保存" tone="blue" />
+        <Metric icon="car" title="车辆档案" value={`${vehicles.length} 台`} trend="云端保存" tone="blue" />
         <Metric icon="order" title="客户数量" value={`${customerCount} 位`} trend="按手机号统计" tone="green" />
         <Metric icon="shield" title="已关联保险" value={`${insuredCount} 台`} trend="按车牌匹配" tone="orange" />
         <Metric icon="yuan" title="有维修记录" value={`${repairedCount} 台`} trend="按车牌匹配" tone="blue" />
@@ -4474,7 +4697,7 @@ function PlaceholderPage({ title, orders }) {
       <p>该页面入口已保留。后续会接入云端数据、筛选条件、汇总报表和 Excel 导出能力。</p>
       <div className="placeholder-summary">
         <Metric icon="order" title="当前筛选工单" value={orders.length.toString()} trend="模拟数据" tone="blue" />
-        <Metric icon="yuan" title="可导出记录" value={`${orders.length + insuranceRows.length}`} trend="待接入导出" tone="green" />
+        <Metric icon="yuan" title="可导出记录" value={orders.length.toString()} trend="按当前数据统计" tone="green" />
       </div>
     </section>
   );
