@@ -4,6 +4,16 @@ import { MetricCard } from '../components/MetricCard.jsx';
 import { MobileShell } from '../components/MobileShell.jsx';
 import { StatusPill } from '../components/StatusPill.jsx';
 import { LoginCompanyScreen } from './AuthScreens.jsx';
+import {
+  OrderDetailAdminScreen,
+  OrderDetailEmployeeScreen,
+  OrdersCurrentScreen,
+  OrdersFilterSheetScreen,
+  OrderSettlementScreen,
+  OrderStatusDialogScreen,
+  ReceiptUploadScreen,
+  ReverseSettlementDialogScreen,
+} from './OrderScreens.jsx';
 import { AdminWorkbenchScreen, EmployeeWorkbenchScreen } from './WorkbenchScreens.jsx';
 
 const GROUP_TAB_MAP = {
@@ -102,7 +112,22 @@ function CatalogPlaceholderScreen({ id, label, group, role }) {
 }
 
 const PLACEHOLDER_REGISTRY = Object.fromEntries(
-  SCREEN_CATALOG.filter((screen) => screen.id !== 'login-company').map((screen) => [
+  SCREEN_CATALOG.filter(
+    (screen) =>
+      ![
+        'login-company',
+        'workbench-employee',
+        'workbench-admin',
+        'orders-current',
+        'orders-filter-sheet',
+        'order-detail-employee',
+        'order-detail-admin',
+        'order-status-dialog',
+        'order-settlement',
+        'receipt-upload',
+        'reverse-settlement-dialog',
+      ].includes(screen.id),
+  ).map((screen) => [
     screen.id,
     function ScreenPlaceholder() {
       return <CatalogPlaceholderScreen {...screen} />;
@@ -115,4 +140,12 @@ export const SCREEN_REGISTRY = {
   ...PLACEHOLDER_REGISTRY,
   'workbench-employee': EmployeeWorkbenchScreen,
   'workbench-admin': AdminWorkbenchScreen,
+  'orders-current': OrdersCurrentScreen,
+  'orders-filter-sheet': OrdersFilterSheetScreen,
+  'order-detail-employee': OrderDetailEmployeeScreen,
+  'order-detail-admin': OrderDetailAdminScreen,
+  'order-status-dialog': OrderStatusDialogScreen,
+  'order-settlement': OrderSettlementScreen,
+  'receipt-upload': ReceiptUploadScreen,
+  'reverse-settlement-dialog': ReverseSettlementDialogScreen,
 };

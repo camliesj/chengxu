@@ -126,3 +126,140 @@ export const adminRoleSummary = [
   { label: '已结算工单', value: '61', detail: '平均到账 2.4 天' },
   { label: '返修率', value: '1.8%', detail: '较上月下降 0.4%' },
 ];
+
+export const orderTabs = [
+  { id: 'all', label: '全部' },
+  { id: 'repairing', label: '在修' },
+  { id: 'completed', label: '完工' },
+  { id: 'awaiting-settlement', label: '待结算' },
+];
+
+export const currentOrders = [
+  {
+    orderNo: 'RO202607150018',
+    plate: '蒙A3816',
+    customer: '张先生',
+    phone: '138****7216',
+    statusLabel: '待结算',
+    statusTone: 'warning',
+    repairSummary: '右前翼子板钣金喷漆，更换右前大灯总成',
+    amountLabel: '合计 3,040',
+    updatedAt: '08:45 更新',
+    model: '丰田 凯美瑞',
+    staff: '张工',
+    insurer: '人保财险',
+  },
+  {
+    orderNo: 'RO202607150021',
+    plate: '蒙Q7285',
+    customer: '李女士',
+    phone: '139****1182',
+    statusLabel: '在修',
+    statusTone: 'success',
+    repairSummary: '左后门钣金整形，等待喷漆复检',
+    amountLabel: '预估 2,860',
+    updatedAt: '09:20 更新',
+    model: '大众 途观 L',
+    staff: '王工',
+    insurer: '平安保险',
+  },
+  {
+    orderNo: 'RO202607150024',
+    plate: '蒙B2207',
+    customer: '赵先生',
+    phone: '137****2890',
+    statusLabel: '完工',
+    statusTone: 'primary',
+    repairSummary: '前保险杠补漆完成，待客户确认提车',
+    amountLabel: '合计 1,760',
+    updatedAt: '10:05 更新',
+    model: '本田 CR-V',
+    staff: '陈工',
+    insurer: '太平洋保险',
+  },
+];
+
+export const filterGroups = [
+  {
+    title: '员工',
+    options: ['全部', '张工', '王工', '陈工'],
+  },
+  {
+    title: '保险公司',
+    options: ['全部', '人保财险', '平安保险', '太平洋保险'],
+  },
+  {
+    title: '日期',
+    options: ['今天', '近 3 天', '近 7 天'],
+  },
+  {
+    title: '车辆类型',
+    options: ['全部', '轿车', 'SUV', '新能源'],
+  },
+  {
+    title: '状态',
+    options: ['全部', '在修', '完工', '待结算'],
+  },
+];
+
+export const detailTimeline = [
+  { title: '已接车', time: '07-15 08:12', detail: '接待顾问录入工单并拍照验车', done: true },
+  { title: '在修', time: '07-15 09:00', detail: '钣喷工位施工中，等待终检', done: true },
+  { title: '完工', time: '待确认', detail: '确认修复质量后可切换为完工', done: false },
+  { title: '待结算', time: '待确认', detail: '费用核对完成后进入待结算', done: false },
+];
+
+export const detailSections = {
+  status: {
+    label: '当前状态',
+    value: '待结算',
+    tone: 'warning',
+    helper: '费用已核对，等待管理员完成结算。',
+  },
+  vehicle: [
+    { label: '车牌号', value: '蒙A3816' },
+    { label: '车型', value: '丰田 凯美瑞' },
+    { label: '车架号', value: 'LVGBM51K8NG062816' },
+    { label: '维修顾问', value: '张工' },
+  ],
+  customer: [
+    { label: '客户', value: '张先生' },
+    { label: '电话', value: '138****7216' },
+    { label: '保险公司', value: '人保财险' },
+    { label: '保单到期', value: '2026-12-28' },
+  ],
+  repair: [
+    { label: '维修内容', value: '右前翼子板钣金喷漆，更换右前大灯总成' },
+    { label: '配件状态', value: '大灯总成已到货，旧件已拍照留档' },
+    { label: '预计交付', value: '今天 17:30' },
+  ],
+  insurance: [
+    { label: '报案号', value: 'PIC20260715018' },
+    { label: '事故类型', value: '钣喷维修（含更换件）' },
+    { label: '出险备注', value: '右前侧剐蹭，保险已核损通过' },
+  ],
+  cost: [
+    { label: '工时费', value: '680' },
+    { label: '材料费', value: '2,360' },
+    { label: '合计', value: '3,040' },
+  ],
+  notes: [
+    '客户要求提车前再次清洁内饰。',
+    '结算完成后需同步通知保险专员回访。',
+  ],
+};
+
+export const settlementSummary = [
+  { label: '工时费', value: '680' },
+  { label: '材料费', value: '2,360' },
+  { label: '合计', value: '3,040' },
+  { label: '支付方式', value: '保险转账' },
+  { label: '结算备注', value: '等待到账回执后完成结算确认' },
+];
+
+export const receiptFile = {
+  name: 'receipt-20260715.jpg',
+  size: '2.8 MB',
+  updatedAt: '今天 10:24',
+  uploader: '财务小李',
+};

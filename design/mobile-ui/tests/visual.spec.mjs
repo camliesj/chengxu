@@ -65,6 +65,80 @@ test('administrator workbench adds business summary and settlement entry', async
   await expect(page.getByRole('button', { name: '办理结算' })).toBeVisible();
 });
 
+test('employee order detail can update progress but cannot settle', async ({ page }) => {
+  await page.goto('/?screen=order-detail-employee');
+  await expect(page.getByRole('button', { name: '切换为在修' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '切换为完工' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '标记待结算' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '完成结算' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '返结算' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '作废工单' })).toHaveCount(0);
+});
+
+test('administrator order detail exposes settlement actions', async ({ page }) => {
+  await page.goto('/?screen=order-detail-admin');
+  await expect(page.getByRole('button', { name: '完成结算' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '作废工单' })).toBeVisible();
+});
+
+test('filter is a bottom sheet and reverse settlement is destructive', async ({ page }) => {
+  await page.goto('/?screen=orders-filter-sheet');
+  await expect(page.locator('[data-overlay="bottom-sheet"]')).toBeVisible();
+  await expect(page.getByRole('button', { name: '应用筛选' })).toBeVisible();
+
+  await page.goto('/?screen=reverse-settlement-dialog');
+  await expect(page.locator('[data-overlay="confirm-dialog"]')).toBeVisible();
+  await expect(page.locator('[data-tone="danger"]')).toBeVisible();
+  await expect(page.getByRole('button', { name: '确认返结算' })).toBeVisible();
+  await expect(page.getByText('返回待结算')).toBeVisible();
+});
+
+test('order overlay screens render only for their own screen ids', async ({ page }) => {
+  await page.goto('/?screen=orders-current');
+  await expect(page.locator('[data-overlay]')).toHaveCount(0);
+
+  await page.goto('/?screen=order-status-dialog');
+  await expect(page.locator('[data-screen-id="order-status-dialog"] [data-overlay="confirm-dialog"]')).toBeVisible();
+  await expect(page.locator('[data-screen-id="order-status-dialog"] [data-tone="neutral"]')).toBeVisible();
+
+  await page.goto('/?screen=receipt-upload');
+  await expect(page.locator('[data-screen-id="receipt-upload"] [data-overlay="full-screen-modal"]')).toBeVisible();
+});
+
+test('settlement and receipt screens require a successful receipt upload', async ({ page }) => {
+  await page.goto('/?screen=order-settlement');
+  await expect(page.getByText('上传未成功前不可完成结算')).toBeVisible();
+  await expect(page.getByText('回执必传')).toBeVisible();
+  await expect(page.getByRole('button', { name: '去上传回执' })).toBeVisible();
+
+  await page.goto('/?screen=receipt-upload');
+  await expect(page.getByText('上传未成功前不可完成结算')).toBeVisible();
+  await expect(page.locator('[data-receipt-frame]')).toBeVisible();
+  await expect(page.getByText('receipt-20260715.jpg')).toBeVisible();
+  await expect(page.getByRole('button', { name: '替换文件' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '删除文件' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '确认上传' })).toBeVisible();
+});
+
+for (const viewport of [
+  { width: 360, height: 800 },
+  { width: 412, height: 915 },
+]) {
+  for (const screen of ['orders-current', 'order-detail-employee', 'order-detail-admin', 'order-settlement']) {
+    test(`${screen} responsive at ${viewport.width}`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await page.goto(`/?screen=${screen}`);
+      const shell = page.locator('[data-mobile-shell]');
+      const widths = await shell.evaluate((node) => ({
+        client: node.clientWidth,
+        scroll: node.scrollWidth,
+      }));
+      expect(widths.scroll).toBeLessThanOrEqual(widths.client);
+      await expect(page.locator('[data-stable-action-bar]')).toBeInViewport();
+    });
+  }
+}
+
 for (const viewport of [
   { width: 360, height: 800 },
   { width: 412, height: 915 },
