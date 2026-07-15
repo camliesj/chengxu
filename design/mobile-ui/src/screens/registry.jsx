@@ -1,5 +1,6 @@
 import React from 'react';
 import { SCREEN_CATALOG } from '../screen-catalog.js';
+import { LoginCompanyScreen } from './AuthScreens.jsx';
 
 function CatalogPlaceholderScreen({ id, label, group, role }) {
   return (
@@ -37,11 +38,16 @@ function CatalogPlaceholderScreen({ id, label, group, role }) {
   );
 }
 
-export const SCREEN_REGISTRY = Object.fromEntries(
-  SCREEN_CATALOG.map((screen) => [
+const PLACEHOLDER_REGISTRY = Object.fromEntries(
+  SCREEN_CATALOG.filter((screen) => screen.id !== 'login-company').map((screen) => [
     screen.id,
     function ScreenPlaceholder() {
       return <CatalogPlaceholderScreen {...screen} />;
     },
   ]),
 );
+
+export const SCREEN_REGISTRY = {
+  'login-company': LoginCompanyScreen,
+  ...PLACEHOLDER_REGISTRY,
+};
