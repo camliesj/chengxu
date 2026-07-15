@@ -28,6 +28,14 @@ import {
   settlementSummary,
 } from '../mock-data.js';
 
+const DEFAULT_DETAIL_STATUS = detailSections.status;
+const SETTLED_DETAIL_STATUS = {
+  label: '当前状态',
+  value: '已结算',
+  tone: 'success',
+  helper: '到账回执已确认，当前工单支持返结算或作废处理。',
+};
+
 function SectionBlock({ title, children, aside }) {
   return (
     <section className="order-section">
@@ -94,15 +102,15 @@ function BaseOrdersShell({ screenId, title, subtitle, action, children }) {
   );
 }
 
-function StatusHeader() {
+function StatusHeader({ statusMeta = DEFAULT_DETAIL_STATUS }) {
   return (
     <section className="order-status-hero">
       <div>
-        <p className="order-status-hero__label">{detailSections.status.label}</p>
+        <p className="order-status-hero__label">{statusMeta.label}</p>
         <h2>工单 RO202607150018</h2>
-        <p className="order-status-hero__helper">{detailSections.status.helper}</p>
+        <p className="order-status-hero__helper">{statusMeta.helper}</p>
       </div>
-      <StatusPill tone={detailSections.status.tone}>{detailSections.status.value}</StatusPill>
+      <StatusPill tone={statusMeta.tone}>{statusMeta.value}</StatusPill>
     </section>
   );
 }
@@ -129,10 +137,10 @@ function Timeline() {
   );
 }
 
-function SharedDetailBody() {
+function SharedDetailBody({ statusMeta = DEFAULT_DETAIL_STATUS }) {
   return (
     <div className="order-detail-screen">
-      <StatusHeader />
+      <StatusHeader statusMeta={statusMeta} />
       <SectionBlock title="车辆与客户">
         <KeyValueGrid items={[...detailSections.vehicle, ...detailSections.customer]} />
       </SectionBlock>
@@ -156,6 +164,15 @@ function SharedDetailBody() {
         </ul>
       </SectionBlock>
     </div>
+  );
+}
+
+function DetailLayout({ role, settlementStatus = 'awaiting', statusMeta = DEFAULT_DETAIL_STATUS }) {
+  return (
+    <>
+      <SharedDetailBody statusMeta={statusMeta} />
+      <DetailFooter role={role} settlementStatus={settlementStatus} />
+    </>
   );
 }
 
@@ -189,7 +206,7 @@ function DetailFooter({ role, settlementStatus = 'awaiting' }) {
   const actions = role === 'employee' ? employeeActions : adminActions;
 
   return (
-    <div className="stable-action-bar" data-stable-action-bar>
+    <div className="stable-action-bar" data-stable-action-bar data-action-footer>
       {actions.map((action) => (
         <FooterAction key={action.label} {...action} />
       ))}
@@ -385,10 +402,7 @@ function OrderDetailScreen({ screenId, role, title }) {
         </button>
       }
     >
-      <>
-        <SharedDetailBody />
-        <DetailFooter role={role} />
-      </>
+      <DetailLayout role={role} />
     </BaseOrdersShell>
   );
 }
@@ -409,7 +423,7 @@ export function OrderStatusDialogScreen() {
       subtitle="状态确认使用中性语气，并明确目标状态。"
     >
       <>
-        <SharedDetailBody />
+        <DetailLayout role="employee" />
         <ConfirmDialog
           title="确认切换状态"
           description="确认将当前工单状态切换为完工，系统会保留原始详情内容。"
@@ -457,8 +471,8 @@ export function ReverseSettlementDialogScreen() {
   return (
     <BaseOrdersShell
       screenId="reverse-settlement-dialog"
-      title="返结算确认"
-      subtitle="危险操作需要清晰提示返结算结果。"
+      title="管理员工单详情"
+      subtitle="已结算工单支持返结算与作废处理。"
       action={
         <button type="button" className="icon-action-button" aria-label="返回结算页">
           <ArrowRight size={18} strokeWidth={2} aria-hidden="true" />
@@ -466,7 +480,7 @@ export function ReverseSettlementDialogScreen() {
       }
     >
       <>
-        <SettlementContent />
+        <DetailLayout role="admin" settlementStatus="settled" statusMeta={SETTLED_DETAIL_STATUS} />
         <ConfirmDialog
           title="确认返结算"
           description="返结算后，当前工单会返回待结算，并重新等待回执确认。"

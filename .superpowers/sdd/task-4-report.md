@@ -39,3 +39,16 @@
 ## Commit
 
 - Commit message used: `design: add mobile order and settlement flows`
+
+## Task 4 Rework
+
+- Adjusted overlay-detail tests to scope footer assertions through `data-action-footer` and overlay confirmations through `data-overlay` with exact button names.
+- Added `data-action-footer` to the shared `DetailFooter` root so overlay screens can preserve the correct underlying action bar without selector collisions.
+
+## Rework Verification
+
+- Manual clean Vite session evidence provided by controller:
+  - Command: `npx.cmd playwright test ... --grep "order overlay screens|reverse settlement dialog overlays" --workers 1 --reporter=list`
+  - Result: `2 passed (1.9s)`
+  - `order overlay screens render only for their own screen ids`: `593ms`
+  - `reverse settlement dialog overlays a settled admin detail footer`: `294ms`

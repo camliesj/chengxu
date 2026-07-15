@@ -98,11 +98,34 @@ test('order overlay screens render only for their own screen ids', async ({ page
   await expect(page.locator('[data-overlay]')).toHaveCount(0);
 
   await page.goto('/?screen=order-status-dialog');
-  await expect(page.locator('[data-screen-id="order-status-dialog"] [data-overlay="confirm-dialog"]')).toBeVisible();
-  await expect(page.locator('[data-screen-id="order-status-dialog"] [data-tone="neutral"]')).toBeVisible();
+  const statusScreen = page.locator('[data-screen-id="order-status-dialog"]');
+  const statusFooter = statusScreen.locator('[data-action-footer]');
+  const statusOverlay = statusScreen.locator('[data-overlay="confirm-dialog"]');
+  await expect(statusOverlay).toBeVisible();
+  await expect(statusScreen.locator('[data-tone="neutral"]')).toBeVisible();
+  await expect(statusScreen.locator('[data-stable-action-bar]')).toBeVisible();
+  await expect(statusFooter).toBeVisible();
+  await expect(statusFooter.getByRole('button', { name: '切换为在修', exact: true })).toBeVisible();
+  await expect(statusFooter.getByRole('button', { name: '切换为完工', exact: true })).toBeVisible();
+  await expect(statusFooter.getByRole('button', { name: '标记待结算', exact: true })).toBeVisible();
+  await expect(statusFooter.getByRole('button', { name: '完成结算', exact: true })).toHaveCount(0);
+  await expect(statusOverlay.getByRole('button', { name: '确认切换为完工', exact: true })).toBeVisible();
 
   await page.goto('/?screen=receipt-upload');
   await expect(page.locator('[data-screen-id="receipt-upload"] [data-overlay="full-screen-modal"]')).toBeVisible();
+});
+
+test('reverse settlement dialog overlays a settled admin detail footer', async ({ page }) => {
+  await page.goto('/?screen=reverse-settlement-dialog');
+  const screen = page.locator('[data-screen-id="reverse-settlement-dialog"]');
+  const footer = screen.locator('[data-action-footer]');
+  const overlay = screen.locator('[data-overlay="confirm-dialog"][data-tone="danger"]');
+  await expect(footer).toBeVisible();
+  await expect(footer.getByRole('button', { name: '返结算', exact: true })).toBeVisible();
+  await expect(footer.getByRole('button', { name: '作废工单', exact: true })).toBeVisible();
+  await expect(footer.getByRole('button', { name: '完成结算', exact: true })).toHaveCount(0);
+  await expect(overlay).toBeVisible();
+  await expect(overlay.getByRole('button', { name: '确认返结算', exact: true })).toBeVisible();
 });
 
 test('settlement and receipt screens require a successful receipt upload', async ({ page }) => {
