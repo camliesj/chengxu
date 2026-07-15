@@ -51,12 +51,16 @@ test('employee workbench prioritizes operational tasks without settlement contro
   await expect(stateBand.getByText('在修', { exact: true })).toBeVisible();
   await expect(stateBand.getByText('待结算', { exact: true })).toBeVisible();
   await expect(stateBand.getByText('保险到期', { exact: true })).toBeVisible();
+  await expect(page.locator('[data-role-summary]')).toBeVisible();
+  await expect(page.locator('[data-role-summary]')).toContainText('当班概览');
+  await expect(page.locator('[data-role-summary]')).not.toContainText('经营摘要');
   await expect(page.getByRole('button', { name: '办理结算' })).toHaveCount(0);
 });
 
 test('administrator workbench adds business summary and settlement entry', async ({ page }) => {
   await page.goto('/?screen=workbench-admin');
-  await expect(page.getByRole('heading', { name: '经营摘要' })).toBeVisible();
+  await expect(page.locator('[data-role-summary]')).toBeVisible();
+  await expect(page.locator('[data-role-summary]')).toContainText('经营摘要');
   await expect(page.getByLabel('关键指标').getByText('本月产值')).toBeVisible();
   await expect(page.getByRole('button', { name: '办理结算' })).toBeVisible();
 });
@@ -65,17 +69,19 @@ for (const viewport of [
   { width: 360, height: 800 },
   { width: 412, height: 915 },
 ]) {
-  test(`workbench responsive at ${viewport.width}`, async ({ page }) => {
-    await page.setViewportSize(viewport);
-    await page.goto('/?screen=workbench-admin');
-    const shell = page.locator('[data-mobile-shell]');
-    const widths = await shell.evaluate((node) => ({
-      client: node.clientWidth,
-      scroll: node.scrollWidth,
-    }));
-    expect(widths.scroll).toBeLessThanOrEqual(widths.client);
-    await expect(page.getByRole('navigation', { name: '主导航' })).toBeInViewport();
-  });
+  for (const screen of ['workbench-employee', 'workbench-admin']) {
+    test(`${screen} responsive at ${viewport.width}`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await page.goto(`/?screen=${screen}`);
+      const shell = page.locator('[data-mobile-shell]');
+      const widths = await shell.evaluate((node) => ({
+        client: node.clientWidth,
+        scroll: node.scrollWidth,
+      }));
+      expect(widths.scroll).toBeLessThanOrEqual(widths.client);
+      await expect(page.getByRole('navigation', { name: '主导航' })).toBeInViewport();
+    });
+  }
 }
 
 test('shared shell keeps bottom nav pinned while main scrolls', async ({ page }) => {

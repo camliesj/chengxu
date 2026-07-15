@@ -35,6 +35,12 @@ export const employeeWorkbenchMetrics = [
   { label: '保险到期', value: '09', detail: '三日内到期', tone: 'danger' },
 ];
 
+export const employeeRoleSummary = [
+  { label: '当班接车', value: '7', detail: '上午 4 / 下午 3' },
+  { label: '待回访', value: '2', detail: '均为今日交付车辆' },
+  { label: '现场协同', value: '3 项', detail: '喷漆复检 1 / 备件确认 2' },
+];
+
 export const adminWorkbenchMetrics = [
   { label: '本月产值', value: '286,400', detail: '较上月 +8.6%', tone: 'primary' },
   { label: '待结算金额', value: '42,600', detail: '5 单待处理', tone: 'warning' },
@@ -115,7 +121,7 @@ export const adminWorkbenchOrders = [
   },
 ];
 
-export const adminBusinessSummary = [
+export const adminRoleSummary = [
   { label: '本月产值', value: '286,400', detail: '目标完成率 74%' },
   { label: '已结算工单', value: '61', detail: '平均到账 2.4 天' },
   { label: '返修率', value: '1.8%', detail: '较上月下降 0.4%' },

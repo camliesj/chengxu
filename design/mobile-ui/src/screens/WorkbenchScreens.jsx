@@ -4,11 +4,12 @@ import { MetricCard } from '../components/MetricCard.jsx';
 import { MobileShell } from '../components/MobileShell.jsx';
 import { OrderCard } from '../components/OrderCard.jsx';
 import {
-  adminBusinessSummary,
   adminWorkbenchMetrics,
   adminWorkbenchOrders,
+  adminRoleSummary,
   employeeWorkbenchMetrics,
   employeeWorkbenchOrders,
+  employeeRoleSummary,
   workbenchStateBand,
 } from '../mock-data.js';
 
@@ -39,9 +40,9 @@ function MetricGrid({ metrics }) {
   );
 }
 
-function SummaryList({ title, items }) {
+function RoleSummary({ title, items }) {
   return (
-    <section className="workbench-summary" aria-label={title}>
+    <section className="workbench-summary" aria-label={title} data-role-summary>
       <div className="workbench-section-heading">
         <h2>{title}</h2>
       </div>
@@ -75,41 +76,64 @@ function PriorityList({ title, orders }) {
   );
 }
 
-export function EmployeeWorkbenchScreen() {
+function WorkbenchLayout({
+  screenId,
+  eyebrow,
+  title,
+  subtitle,
+  metrics,
+  summaryTitle,
+  summaryItems,
+  taskTitle,
+  orders,
+}) {
   return (
     <MobileShell
-      screenId="workbench-employee"
-      eyebrow="员工工作台"
-      title="今日工作"
-      subtitle="优先处理在修推进、费用核对与保险到期提醒。"
+      screenId={screenId}
+      eyebrow={eyebrow}
+      title={title}
+      subtitle={subtitle}
       activeTab="workbench"
       showBottomNav
     >
       <div className="workbench-screen">
         <StateBand />
-        <MetricGrid metrics={employeeWorkbenchMetrics} />
-        <PriorityList title="我的待办" orders={employeeWorkbenchOrders} />
+        <MetricGrid metrics={metrics} />
+        <RoleSummary title={summaryTitle} items={summaryItems} />
+        <PriorityList title={taskTitle} orders={orders} />
       </div>
     </MobileShell>
   );
 }
 
+export function EmployeeWorkbenchScreen() {
+  return (
+    <WorkbenchLayout
+      screenId="workbench-employee"
+      eyebrow="员工工作台"
+      title="今日工作"
+      subtitle="优先处理在修推进、费用核对与保险到期提醒。"
+      metrics={employeeWorkbenchMetrics}
+      summaryTitle="当班概览"
+      summaryItems={employeeRoleSummary}
+      taskTitle="我的待办"
+      orders={employeeWorkbenchOrders}
+    />
+  );
+}
+
 export function AdminWorkbenchScreen() {
   return (
-    <MobileShell
+    <WorkbenchLayout
       screenId="workbench-admin"
       eyebrow="经营与调度"
       title="管理员工作台"
       subtitle="关注结算节奏、产值进度与高优先事项。"
-      activeTab="workbench"
-      showBottomNav
-    >
-      <div className="workbench-screen">
-        <StateBand />
-        <MetricGrid metrics={adminWorkbenchMetrics} />
-        <SummaryList title="经营摘要" items={adminBusinessSummary} />
-        <PriorityList title="优先事项" orders={adminWorkbenchOrders} />
-      </div>
-    </MobileShell>
+      metrics={adminWorkbenchMetrics}
+      summaryTitle="经营摘要"
+      summaryItems={adminRoleSummary}
+      taskTitle="优先事项"
+      orders={adminWorkbenchOrders}
+    />
   );
 }
