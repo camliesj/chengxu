@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { CarFront, ChevronLeft, ClipboardCheck, FilePenLine, Shield, UserRound, Wallet } from 'lucide-react';
 import { FullScreenModal } from '../components/Overlays.jsx';
 import { LabeledInput, LabeledSelect, LabeledTextarea } from '../components/FormControls.jsx';
@@ -15,7 +15,7 @@ function toOptions(values) {
   return values.map((value) => ({ value, label: value }));
 }
 
-function FormHeader({ progress, title, subtitle, showProgress = true, orderNo, tabs }) {
+function FormHeader({ progress, title, subtitle, showProgress = true, orderNo, tabs, activeTab, onTabChange }) {
   return (
     <header className="order-form__header" data-form-header>
       <div className="order-form__header-row">
@@ -32,15 +32,18 @@ function FormHeader({ progress, title, subtitle, showProgress = true, orderNo, t
       </div>
       {tabs ? (
         <div className="order-form__tabs" role="tablist" aria-label="编辑分区">
-          {tabs.map((tab, index) => (
+          {tabs.map((tab) => (
             <button
-              key={tab}
+              key={tab.id}
               type="button"
               role="tab"
-              aria-selected={index === 0 ? 'true' : 'false'}
-              className={`order-form__tab${index === 0 ? ' order-form__tab--active' : ''}`}
+              id={tab.tabId}
+              aria-selected={activeTab === tab.id ? 'true' : 'false'}
+              aria-controls={tab.panelId}
+              className={`order-form__tab${activeTab === tab.id ? ' order-form__tab--active' : ''}`}
+              onClick={() => onTabChange?.(tab.id)}
             >
-              {tab}
+              {tab.label}
             </button>
           ))}
         </div>
@@ -284,13 +287,26 @@ function ReviewContent() {
           { label: '材料费', value: `${sampleOrder.materialFee}` },
           { label: '付款方式', value: sampleOrder.paymentMethod },
           { label: '业务员', value: sampleOrder.staff },
+          { label: '进厂日期', value: sampleOrder.entryDate },
+          { label: '进厂时间', value: sampleOrder.entryTime },
         ]}
       />
     </div>
   );
 }
 
-function FormModalShell({ title, subtitle, progress, children, primaryLabel, showProgress = true, orderNo, tabs }) {
+function FormModalShell({
+  title,
+  subtitle,
+  progress,
+  children,
+  primaryLabel,
+  showProgress = true,
+  orderNo,
+  tabs,
+  activeTab,
+  onTabChange,
+}) {
   return (
     <FullScreenModal
       title=""
@@ -305,6 +321,8 @@ function FormModalShell({ title, subtitle, progress, children, primaryLabel, sho
           showProgress={showProgress}
           orderNo={orderNo}
           tabs={tabs}
+          activeTab={activeTab}
+          onTabChange={onTabChange}
         />
         <div className="order-form__body">{children}</div>
       </div>
@@ -365,6 +383,65 @@ export function OrderCreateReviewScreen() {
 }
 
 export function OrderEditScreen() {
+  const tabs = [
+    {
+      id: 'customer',
+      label: '客户车辆',
+      tabId: 'order-edit-tab-customer',
+      panelId: 'order-edit-panel-customer',
+    },
+    {
+      id: 'insurance',
+      label: '保险事故',
+      tabId: 'order-edit-tab-insurance',
+      panelId: 'order-edit-panel-insurance',
+    },
+    {
+      id: 'repair',
+      label: '维修费用',
+      tabId: 'order-edit-tab-repair',
+      panelId: 'order-edit-panel-repair',
+    },
+  ];
+  const [activeTab, setActiveTab] = useState('customer');
+
+  let panel = (
+    <div
+      id="order-edit-panel-customer"
+      role="tabpanel"
+      aria-labelledby="order-edit-tab-customer"
+      className="order-form__tabpanel"
+    >
+      <CustomerFields values={sampleOrder} />
+    </div>
+  );
+
+  if (activeTab === 'insurance') {
+    panel = (
+      <div
+        id="order-edit-panel-insurance"
+        role="tabpanel"
+        aria-labelledby="order-edit-tab-insurance"
+        className="order-form__tabpanel"
+      >
+        <InsuranceFields values={sampleOrder} />
+      </div>
+    );
+  }
+
+  if (activeTab === 'repair') {
+    panel = (
+      <div
+        id="order-edit-panel-repair"
+        role="tabpanel"
+        aria-labelledby="order-edit-tab-repair"
+        className="order-form__tabpanel"
+      >
+        <RepairFields values={sampleOrder} />
+      </div>
+    );
+  }
+
   return (
     <FormModalShell
       title="编辑工单"
@@ -372,13 +449,11 @@ export function OrderEditScreen() {
       primaryLabel="保存修改"
       showProgress={false}
       orderNo={sampleOrder.orderNo}
-      tabs={['客户车辆', '保险事故', '维修费用']}
+      tabs={tabs}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
     >
-      <div className="order-form__edit-stack">
-        <CustomerFields values={sampleOrder} />
-        <InsuranceFields values={sampleOrder} />
-        <RepairFields values={sampleOrder} />
-      </div>
+      <div className="order-form__edit-stack">{panel}</div>
     </FormModalShell>
   );
 }

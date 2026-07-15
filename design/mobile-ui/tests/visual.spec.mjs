@@ -186,6 +186,10 @@ test('create flow exposes the correct fields and progress for every step', async
   await expect(page.getByText('客户车辆')).toBeVisible();
   await expect(page.getByText('保险事故')).toBeVisible();
   await expect(page.getByText('维修费用')).toBeVisible();
+  await expect(page.getByText('进厂日期')).toBeVisible();
+  await expect(page.getByText('2026-07-15')).toBeVisible();
+  await expect(page.getByText('进厂时间')).toBeVisible();
+  await expect(page.getByText('08:12')).toBeVisible();
 });
 
 test('insurance expiry is required and entry date is locked', async ({ page }) => {
@@ -211,12 +215,41 @@ test('edit form shows tabs, real values, and no four-step progress', async ({ pa
   await expect(page.getByText('工单号 RO202607150018')).toBeVisible();
   await expect(page.getByRole('button', { name: '保存修改' })).toBeVisible();
   await expect(page.getByText('1 / 4')).toHaveCount(0);
-  await expect(page.getByRole('tab', { name: '客户车辆' })).toBeVisible();
-  await expect(page.getByRole('tab', { name: '保险事故' })).toBeVisible();
-  await expect(page.getByRole('tab', { name: '维修费用' })).toBeVisible();
+  const customerTab = page.getByRole('tab', { name: '客户车辆' });
+  const insuranceTab = page.getByRole('tab', { name: '保险事故' });
+  const repairTab = page.getByRole('tab', { name: '维修费用' });
+  await expect(customerTab).toBeVisible();
+  await expect(insuranceTab).toBeVisible();
+  await expect(repairTab).toBeVisible();
+  await expect(customerTab).toHaveAttribute('aria-selected', 'true');
+  await expect(customerTab).toHaveAttribute('aria-controls', 'order-edit-panel-customer');
+  await expect(page.locator('#order-edit-panel-customer')).toBeVisible();
+  await expect(page.locator('#order-edit-panel-insurance')).toHaveCount(0);
+  await expect(page.locator('#order-edit-panel-repair')).toHaveCount(0);
   await expect(page.getByLabel('客户姓名')).toHaveValue('张先生');
+  await expect(page.getByLabel('保险公司')).toHaveCount(0);
+  await expect(page.getByLabel('维修内容')).toHaveCount(0);
+
+  await insuranceTab.click();
+  await expect(customerTab).toHaveAttribute('aria-selected', 'false');
+  await expect(insuranceTab).toHaveAttribute('aria-selected', 'true');
+  await expect(insuranceTab).toHaveAttribute('aria-controls', 'order-edit-panel-insurance');
+  await expect(page.locator('#order-edit-panel-customer')).toHaveCount(0);
+  await expect(page.locator('#order-edit-panel-insurance')).toBeVisible();
+  await expect(page.getByLabel('客户姓名')).toHaveCount(0);
+  await expect(page.getByLabel('保险到期日（必填）')).toBeVisible();
   await expect(page.getByLabel('保险公司')).toHaveValue('人保财险');
+
+  await repairTab.click();
+  await expect(insuranceTab).toHaveAttribute('aria-selected', 'false');
+  await expect(repairTab).toHaveAttribute('aria-selected', 'true');
+  await expect(repairTab).toHaveAttribute('aria-controls', 'order-edit-panel-repair');
+  await expect(page.locator('#order-edit-panel-insurance')).toHaveCount(0);
+  await expect(page.locator('#order-edit-panel-repair')).toBeVisible();
+  await expect(page.getByLabel('保险到期日（必填）')).toHaveCount(0);
   await expect(page.getByLabel('维修内容')).toHaveValue(/右前翼子板钣金喷漆/);
+  await expect(page.getByLabel('进厂日期')).toBeVisible();
+  await expect(page.getByLabel('进厂时间')).toBeVisible();
 });
 
 test('form layouts stay single-column on phone and avoid horizontal overflow on small screens', async ({

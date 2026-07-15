@@ -63,3 +63,25 @@ Scope: Task 5 four-step create flow and edit state under `design/mobile-ui/`
 
 - Stopped manual Vite server after verification.
 - Removed `test-results/` and build output from the workspace after checks.
+
+## Rework Addendum
+
+- Review follow-up required two concrete fixes:
+  - edit mode tabs had to become real `useState`-driven tabs with `aria-selected`, `aria-controls`, and a single rendered `tabpanel`
+  - review summary had to include `进厂日期` and `进厂时间` using the same values as Step 3
+- Added RED assertions first:
+  - create review screen must show `进厂日期 / 2026-07-15 / 进厂时间 / 08:12`
+  - edit screen must default to customer panel only, then switch to insurance panel only, then repair panel only
+- Verified RED with manual Vite:
+  - `npm.cmd run test:mobile-ui -- --grep "create flow exposes|edit form shows"`
+  - Result before fix: 2 failures, matching the missing summary fields and static tabs
+- Implemented GREEN:
+  - `OrderEditScreen` now uses `React.useState` for active tab
+  - each tab exposes explicit `aria-controls`
+  - only the current `tabpanel` is rendered
+  - review summary now includes entry date/time
+- Re-verified with manual Vite clean exit:
+  - focused run: `2 passed`
+  - full run: `38 passed`
+  - `npm.cmd run build`: success
+  - `git -c safe.directory=E:/codex/chengxu diff --check`: pass
