@@ -35,15 +35,48 @@ test('company selection switches to the second company', async ({ page }) => {
   await expect(secondCompany.locator('[data-selected-icon="true"]')).toBeVisible();
 });
 
-test('placeholder routes use the shared shell and keep workbench-admin registered', async ({ page }) => {
+test('workbench admin route uses the shared shell and keeps navigation active', async ({ page }) => {
   await page.goto('/?screen=workbench-admin');
 
   await expect(page.locator('[data-screen-id="workbench-admin"]')).toBeVisible();
-  await expect(page.getByText('任务 1 占位原型')).toBeVisible();
   await expect(page.getByRole('heading', { name: '管理员工作台' })).toBeVisible();
   await expect(page.getByRole('navigation', { name: '主导航' })).toBeVisible();
   await expect(page.getByRole('button', { name: '工作台' })).toHaveAttribute('aria-current', 'page');
 });
+
+test('employee workbench prioritizes operational tasks without settlement controls', async ({ page }) => {
+  await page.goto('/?screen=workbench-employee');
+  await expect(page.getByRole('heading', { name: '今日工作' })).toBeVisible();
+  const stateBand = page.getByLabel('工单状态概览');
+  await expect(stateBand.getByText('在修', { exact: true })).toBeVisible();
+  await expect(stateBand.getByText('待结算', { exact: true })).toBeVisible();
+  await expect(stateBand.getByText('保险到期', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '办理结算' })).toHaveCount(0);
+});
+
+test('administrator workbench adds business summary and settlement entry', async ({ page }) => {
+  await page.goto('/?screen=workbench-admin');
+  await expect(page.getByRole('heading', { name: '经营摘要' })).toBeVisible();
+  await expect(page.getByLabel('关键指标').getByText('本月产值')).toBeVisible();
+  await expect(page.getByRole('button', { name: '办理结算' })).toBeVisible();
+});
+
+for (const viewport of [
+  { width: 360, height: 800 },
+  { width: 412, height: 915 },
+]) {
+  test(`workbench responsive at ${viewport.width}`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await page.goto('/?screen=workbench-admin');
+    const shell = page.locator('[data-mobile-shell]');
+    const widths = await shell.evaluate((node) => ({
+      client: node.clientWidth,
+      scroll: node.scrollWidth,
+    }));
+    expect(widths.scroll).toBeLessThanOrEqual(widths.client);
+    await expect(page.getByRole('navigation', { name: '主导航' })).toBeInViewport();
+  });
+}
 
 test('shared shell keeps bottom nav pinned while main scrolls', async ({ page }) => {
   await page.goto('/?screen=workbench-admin');

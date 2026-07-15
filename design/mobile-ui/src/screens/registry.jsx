@@ -4,6 +4,7 @@ import { MetricCard } from '../components/MetricCard.jsx';
 import { MobileShell } from '../components/MobileShell.jsx';
 import { StatusPill } from '../components/StatusPill.jsx';
 import { LoginCompanyScreen } from './AuthScreens.jsx';
+import { AdminWorkbenchScreen, EmployeeWorkbenchScreen } from './WorkbenchScreens.jsx';
 
 const GROUP_TAB_MAP = {
   workbench: 'workbench',
@@ -112,4 +113,6 @@ const PLACEHOLDER_REGISTRY = Object.fromEntries(
 export const SCREEN_REGISTRY = {
   'login-company': LoginCompanyScreen,
   ...PLACEHOLDER_REGISTRY,
+  'workbench-employee': EmployeeWorkbenchScreen,
+  'workbench-admin': AdminWorkbenchScreen,
 };
