@@ -43,7 +43,7 @@ export async function onRequestGet({ request, env }) {
 }
 
 export async function onRequestPost({ request, env }) {
-  const { session, error } = await requireSession(request, env);
+  const { session, error } = await requireSession(request, env, { adminOnly: true });
   if (error) return error;
 
   const formData = await request.formData();
@@ -90,7 +90,7 @@ export async function onRequestPost({ request, env }) {
 }
 
 export async function onRequestDelete({ request, env }) {
-  const { session, error } = await requireSession(request, env);
+  const { session, error } = await requireSession(request, env, { adminOnly: true });
   if (error) return error;
 
   const payload = await request.json().catch(() => ({}));

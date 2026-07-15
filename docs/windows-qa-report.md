@@ -1,85 +1,82 @@
-# Windows 0.1.1 Release QA Report
+# Windows 0.1.2 Release QA Report
 
 ## Release candidate
 
 - Test dates: 2026-07-14 to 2026-07-15 (Asia/Shanghai)
-- Version: `0.1.1`
+- Version: `0.1.2`
 - Platform: Windows x64, Tauri NSIS current-user installer
-- Installer: `汽修接待与车辆保险管理_0.1.1_x64-setup.exe`
-- Size: `4,405,881` bytes (`4.20 MB`)
-- SHA-256: `9CEB6BDDAE837281E643D775DEEBB7FE669DA4B1891E617EEC8000F0208956C0`
-- Download: `https://chengxu.pages.dev/api/client-downloads/windows/0.1.1/%E6%B1%BD%E4%BF%AE%E6%8E%A5%E5%BE%85%E4%B8%8E%E8%BD%A6%E8%BE%86%E4%BF%9D%E9%99%A9%E7%AE%A1%E7%90%86_0.1.1_x64-setup.exe`
+- Installer: `汽修接待与车辆保险管理_0.1.2_x64-setup.exe`
+- Size: `4,406,294` bytes (`4.20 MB`)
+- SHA-256: `888CBF62CE0302D244FFE5CFA30CEF73B33B405CFC658607116923AB61B0E48B`
+- Download: `https://chengxu.pages.dev/api/client-downloads/windows/0.1.2/%E6%B1%BD%E4%BF%AE%E6%8E%A5%E5%BE%85%E4%B8%8E%E8%BD%A6%E8%BE%86%E4%BF%9D%E9%99%A9%E7%AE%A1%E7%90%86_0.1.2_x64-setup.exe`
 
-The signing private key and password remain in ignored local files. Only the updater signature was supplied to Cloudflare release metadata.
+The updater private key and password remain in ignored local files. Only the public updater signature is stored in Cloudflare release metadata.
 
 ## Test machine
 
 - Operating system: Windows 10 Home China, 21H2, build `19044.1865`
 - WebView2 runtime: `150.0.4078.65`
-- Installed application: `0.1.1`, per-user NSIS installation
+- Installed application: `0.1.2`, per-user NSIS installation
 - Display scaling affects physical window dimensions; the configured minimum remains `1280x720` logical pixels.
 
 ## Automated verification
 
 | Check | Result | Evidence |
 | --- | --- | --- |
-| Node test suite | Pass | 57 tests passed |
+| Node test suite | Pass | 60 tests passed |
+| Receipt API authorization | Pass | Staff upload/delete requests return `403 ADMIN_REQUIRED` |
+| Repair export authorization | Pass | Batch export is permission-gated and opens the export page for administrators |
 | Vite production build | Pass | 59 modules transformed |
-| Rust desktop check | Pass | `chengxu-desktop v0.1.1` compiled |
+| Rust desktop check | Pass | `chengxu-desktop v0.1.2` compiled |
 | Signed NSIS build | Pass | Installer and `.sig` generated |
-| Version consistency | Pass | npm, lockfile, Tauri config, Cargo manifest and Cargo lock are `0.1.1` |
-| COS release upload authorization | Pass | Staff denied; administrator upload covered by tests |
-| Private COS download proxy | Pass | Downloaded file hash equals the local candidate hash |
+| Version consistency | Pass | npm, lockfile, Tauri config, Cargo manifest and Cargo lock are `0.1.2` |
+| Updater signature verification | Pass | Final installer signature is valid |
+| Corrupted package rejection | Pass | Flipping one installer byte causes signature verification to fail |
 
 ## Cloud release verification
 
 | Check | Result |
 | --- | --- |
-| Release catalog reports Windows `0.1.1` available | Pass |
+| Release catalog reports Windows `0.1.2` available | Pass |
 | Android remains unavailable/coming soon | Pass |
-| Updater request from `0.1.0` returns signed `0.1.1` metadata | Pass |
-| Updater request from `0.1.1` returns HTTP `204` | Pass |
-| Download response preserves the Chinese installer name | Pass |
+| Updater request from `0.1.1` returns signed `0.1.2` metadata | Pass |
+| Updater request from `0.1.2` returns HTTP `204` | Pass |
+| Private COS download proxy returns `4,406,294` bytes | Pass |
+| Downloaded installer SHA-256 equals the local release candidate | Pass |
 | COS object uses an ASCII, version-scoped key | Pass |
-| UTF-8 Chinese release notes render in the web API and Windows dialog | Pass |
 
 ## Windows end-to-end verification
 
 | Flow | Result | Notes |
 | --- | --- | --- |
-| Silent install of baseline `0.1.0` | Pass | Windows uninstall registry reported `0.1.0` |
-| Desktop launch | Pass | Native window opened in Tauri runtime |
-| Desktop and Start menu shortcuts | Pass | Both shortcuts were present and pointed to the installed application |
-| Native window behavior | Pass | Native caption present and first launch maximized |
-| Minimum window size | Pass | Windows reported a `1618x947` physical-pixel minimum track size at the machine DPI, covering the configured `1280x720` logical minimum |
-| Single-instance activation | Pass | Second launch exited and the original process remained the only running instance |
-| Cloud account login | Pass | Temporary administrator QA account used and removed afterward |
-| Online dashboard load | Pass | Cloud data connected and existing orders loaded |
-| Login client-download dialog | Pass | Dialog opened and closed without reopening after company selection; Windows `0.1.1` and Android coming-soon states rendered |
-| Two-company read-only navigation | Pass | Tongda and Xin Qi Heng loaded dashboard, reception, history, insurance, customers, reports, export and settings without page errors |
-| Automatic update discovery | Pass | `0.1.0` displayed `0.1.1` update prompt |
-| Signed update download/install | Pass | Client installed update and restarted |
-| Installed version after update | Pass | Windows uninstall registry reported `0.1.1` |
-| Latest-version behavior | Pass | No repeat update prompt after restart |
-| Offline state | Pass | `网络不可用` and retry action displayed |
-| Offline cached reads | Pass | Existing order remained visible while requests were blocked |
-| Network recovery | Pass | Offline banner cleared and cloud-connected state returned |
-| Reception/history separation | Pass | Reception showed only unsettled work; history showed only settled work |
+| Real uninstall/reinstall baseline | Pass | Executed against the previous `0.1.1` package |
+| Silent install of final `0.1.2` | Pass | Installer returned exit code `0`; installed file version is `0.1.2` |
+| Desktop launch | Pass | Native Tauri window opened and connected to production APIs |
+| Desktop and Start menu shortcuts | Pass | Verified during the previous Windows acceptance run |
+| Native window behavior and minimum size | Pass | Verified during the previous Windows acceptance run |
+| Single-instance activation | Pass | Verified during the previous Windows acceptance run |
+| Offline cached read and network recovery | Pass | Verified during the previous Windows acceptance run |
+| Reception/history separation | Pass | Reception shows unsettled work; history shows settled work |
+| One-page work-order print | Pass | Exactly one print sheet/PDF page; browser URL is absent |
+| COS receipt upload/read/delete | Pass | Real image upload returned `200`, content read matched PNG bytes, deletion returned `200`, later read returned `404` |
+| Staff navigation permissions | Pass | Export and system settings are absent |
+| Staff order permissions | Pass | No settlement/reversal controls; settled-record mutation is rejected by the API |
+| Staff receipt permissions | Pass | Receipt can be viewed; upload and delete controls are absent; direct mutations return `403` |
+| Administrator permissions | Pass | Export, settings, settlement and receipt deletion controls are present |
+| Repair batch export | Pass | Hidden from staff; administrator action opens the working data-export page |
 
-## Residual checks
+## Deferred or external checks
 
-The following checks were not marked as passed in this run:
-
-- Corrupted-signature rejection was not tested against production because it would temporarily publish invalid update metadata to live clients.
-- Windows SmartScreen reputation was not evaluated on a clean external machine. The installer is updater-signed, but it is not Authenticode code-signed with a public CA certificate.
-- A clean-machine install without existing WebView2/runtime state should be included in the next field acceptance test.
-- Windows 11 was not available on this test machine; the executed native acceptance run used Windows 10 21H2.
-- The real uninstall flow was not executed after the final update because `0.1.1` was intentionally left installed for continued use.
-- Native Excel save, one-page print, receipt upload/view/delete and permission-changing workflows were not manually repeated in this supplemental run. Their automated coverage passed, but they still require a field acceptance pass before wider distribution.
+- Native Excel save is intentionally deferred at the user's request for this test cycle.
+- Windows 11 testing is skipped at the user's request; the native acceptance run used Windows 10 21H2.
+- Windows SmartScreen reputation was not evaluated on a clean external machine.
+- The installer and installed executable are not Authenticode code-signed with a public CA certificate, so SmartScreen reputation is not expected to be established yet.
+- A clean-machine install without existing WebView2/runtime state remains a field acceptance check.
+- The final `0.1.1` to `0.1.2` update was verified through metadata, signed package download, signature validation and silent installation, but the in-app restart flow was not repeated after the last UI-only patch.
 
 ## Cleanup
 
-- The temporary QA account and its sessions were deleted from D1.
-- The second temporary QA account used for two-company navigation and all of its sessions were deleted from D1.
-- The temporary release-publisher sessions were deleted after each COS upload attempt.
+- Temporary QA accounts, sessions and targeted operation logs were removed from D1; all cleanup counts returned zero.
+- The temporary COS receipt object was deleted and a subsequent read returned `404`.
+- Temporary signature-verifier source and executable files were deleted.
 - No private signing material or COS credential was added to Git.

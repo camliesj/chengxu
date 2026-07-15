@@ -1508,8 +1508,10 @@ function App() {
             role={accessSession?.role || 'staff'}
             canSettleOrder={canSettleOrder}
             canVoidOrder={canVoidOrder}
+            canExportData={canExportData}
             insurerOptions={insurerChoices}
             staffOptions={staffChoices}
+            onBatchExport={() => setActivePage('数据导出')}
             onUploadReceipt={(file, orderId, options) => uploadSettlementReceipt(file, orderId, accessSession, options)}
             onViewReceipt={(key) => fetchSettlementReceiptBlob(key, accessSession)}
             onDeleteReceipt={clearOrderReceipt}
@@ -2508,8 +2510,10 @@ function RepairReception({
   cloudState,
   canSettleOrder,
   canVoidOrder,
+  canExportData,
   insurerOptions,
   staffOptions,
+  onBatchExport,
   onUploadReceipt,
   onViewReceipt,
   onDeleteReceipt,
@@ -2697,7 +2701,15 @@ function RepairReception({
               >
                 新增工单
               </button>
-              <button disabled={cloudReadOnly} title={cloudReadOnly ? '网络不可用，暂时不能导出' : undefined}>批量导出</button>
+              {canExportData ? (
+                <button
+                  disabled={cloudReadOnly}
+                  title={cloudReadOnly ? '网络不可用，暂时不能导出' : undefined}
+                  onClick={onBatchExport}
+                >
+                  批量导出
+                </button>
+              ) : null}
             </div>
           </div>
           {cloudState?.loading ? <div className="cloud-banner">正在从云端加载维修工单...</div> : null}
@@ -2817,7 +2829,7 @@ function RepairReception({
           onPrint={() => printOrder(modalOrder)}
           onSettle={canSettleOrder ? () => requestSettlement(modalOrder) : null}
           onReverseSettle={canSettleOrder ? () => requestReverseSettlement(modalOrder) : null}
-          onUploadReceipt={(file, order) => onUploadReceipt(file, order.id).then((receipt) => {
+          onUploadReceipt={canSettleOrder ? (file, order) => onUploadReceipt(file, order.id).then((receipt) => {
             const nextOrder = {
               ...order,
               settlementReceiptKey: receipt.key,
@@ -2830,12 +2842,13 @@ function RepairReception({
             setWorkOrderModal(openRepairModal('detail', nextOrder.id));
             setDraft(createOrderDraft(nextOrder));
             return nextOrder;
-          })}
+          }) : null}
           onViewReceipt={onViewReceipt}
-          onDeleteReceipt={(order) => onDeleteReceipt(order).then((nextOrder) => {
+          onDeleteReceipt={canSettleOrder ? (order) => onDeleteReceipt(order).then((nextOrder) => {
             setWorkOrderModal(openRepairModal('detail', nextOrder.id));
             setDraft(createOrderDraft(nextOrder));
-          })}
+          }) : null}
+          canManageReceipt={canSettleOrder}
           onVoid={canVoidOrder ? () => setVoidOrderTarget(modalOrder) : null}
           cloudReadOnly={cloudReadOnly}
         />
