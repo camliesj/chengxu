@@ -19,20 +19,24 @@ export function BottomSheet({ title, subtitle, actions, children }) {
 }
 
 export function FullScreenModal({ title, subtitle, actions, children }) {
+  const hasHeader = title || subtitle;
   return (
     <div className="overlay-layer overlay-layer--full">
       <section
         className="full-screen-modal"
         data-overlay="full-screen-modal"
+        data-mobile-shell
         role="dialog"
         aria-modal="true"
       >
-        <header className="overlay-header">
-          <div>
-            <h2>{title}</h2>
-            {subtitle ? <p>{subtitle}</p> : null}
-          </div>
-        </header>
+        {hasHeader ? (
+          <header className="overlay-header">
+            <div>
+              <h2>{title}</h2>
+              {subtitle ? <p>{subtitle}</p> : null}
+            </div>
+          </header>
+        ) : null}
         <div className="overlay-body">{children}</div>
         {actions ? <div className="overlay-actions">{actions}</div> : null}
       </section>

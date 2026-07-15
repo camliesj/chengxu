@@ -131,11 +131,13 @@ test('reverse settlement dialog overlays a settled admin detail footer', async (
 test('settlement and receipt screens require a successful receipt upload', async ({ page }) => {
   await page.goto('/?screen=order-settlement');
   await expect(page.getByText('上传未成功前不可完成结算')).toBeVisible();
-  await expect(page.getByText('回执必传')).toBeVisible();
+  await expect(page.getByRole('heading', { name: '回执必传' })).toBeVisible();
   await expect(page.getByRole('button', { name: '去上传回执' })).toBeVisible();
 
   await page.goto('/?screen=receipt-upload');
-  await expect(page.getByText('上传未成功前不可完成结算')).toBeVisible();
+  await expect(page.locator('[data-overlay="full-screen-modal"]').getByRole('alert')).toContainText(
+    '上传未成功前不可完成结算',
+  );
   await expect(page.locator('[data-receipt-frame]')).toBeVisible();
   await expect(page.getByText('receipt-20260715.jpg')).toBeVisible();
   await expect(page.getByRole('button', { name: '替换文件' })).toBeVisible();
@@ -143,11 +145,114 @@ test('settlement and receipt screens require a successful receipt upload', async
   await expect(page.getByRole('button', { name: '确认上传' })).toBeVisible();
 });
 
+test('create flow exposes the correct fields and progress for every step', async ({ page }) => {
+  const steps = [
+    ['order-create-customer', '1 / 4', '客户与车辆'],
+    ['order-create-insurance', '2 / 4', '保险与事故'],
+    ['order-create-repair', '3 / 4', '维修与费用'],
+    ['order-create-review', '4 / 4', '确认并提交'],
+  ];
+
+  for (const [id, progress, heading] of steps) {
+    await page.goto(`/?screen=${id}`);
+    await expect(page.getByText(progress)).toBeVisible();
+    await expect(page.getByRole('heading', { name: heading })).toBeVisible();
+  }
+
+  await page.goto('/?screen=order-create-customer');
+  await expect(page.getByLabel('客户姓名')).toBeVisible();
+  await expect(page.getByLabel('手机号')).toBeVisible();
+  await expect(page.getByLabel('车牌号')).toBeVisible();
+  await expect(page.getByLabel('车型')).toBeVisible();
+  await expect(page.getByLabel('VIN')).toBeVisible();
+
+  await page.goto('/?screen=order-create-insurance');
+  await expect(page.getByLabel('保险公司')).toBeVisible();
+  await expect(page.getByLabel('保险到期日（必填）')).toBeVisible();
+  await expect(page.getByLabel('案件号')).toBeVisible();
+  await expect(page.getByLabel('车辆类型')).toBeVisible();
+  await expect(page.getByLabel('事故类型')).toBeVisible();
+
+  await page.goto('/?screen=order-create-repair');
+  await expect(page.getByLabel('维修内容')).toBeVisible();
+  await expect(page.getByLabel('工时费')).toBeVisible();
+  await expect(page.getByLabel('材料费')).toBeVisible();
+  await expect(page.getByLabel('付款方式')).toBeVisible();
+  await expect(page.getByLabel('业务员')).toBeVisible();
+  await expect(page.getByLabel('进厂日期')).toBeVisible();
+  await expect(page.getByLabel('进厂时间')).toBeVisible();
+
+  await page.goto('/?screen=order-create-review');
+  await expect(page.getByText('客户车辆')).toBeVisible();
+  await expect(page.getByText('保险事故')).toBeVisible();
+  await expect(page.getByText('维修费用')).toBeVisible();
+});
+
+test('insurance expiry is required and entry date is locked', async ({ page }) => {
+  await page.goto('/?screen=order-create-insurance');
+  await expect(page.getByLabel('保险到期日（必填）')).toBeVisible();
+
+  await page.goto('/?screen=order-create-repair');
+  await expect(page.getByLabel('进厂日期')).toBeDisabled();
+  await expect(page.getByLabel('进厂时间')).toBeEnabled();
+});
+
+test('create flow uses requirement placeholders instead of demo data', async ({ page }) => {
+  await page.goto('/?screen=order-create-customer');
+  await expect(page.getByLabel('客户姓名')).toHaveAttribute('placeholder', '必填，请输入客户姓名');
+  await expect(page.getByLabel('手机号')).toHaveAttribute('placeholder', '必填，请输入手机号');
+  await expect(page.getByLabel('VIN')).toHaveAttribute('placeholder', '可选，请输入VIN');
+  await expect(page.getByLabel('客户姓名')).not.toHaveAttribute('placeholder', /张先生/);
+});
+
+test('edit form shows tabs, real values, and no four-step progress', async ({ page }) => {
+  await page.goto('/?screen=order-edit');
+  await expect(page.getByRole('heading', { name: '编辑工单' })).toBeVisible();
+  await expect(page.getByText('工单号 RO202607150018')).toBeVisible();
+  await expect(page.getByRole('button', { name: '保存修改' })).toBeVisible();
+  await expect(page.getByText('1 / 4')).toHaveCount(0);
+  await expect(page.getByRole('tab', { name: '客户车辆' })).toBeVisible();
+  await expect(page.getByRole('tab', { name: '保险事故' })).toBeVisible();
+  await expect(page.getByRole('tab', { name: '维修费用' })).toBeVisible();
+  await expect(page.getByLabel('客户姓名')).toHaveValue('张先生');
+  await expect(page.getByLabel('保险公司')).toHaveValue('人保财险');
+  await expect(page.getByLabel('维修内容')).toHaveValue(/右前翼子板钣金喷漆/);
+});
+
+test('form layouts stay single-column on phone and avoid horizontal overflow on small screens', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto('/?screen=order-create-repair');
+
+  const shell = page.locator('[data-mobile-shell]');
+  const widths = await shell.evaluate((node) => ({
+    client: node.clientWidth,
+    scroll: node.scrollWidth,
+  }));
+  expect(widths.scroll).toBeLessThanOrEqual(widths.client);
+
+  await expect(page.locator('[data-form-grid]')).toHaveAttribute('data-columns', '1');
+  await expect(page.locator('[data-form-header]')).toBeVisible();
+  await expect(page.locator('[data-form-actions]')).toBeInViewport();
+});
+
+test('form layouts use two columns on tablet', async ({ page }) => {
+  await page.setViewportSize({ width: 768, height: 1024 });
+  await page.goto('/?screen=order-create-insurance');
+  await expect(page.locator('[data-form-grid]')).toHaveAttribute('data-columns', '2');
+});
+
 for (const viewport of [
   { width: 360, height: 800 },
   { width: 412, height: 915 },
 ]) {
-  for (const screen of ['orders-current', 'order-detail-employee', 'order-detail-admin', 'order-settlement']) {
+  for (const [screen, selector] of [
+    ['orders-current', '[aria-label="打开工单筛选"]'],
+    ['order-detail-employee', '[data-stable-action-bar]'],
+    ['order-detail-admin', '[data-stable-action-bar]'],
+    ['order-settlement', '[data-stable-action-bar]'],
+  ]) {
     test(`${screen} responsive at ${viewport.width}`, async ({ page }) => {
       await page.setViewportSize(viewport);
       await page.goto(`/?screen=${screen}`);
@@ -157,7 +262,7 @@ for (const viewport of [
         scroll: node.scrollWidth,
       }));
       expect(widths.scroll).toBeLessThanOrEqual(widths.client);
-      await expect(page.locator('[data-stable-action-bar]')).toBeInViewport();
+      await expect(page.locator(selector)).toBeInViewport();
     });
   }
 }

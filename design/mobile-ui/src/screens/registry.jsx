@@ -5,6 +5,13 @@ import { MobileShell } from '../components/MobileShell.jsx';
 import { StatusPill } from '../components/StatusPill.jsx';
 import { LoginCompanyScreen } from './AuthScreens.jsx';
 import {
+  OrderCreateCustomerScreen,
+  OrderCreateInsuranceScreen,
+  OrderCreateRepairScreen,
+  OrderCreateReviewScreen,
+  OrderEditScreen,
+} from './OrderFormScreens.jsx';
+import {
   OrderDetailAdminScreen,
   OrderDetailEmployeeScreen,
   OrdersCurrentScreen,
@@ -122,6 +129,11 @@ const PLACEHOLDER_REGISTRY = Object.fromEntries(
         'orders-filter-sheet',
         'order-detail-employee',
         'order-detail-admin',
+        'order-create-customer',
+        'order-create-insurance',
+        'order-create-repair',
+        'order-create-review',
+        'order-edit',
         'order-status-dialog',
         'order-settlement',
         'receipt-upload',
@@ -144,6 +156,11 @@ export const SCREEN_REGISTRY = {
   'orders-filter-sheet': OrdersFilterSheetScreen,
   'order-detail-employee': OrderDetailEmployeeScreen,
   'order-detail-admin': OrderDetailAdminScreen,
+  'order-create-customer': OrderCreateCustomerScreen,
+  'order-create-insurance': OrderCreateInsuranceScreen,
+  'order-create-repair': OrderCreateRepairScreen,
+  'order-create-review': OrderCreateReviewScreen,
+  'order-edit': OrderEditScreen,
   'order-status-dialog': OrderStatusDialogScreen,
   'order-settlement': OrderSettlementScreen,
   'receipt-upload': ReceiptUploadScreen,

@@ -422,6 +422,17 @@ button {
   color: var(--atlas-text);
 }
 
+.form-input:disabled {
+  background: #f4f7fb;
+  color: var(--atlas-text-muted);
+}
+
+.form-input--textarea {
+  min-height: 112px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
 .form-field__leading + .form-input {
   padding-left: 40px;
 }
@@ -974,6 +985,7 @@ button {
   grid-template-rows: auto minmax(0, 1fr) auto;
   min-height: 100%;
   padding: calc(var(--safe-area-top) + 16px) 16px calc(var(--safe-area-bottom) + 16px);
+  overflow-x: hidden;
 }
 
 .confirm-dialog {
@@ -1036,6 +1048,7 @@ button {
   display: grid;
   gap: 12px;
   min-height: 0;
+  overflow-y: auto;
 }
 
 .overlay-actions {
@@ -1178,6 +1191,177 @@ button {
   margin: 0;
 }
 
+.order-form {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 100%;
+}
+
+.order-form__body,
+.order-form__edit-stack,
+.order-form__review {
+  display: grid;
+  gap: 16px;
+}
+
+.order-form__header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: grid;
+  gap: 12px;
+  padding-bottom: 12px;
+  background: var(--atlas-surface);
+}
+
+.order-form__header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.order-form__back {
+  min-height: 40px;
+}
+
+.order-form__progress {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--atlas-accent);
+}
+
+.order-form__title-block {
+  display: grid;
+  gap: 6px;
+}
+
+.order-form__title-block h2,
+.order-form__title-block p,
+.order-form__section-heading h3,
+.order-form__review-item dt,
+.order-form__review-item dd {
+  margin: 0;
+}
+
+.order-form__title-block h2 {
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.order-form__title-block p,
+.order-form__order-no {
+  font-size: 13px;
+  color: var(--atlas-text-muted);
+}
+
+.order-form__tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.order-form__tab {
+  min-height: 40px;
+  padding: 0 8px;
+  border: 1px solid var(--atlas-border);
+  border-radius: var(--atlas-radius-card);
+  background: var(--atlas-surface);
+  color: var(--atlas-text-muted);
+  font-weight: 600;
+}
+
+.order-form__tab--active {
+  border-color: #cfe1ff;
+  background: #f5f9ff;
+  color: var(--atlas-accent);
+}
+
+.order-form__section,
+.order-form__review-group {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--atlas-border);
+  border-radius: var(--atlas-radius-card);
+  background: var(--atlas-surface);
+}
+
+.order-form__section-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.order-form__section-heading h3 {
+  font-size: 15px;
+  line-height: 1.3;
+}
+
+.order-form__section-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: #eef4ff;
+  color: var(--atlas-accent);
+}
+
+.order-form__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+.order-form__grid[data-columns='2'] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.order-form__span-full {
+  grid-column: 1 / -1;
+}
+
+.order-form__review-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.order-form__review-item {
+  display: grid;
+  gap: 4px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--atlas-border);
+}
+
+.order-form__review-item:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.order-form__review-item dt {
+  font-size: 12px;
+  color: var(--atlas-text-muted);
+}
+
+.order-form__review-item dd {
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.order-form__actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding-top: 8px;
+  background: var(--atlas-surface);
+}
+
 .placeholder-screen,
 .unknown-screen {
   display: grid;
@@ -1318,6 +1502,10 @@ button {
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .order-form__actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .order-status-hero {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -1328,5 +1516,11 @@ button {
 
   .overlay-layer--center {
     padding: 16px;
+  }
+}
+
+@media (min-width: 768px) {
+  .order-form__grid[data-columns='responsive'] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

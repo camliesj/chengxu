@@ -7,19 +7,38 @@ export const sampleOrder = {
   orderNo: 'RO202607150018',
   plate: '蒙K·A3816',
   customer: '张先生',
-  phone: '138****7216',
+  phone: '13812347216',
   model: '丰田 凯美瑞',
   vin: 'LVGBM51K8NG062816',
   insurer: '人保财险',
   expiryDate: '2026-12-28',
   claimNo: 'PIC20260715018',
+  vehicleType: '轿车',
   accidentType: '钣喷维修（有换件）',
   repairContent: '右前翼子板钣金喷漆，更换右前大灯',
   laborFee: 680,
   materialFee: 2360,
   total: 3040,
+  paymentMethod: '保险转账',
   staff: '张工',
+  entryDate: '2026-07-15',
+  entryTime: '08:12',
 };
+
+export const insurers = ['人保财险', '平安保险', '太平洋保险', '中华联合'];
+
+export const staff = ['张工', '王工', '陈工', '李顾问'];
+
+export const accidentTypes = [
+  '喷漆维修（无换件）',
+  '钣喷维修（有换件）',
+  '机电维修保养',
+  '数据修复',
+];
+
+export const vehicleTypes = ['轿车', 'SUV', 'MPV', '新能源'];
+
+export const paymentMethods = ['保险转账', '客户自付', '对公结算'];
 
 export const workbenchStateBand = [
   { label: '新建', value: '06', cue: '查看待接单' },

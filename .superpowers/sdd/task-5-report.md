@@ -1,0 +1,65 @@
+# Task 5 Report: Android Mobile UI Atlas Form Flow
+
+Date: 2026-07-15
+Branch: `codex/android-mobile-ui-atlas`
+Scope: Task 5 four-step create flow and edit state under `design/mobile-ui/`
+
+## RED
+
+- Added focused Playwright assertions for:
+  - create-step progress and headings
+  - required insurance expiry label
+  - locked entry date and editable entry time
+  - requirement-style placeholders
+  - edit-mode tabs, order number, prefilled real values, and no four-step progress
+  - 360 x 800 single-column / no horizontal overflow
+  - 768 x 1024 two-column layout
+- Initial focused run failed because the five catalog form routes were still placeholder screens.
+
+## GREEN
+
+- Replaced catalog placeholders for:
+  - `order-create-customer`
+  - `order-create-insurance`
+  - `order-create-repair`
+  - `order-create-review`
+  - `order-edit`
+- Added `design/mobile-ui/src/screens/OrderFormScreens.jsx` with:
+  - screen-id-driven full-screen modal rendering
+  - fixed header and bottom actions
+  - phone single-column / tablet two-column form grid
+  - create flow fields for the four steps
+  - edit mode with `编辑工单`, visible order number, `保存修改`, tabs, and real prefilled values
+- Extended shared form controls for disabled inputs and multiline fields.
+- Added form dictionaries and realistic edit-state values to `mock-data.js`.
+- Tightened existing mobile visual assertions so the full suite passes cleanly with the new screens.
+
+## Verification
+
+- Focused form tests:
+  - `npm.cmd run test:mobile-ui -- --grep "create flow|insurance expiry|requirement placeholders|edit form|form layouts"`
+  - Result: all targeted assertions passed. Earlier auto-managed run hit the known Windows teardown hang after assertions completed; final verification used manual Vite start/stop for clean exit.
+- Full mobile tests:
+  - manual Vite start via `npm.cmd run design:mobile`
+  - `npm.cmd run test:mobile-ui`
+  - Result: `38 passed`
+- Production build:
+  - `npm.cmd run build`
+  - Result: success
+- Whitespace / diff check:
+  - `git -c safe.directory=E:/codex/chengxu diff --check`
+  - Result: pass
+
+## Visual Self-Check
+
+- Confirmed 360 x 800 create-form screen remains single-column with no horizontal overflow.
+- Confirmed 768 x 1024 insurance step switches to two columns.
+- Confirmed fixed title area and bottom action area stay visible inside the full-screen modal shell.
+- Confirmed review step uses three top-level summary groups only: `客户车辆`, `保险事故`, `维修费用`.
+- Confirmed edit mode hides four-step progress and shows tabs plus real values instead of demo-looking placeholders.
+- Confirmed light theme, 8 px radius language, Lucide iconography, and no gradient treatment were preserved.
+
+## Cleanup
+
+- Stopped manual Vite server after verification.
+- Removed `test-results/` and build output from the workspace after checks.
