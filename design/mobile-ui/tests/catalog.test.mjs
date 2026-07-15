@@ -46,3 +46,11 @@ test('every catalog entry has review metadata', () => {
     assert.ok(['all', 'employee', 'admin'].includes(screen.role));
   }
 });
+
+test('catalog labels preserve approved Chinese copy', () => {
+  assert.equal(SCREEN_CATALOG[0].label, '登录与公司选择');
+  assert.equal(
+    SCREEN_CATALOG.find(({ id }) => id === 'states-gallery')?.label,
+    '系统状态合集',
+  );
+});

@@ -129,5 +129,79 @@ Created:
 
 ## Concerns
 
-- The screen labels in `design/mobile-ui/src/screen-catalog.js` were copied from the brief exactly as presented there, including mojibake-like encoded text. I did not normalize or reinterpret them because the brief says its exact values are authoritative.
 - The prototype entry is intentionally minimal for Task 1, so every route currently renders the explicit unknown-screen state until Task 2 populates `SCREEN_REGISTRY`.
+
+## Label Fix Follow-Up
+
+Reason for follow-up:
+
+- The original catalog accepted mojibake labels because tests only asserted non-empty metadata.
+
+Additional RED:
+
+Command:
+
+```powershell
+node --test design/mobile-ui/tests/catalog.test.mjs
+```
+
+Key output:
+
+```text
+✖ catalog labels preserve approved Chinese copy
++ '鐧诲綍涓庡叕鍙搁€夋嫨'
+- '登录与公司选择'
+```
+
+Observed result:
+
+- FAIL. The new exact Chinese assertion correctly exposed the garbled label bug.
+
+Fix applied:
+
+- Updated all 22 `label` values in `design/mobile-ui/src/screen-catalog.js` to the approved Chinese copy.
+- Added an exact regression assertion for:
+  - `SCREEN_CATALOG[0].label === '登录与公司选择'`
+  - `states-gallery === '系统状态合集'`
+
+Additional GREEN:
+
+Command:
+
+```powershell
+node --test design/mobile-ui/tests/catalog.test.mjs
+```
+
+Key output:
+
+```text
+✔ mobile UI catalog contains every approved screen exactly once
+✔ every catalog entry has review metadata
+✔ catalog labels preserve approved Chinese copy
+ℹ pass 3
+ℹ fail 0
+```
+
+Observed result:
+
+- PASS. The regression test now verifies correct Chinese labels.
+
+Re-verified production build:
+
+Command:
+
+```powershell
+npm.cmd run build
+```
+
+Key output:
+
+```text
+vite v6.4.3 building for production...
+✓ 60 modules transformed.
+✓ built in 1.43s
+```
+
+Observed result:
+
+- PASS. The production build remains unaffected.
