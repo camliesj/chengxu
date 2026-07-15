@@ -7,6 +7,9 @@
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
+    "design:mobile": "vite design/mobile-ui --host 127.0.0.1 --port 4175",
+    "design:mobile:capture": "playwright test -c design/mobile-ui/playwright.config.mjs capture.spec.mjs",
+    "test:mobile-ui": "playwright test -c design/mobile-ui/playwright.config.mjs",
     "tauri": "tauri",
     "desktop:dev": "tauri dev",
     "desktop:check": "cargo check --manifest-path src-tauri/Cargo.toml",
@@ -26,8 +29,10 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tauri-apps/cli": "^2.11.4",
     "@vitejs/plugin-react": "^4.3.4",
+    "lucide-react": "^1.24.0",
     "typescript": "^5.7.2",
     "vite": "^6.0.5",
     "wrangler": "^4.107.0"

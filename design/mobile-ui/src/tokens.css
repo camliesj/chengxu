@@ -1,0 +1,50 @@
+:root {
+  color-scheme: light;
+  --atlas-bg: #e8edf5;
+  --atlas-surface: #ffffff;
+  --atlas-surface-muted: #f4f7fb;
+  --atlas-border: #d7deea;
+  --atlas-text: #18212f;
+  --atlas-text-muted: #5d6a7f;
+  --atlas-accent: #2563eb;
+  --atlas-shadow: 0 18px 40px rgba(24, 33, 47, 0.14);
+  --atlas-radius-shell: 32px;
+  --atlas-radius-card: 18px;
+  --atlas-space-1: 4px;
+  --atlas-space-2: 8px;
+  --atlas-space-3: 12px;
+  --atlas-space-4: 16px;
+  --atlas-space-5: 20px;
+  --atlas-space-6: 24px;
+  --atlas-space-8: 32px;
+  --atlas-phone-width: 390px;
+  --atlas-phone-min-height: 844px;
+  --atlas-breakpoint-compact: 360px;
+  --atlas-breakpoint-phone: 412px;
+  --atlas-breakpoint-tablet: 768px;
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
+  font-family: Inter, "Segoe UI", sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+@media (max-width: 360px) {
+  :root {
+    --atlas-phone-width: 100vw;
+  }
+}
+
+@media (min-width: 412px) {
+  :root {
+    --atlas-phone-width: 412px;
+  }
+}
+
+@media (min-width: 768px) {
+  :root {
+    --atlas-phone-width: 412px;
+  }
+}
