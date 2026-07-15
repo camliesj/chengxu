@@ -73,6 +73,9 @@ The following checks were not marked as passed in this run:
 - Corrupted-signature rejection was not tested against production because it would temporarily publish invalid update metadata to live clients.
 - Windows SmartScreen reputation was not evaluated on a clean external machine. The installer is updater-signed, but it is not Authenticode code-signed with a public CA certificate.
 - A clean-machine install without existing WebView2/runtime state should be included in the next field acceptance test.
+- Windows 11 was not available on this test machine; the executed native acceptance run used Windows 10 21H2.
+- The real uninstall flow was not executed after the final update because `0.1.1` was intentionally left installed for continued use.
+- Native Excel save, one-page print, receipt upload/view/delete and permission-changing workflows were not manually repeated in this supplemental run. Their automated coverage passed, but they still require a field acceptance pass before wider distribution.
 
 ## Cleanup
 
