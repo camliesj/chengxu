@@ -129,7 +129,7 @@ Created:
 
 ## Concerns
 
-- The prototype entry is intentionally minimal for Task 1, so every route currently renders the explicit unknown-screen state until Task 2 populates `SCREEN_REGISTRY`.
+- The prototype entry remains intentionally lightweight for Task 1. The 22 legal routes now render contract placeholders only, not Task 2 business UI.
 
 ## Label Fix Follow-Up
 
@@ -205,3 +205,108 @@ vite v6.4.3 building for production...
 Observed result:
 
 - PASS. The production build remains unaffected.
+
+## Review Rework Follow-Up
+
+Reason for rework:
+
+- Review required `SCREEN_REGISTRY` to map all 22 valid ids instead of staying empty.
+- Review required a focused Playwright routing regression.
+- Review required locked visual tokens: background `#F5F7FA`, surface `#FFFFFF`, accent `#1677FF`, and `8px` component radii.
+
+Root cause:
+
+- The original routing implementation intentionally left `SCREEN_REGISTRY` empty, so valid routes were unresolved.
+- After adding the routing test, browser rendering still failed because the isolated Vite prototype compiled JSX to `React.createElement(...)`, but `design/mobile-ui/src/main.jsx` and `design/mobile-ui/src/screens/registry.jsx` did not import default `React`. That caused a blank page in Playwright until the imports were added.
+
+Additional RED:
+
+Command:
+
+```powershell
+npx.cmd playwright test -c design/mobile-ui/playwright.config.mjs design/mobile-ui/tests/routing.spec.mjs --reporter=line
+```
+
+Key output:
+
+```text
+Error: expect(locator).toBeVisible() failed
+Locator: locator('[data-screen-id="login-company"]')
+Expected: visible
+Error: element(s) not found
+...
+Error: expect(locator).toBeVisible() failed
+Locator: getByText('Unknown screen')
+Expected: visible
+Error: element(s) not found
+```
+
+Observed result:
+
+- FAIL. Valid screen ids did not render placeholder roots, and the browser page remained blank until the registry and React imports were fixed.
+
+Fix applied:
+
+- Added `design/mobile-ui/tests/routing.spec.mjs` with focused route assertions for:
+  - `login-company`
+  - `workbench-admin`
+  - `invalid-id`
+- Replaced the empty `SCREEN_REGISTRY` with 22 legal id mappings to a lightweight `CatalogPlaceholderScreen`.
+- Ensured each valid placeholder render root includes `data-screen-id="<id>"` and shows the approved Chinese `label`.
+- Kept invalid ids on `UnknownScreen`.
+- Added default `React` imports to `design/mobile-ui/src/main.jsx` and `design/mobile-ui/src/screens/registry.jsx` so the isolated Vite prototype renders in browser-based tests.
+- Locked tokens and shape values:
+  - background `#F5F7FA`
+  - surface `#FFFFFF`
+  - accent `#1677FF`
+  - shell/card radius `8px`
+- Removed the body gradient and switched to a flat background.
+
+Additional GREEN:
+
+Command:
+
+```powershell
+npx.cmd playwright test -c design/mobile-ui/playwright.config.mjs design/mobile-ui/tests/routing.spec.mjs --reporter=line
+```
+
+Key output:
+
+```text
+Running 3 tests using 1 worker
+3 passed (1.9s)
+```
+
+Observed result:
+
+- PASS. Both valid ids render their own placeholder root and `invalid-id` renders the unknown page.
+
+Re-verified after rework:
+
+Commands:
+
+```powershell
+node --test design/mobile-ui/tests/catalog.test.mjs
+npm.cmd run build
+```
+
+Key output:
+
+```text
+✔ mobile UI catalog contains every approved screen exactly once
+✔ every catalog entry has review metadata
+✔ catalog labels preserve approved Chinese copy
+ℹ pass 3
+ℹ fail 0
+...
+vite v6.4.3 building for production...
+✓ built in 1.48s
+```
+
+Observed result:
+
+- PASS. Catalog contract, focused routing regression, and production build all succeeded.
+
+Cleanup:
+
+- Deleted the untracked `test-results/` directory before staging changes, so Playwright artifacts are not part of the commit.
