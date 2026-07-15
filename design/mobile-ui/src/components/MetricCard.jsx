@@ -1,7 +1,7 @@
 import React from 'react';
 import { ChevronRight } from 'lucide-react';
 
-export function MetricCard({ label, value, detail, tone = 'default' }) {
+export function MetricCard({ label, value, detail, tone = 'neutral' }) {
   return (
     <section className={['metric-card', `metric-card--${tone}`].join(' ')}>
       <div className="metric-card__content">

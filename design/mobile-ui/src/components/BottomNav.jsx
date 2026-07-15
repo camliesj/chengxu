@@ -17,7 +17,7 @@ const NAV_ITEMS = [
 
 export function BottomNav({ activeTab = 'workbench' }) {
   return (
-    <nav className="mobile-bottom-nav" aria-label="主导航">
+    <nav className="mobile-bottom-nav" aria-label="主导航" data-mobile-nav>
       {NAV_ITEMS.map(({ id, label, Icon, primary }) => {
         const isActive = activeTab === id;
         return (

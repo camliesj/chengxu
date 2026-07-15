@@ -5,6 +5,7 @@ import { BottomNav } from './BottomNav.jsx';
 export function MobileShell({
   title,
   subtitle,
+  eyebrow = 'Android UI Atlas',
   action,
   activeTab,
   offline = false,
@@ -28,14 +29,14 @@ export function MobileShell({
           ) : null}
           <div className="mobile-shell__header-main">
             <div>
-              <p className="mobile-shell__eyebrow">登录与公司选择</p>
+              <p className="mobile-shell__eyebrow">{eyebrow}</p>
               <h1>{title}</h1>
               {subtitle ? <p className="mobile-shell__subtitle">{subtitle}</p> : null}
             </div>
             {action ? <div className="mobile-shell__action">{action}</div> : null}
           </div>
         </header>
-        <div className="mobile-shell__main-wrap">
+        <div className="mobile-shell__main-wrap" data-mobile-main>
           <section className="mobile-shell__main">{children}</section>
         </div>
         {showBottomNav ? <BottomNav activeTab={activeTab} /> : null}

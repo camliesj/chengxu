@@ -58,6 +58,44 @@
 - `login responsive at 390` 通过
 - `login responsive at 412` 通过
 
+### 审查返修 RED
+
+收到 Task 2 审查后，先补 focused 测试，再执行：
+
+`npm.cmd run test:mobile-ui -- --grep "company selection|shared shell|offline placeholder|workbench-admin registered|login screen|phone shell"`
+
+结果：
+
+- `company selection switches to the second company` 失败
+- `placeholder routes use the shared shell and keep workbench-admin registered` 失败
+- `shared shell keeps bottom nav pinned while main scrolls` 失败
+- `offline placeholder shows the offline strip inside the shared shell` 失败
+
+失败原因：
+
+- 公司选择仍是静态选中态，没有真实 state 切换
+- 非 auth 占位页仍使用旧 `phone-shell`，没有共享 `MobileShell + BottomNav`
+- 壳层缺少 `data-mobile-main` / `data-mobile-nav`，且未形成稳定三段布局
+- `offline-readonly` 占位路由没有复用共享壳层上的离线提示条
+
+### 审查返修 GREEN
+
+完成壳层改造、占位路由接入、公司单选交互与 MetricCard tone 变体后，重新执行：
+
+`npm.cmd run test:mobile-ui -- --grep "company selection|shared shell|offline placeholder|workbench-admin registered|login screen|phone shell"`
+
+结果：
+
+- 6 / 6 通过
+
+覆盖点：
+
+- 点击第二家公司后 `aria-pressed` 正确切换
+- 选中项显示 `CheckCircle2`，未选中项显示空心圆
+- `workbench-admin` 仍为占位路由，但已挂共享底栏
+- 长内容下 `main` 可滚动且 `BottomNav` 仍贴合 phone shell 底部
+- `offline-readonly` 占位页可见离线提示条
+
 ## 最终验证
 
 执行：
@@ -67,7 +105,7 @@
 结果：
 
 - Node catalog tests 3 项通过
-- Playwright 路由与视觉测试 8 项通过
+- Playwright 路由与视觉测试 12 项通过
 
 执行：
 
@@ -87,10 +125,13 @@
 - 未出现 logo 插画
 - 表单使用真实 `label` 与原生表单控件，便于可访问性查询
 - 底部导航使用 Lucide 图标，中心 `新增` 为蓝色圆形按钮
+- `MobileShell` 已改为稳定三段式 grid：语义 header、独立滚动 main、固定底部五栏导航
+- 非 auth 占位路由已复用共享壳层与底栏，可直接作为后续任务的壳层回归面
+- `MetricCard` 已实现 `neutral / primary / success / warning / danger` 视觉变体
 - 360 / 390 / 412 三档宽度均验证 `scrollWidth <= clientWidth`
 - 主按钮 `进入系统` 在三档宽度下均保持在视口内
+- 长内容占位页已验证仅主滚动区移动，底部导航边界稳定
 
 ## 疑虑
 
-- 当前 `BottomNav`、`StatusPill`、`MetricCard` 已按 Task 2 交付为共享基础件，但登录页暂未实际挂载底部导航；后续工作台与业务屏会复用这些基础件。
-- `routing.spec.mjs` 里的原有 “placeholder” 测试名称未改，但实际验证的仍是 `login-company` 路由可用与中文文案可见，不影响当前任务结果。
+- `routing.spec.mjs` 里的原有 “placeholder” 命名仍未调整；它们当前验证的是路由存在性，不影响行为正确性，但后续可以顺手改名以降低语义噪音。
