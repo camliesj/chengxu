@@ -1,5 +1,6 @@
 import { json, requireSession, writeOperationLog } from '../_shared/auth.js';
 import { buildOrderAuditEvent, protectArchiveEdit, settledEditAccessError } from '../_shared/order-audit.js';
+import { canEmployeeSetOrderStatus } from '../../shared/orderStatusPermissions.js';
 
 const ORDER_COLUMNS = [
   'id',
@@ -141,11 +142,10 @@ function validateOrder(order, existing) {
   return '';
 }
 
-function validateSettlementPermission(order, existing, session) {
+export function validateSettlementPermission(order, existing, session) {
   if (session.role === 'admin') return '';
-  const settlementStatuses = ['待结算', '已结算'];
   const isStatusChanged = !existing || order.status !== existing.status;
-  if (isStatusChanged && (settlementStatuses.includes(order.status) || settlementStatuses.includes(existing?.status))) {
+  if (isStatusChanged && !canEmployeeSetOrderStatus(order.status)) {
     return 'SETTLEMENT_ADMIN_REQUIRED';
   }
   return '';

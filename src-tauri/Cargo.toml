@@ -1,6 +1,6 @@
 [package]
 name = "chengxu-desktop"
-version = "0.1.2"
+version = "0.1.3"
 description = "Windows desktop client for the repair and insurance management system"
 authors = ["chengxu"]
 edition = "2021"

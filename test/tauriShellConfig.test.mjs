@@ -19,9 +19,9 @@ test('Tauri config targets the Windows NSIS application shell', () => {
   const [window] = config.app.windows;
 
   assert.equal(config.productName, '汽修接待与车辆保险管理');
-  assert.equal(config.version, '0.1.2');
+  assert.equal(config.version, '0.1.3');
   assert.equal(packageJson.version, config.version);
-  assert.match(cargoToml, /^version = "0\.1\.2"$/m);
+  assert.match(cargoToml, /^version = "0\.1\.3"$/m);
   assert.equal(config.identifier, 'com.chengxu.repairmanager');
   assert.equal(config.build.frontendDist, '../dist');
   assert.equal(config.build.devUrl, 'http://localhost:5173');

@@ -24,6 +24,10 @@ import {
 } from './platform/updater.js';
 import { useNetworkStatus } from './platform/useNetworkStatus.js';
 import { createUpdateProgress } from './updateLogic.js';
+import {
+  EMPLOYEE_EDITABLE_STATUSES,
+  canEmployeeSetOrderStatus,
+} from '../shared/orderStatusPermissions.js';
 
 const navItems = ['首页看板', '维修接待', '历史查询', '车辆保险', '客户车辆', '汇总报表', '数据导出', '系统设置'];
 
@@ -2607,7 +2611,7 @@ function RepairReception({
 
   function applyStatusChange(order, status) {
     if (!order) return;
-    if (!canSettleOrder && [REPAIR_STATUS.pendingSettlement, REPAIR_STATUS.settled].includes(status)) return;
+    if (!canSettleOrder && !canEmployeeSetOrderStatus(status)) return;
     if (status === REPAIR_STATUS.settled) {
       setSettlementOrder(order);
       return;
@@ -2778,7 +2782,7 @@ function RepairReception({
               <div className="state-actions">
                 <button disabled={cloudReadOnly} onClick={() => requestStatusChange(selected, REPAIR_STATUS.repairing)}>切为在修</button>
                 <button disabled={cloudReadOnly} onClick={() => requestStatusChange(selected, REPAIR_STATUS.completed)}>切为完工</button>
-                {canSettleOrder ? <button disabled={cloudReadOnly} onClick={() => requestStatusChange(selected, REPAIR_STATUS.pendingSettlement)}>待结算</button> : null}
+                <button disabled={cloudReadOnly} onClick={() => requestStatusChange(selected, REPAIR_STATUS.pendingSettlement)}>待结算</button>
                 {canSettleOrder && selected.status !== REPAIR_STATUS.settled ? <button disabled={cloudReadOnly} onClick={() => requestSettlement(selected)}>完成结算</button> : null}
                 {canSettleOrder && selected.status === REPAIR_STATUS.settled ? <button disabled={cloudReadOnly} onClick={() => requestReverseSettlement(selected)}>返结算</button> : null}
               </div>
@@ -3266,7 +3270,7 @@ function OrderForm({ draft, mode, archiveMode = false, canSettleOrder, insurerOp
   const material = normalizeMoney(draft.material);
   const visibleInsurerOptions = Array.from(new Set([draft.insurer, ...insurerOptions].filter(Boolean)));
   const visibleStaffOptions = Array.from(new Set([draft.staff, ...staffOptions].filter(Boolean)));
-  const employeeStatusOptions = [REPAIR_STATUS.repairing, REPAIR_STATUS.completed];
+  const employeeStatusOptions = EMPLOYEE_EDITABLE_STATUSES;
   const visibleStatusOptions = canSettleOrder
     ? statusOptions
     : Array.from(new Set([draft.status, ...employeeStatusOptions].filter(Boolean)));
