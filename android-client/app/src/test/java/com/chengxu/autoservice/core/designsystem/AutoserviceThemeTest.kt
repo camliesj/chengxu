@@ -1,6 +1,9 @@
 package com.chengxu.autoservice.core.designsystem
 
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AutoserviceThemeTest {
@@ -14,56 +17,89 @@ class AutoserviceThemeTest {
     }
 
     @Test
-    fun lightColorSchemeMapsEveryMaterialRoleToAutoserviceTokens() {
-        val colors = AutoserviceLightColorScheme
-
-        assertEquals(AutoserviceColors.Primary, colors.primary)
-        assertEquals(AutoserviceColors.Surface, colors.onPrimary)
-        assertEquals(AutoserviceColors.PrimaryContainer, colors.primaryContainer)
-        assertEquals(AutoserviceColors.TextPrimary, colors.onPrimaryContainer)
-        assertEquals(AutoserviceColors.Primary, colors.inversePrimary)
-        assertEquals(AutoserviceColors.TextSecondary, colors.secondary)
-        assertEquals(AutoserviceColors.Surface, colors.onSecondary)
-        assertEquals(AutoserviceColors.Background, colors.secondaryContainer)
-        assertEquals(AutoserviceColors.TextPrimary, colors.onSecondaryContainer)
-        assertEquals(AutoserviceColors.Success, colors.tertiary)
-        assertEquals(AutoserviceColors.Surface, colors.onTertiary)
-        assertEquals(AutoserviceColors.SuccessContainer, colors.tertiaryContainer)
-        assertEquals(AutoserviceColors.TextPrimary, colors.onTertiaryContainer)
-        assertEquals(AutoserviceColors.Background, colors.background)
-        assertEquals(AutoserviceColors.TextPrimary, colors.onBackground)
-        assertEquals(AutoserviceColors.Surface, colors.surface)
-        assertEquals(AutoserviceColors.TextPrimary, colors.onSurface)
-        assertEquals(AutoserviceColors.Background, colors.surfaceVariant)
-        assertEquals(AutoserviceColors.TextSecondary, colors.onSurfaceVariant)
-        assertEquals(AutoserviceColors.Primary, colors.surfaceTint)
-        assertEquals(AutoserviceColors.TextPrimary, colors.inverseSurface)
-        assertEquals(AutoserviceColors.Surface, colors.inverseOnSurface)
-        assertEquals(AutoserviceColors.Danger, colors.error)
-        assertEquals(AutoserviceColors.Surface, colors.onError)
-        assertEquals(AutoserviceColors.DangerContainer, colors.errorContainer)
-        assertEquals(AutoserviceColors.TextPrimary, colors.onErrorContainer)
-        assertEquals(AutoserviceColors.Border, colors.outline)
-        assertEquals(AutoserviceColors.Border, colors.outlineVariant)
-        assertEquals(AutoserviceColors.TextPrimary, colors.scrim)
-        assertEquals(AutoserviceColors.Surface, colors.surfaceBright)
-        assertEquals(AutoserviceColors.Background, colors.surfaceDim)
-        assertEquals(AutoserviceColors.Surface, colors.surfaceContainer)
-        assertEquals(AutoserviceColors.Background, colors.surfaceContainerHigh)
-        assertEquals(AutoserviceColors.Background, colors.surfaceContainerHighest)
-        assertEquals(AutoserviceColors.Surface, colors.surfaceContainerLow)
-        assertEquals(AutoserviceColors.Surface, colors.surfaceContainerLowest)
-        assertEquals(AutoserviceColors.PrimaryContainer, colors.primaryFixed)
-        assertEquals(AutoserviceColors.Primary, colors.primaryFixedDim)
-        assertEquals(AutoserviceColors.TextPrimary, colors.onPrimaryFixed)
-        assertEquals(AutoserviceColors.Primary, colors.onPrimaryFixedVariant)
-        assertEquals(AutoserviceColors.Background, colors.secondaryFixed)
-        assertEquals(AutoserviceColors.TextSecondary, colors.secondaryFixedDim)
-        assertEquals(AutoserviceColors.TextPrimary, colors.onSecondaryFixed)
-        assertEquals(AutoserviceColors.TextSecondary, colors.onSecondaryFixedVariant)
-        assertEquals(AutoserviceColors.SuccessContainer, colors.tertiaryFixed)
-        assertEquals(AutoserviceColors.Success, colors.tertiaryFixedDim)
-        assertEquals(AutoserviceColors.TextPrimary, colors.onTertiaryFixed)
-        assertEquals(AutoserviceColors.Success, colors.onTertiaryFixedVariant)
+    fun canonicalColorsMatchTheApprovedArgbValues() {
+        assertEquals(0xFFF5F7FA.toInt(), AutoserviceColors.Background.toArgb())
+        assertEquals(0xFFFFFFFF.toInt(), AutoserviceColors.Surface.toArgb())
+        assertEquals(0xFF1677FF.toInt(), AutoserviceColors.Primary.toArgb())
+        assertEquals(0xFF172033.toInt(), AutoserviceColors.TextPrimary.toArgb())
+        assertEquals(0xFF667085.toInt(), AutoserviceColors.TextSecondary.toArgb())
+        assertEquals(0xFF98A2B3.toInt(), AutoserviceColors.TextMuted.toArgb())
+        assertEquals(0xFFE4EAF2.toInt(), AutoserviceColors.Border.toArgb())
+        assertEquals(0xFF12A05C.toInt(), AutoserviceColors.Success.toArgb())
+        assertEquals(0xFFFF8A00.toInt(), AutoserviceColors.Warning.toArgb())
+        assertEquals(0xFFFF3B30.toInt(), AutoserviceColors.Danger.toArgb())
     }
+
+    @Test
+    fun everyMaterialColorRoleUsesOnlyApprovedCanonicalColors() {
+        val colors = AutoserviceLightColorScheme
+        val roles = mapOf(
+            "primary" to colors.primary,
+            "onPrimary" to colors.onPrimary,
+            "primaryContainer" to colors.primaryContainer,
+            "onPrimaryContainer" to colors.onPrimaryContainer,
+            "inversePrimary" to colors.inversePrimary,
+            "secondary" to colors.secondary,
+            "onSecondary" to colors.onSecondary,
+            "secondaryContainer" to colors.secondaryContainer,
+            "onSecondaryContainer" to colors.onSecondaryContainer,
+            "tertiary" to colors.tertiary,
+            "onTertiary" to colors.onTertiary,
+            "tertiaryContainer" to colors.tertiaryContainer,
+            "onTertiaryContainer" to colors.onTertiaryContainer,
+            "background" to colors.background,
+            "onBackground" to colors.onBackground,
+            "surface" to colors.surface,
+            "onSurface" to colors.onSurface,
+            "surfaceVariant" to colors.surfaceVariant,
+            "onSurfaceVariant" to colors.onSurfaceVariant,
+            "surfaceTint" to colors.surfaceTint,
+            "inverseSurface" to colors.inverseSurface,
+            "inverseOnSurface" to colors.inverseOnSurface,
+            "error" to colors.error,
+            "onError" to colors.onError,
+            "errorContainer" to colors.errorContainer,
+            "onErrorContainer" to colors.onErrorContainer,
+            "outline" to colors.outline,
+            "outlineVariant" to colors.outlineVariant,
+            "scrim" to colors.scrim,
+            "surfaceBright" to colors.surfaceBright,
+            "surfaceDim" to colors.surfaceDim,
+            "surfaceContainer" to colors.surfaceContainer,
+            "surfaceContainerHigh" to colors.surfaceContainerHigh,
+            "surfaceContainerHighest" to colors.surfaceContainerHighest,
+            "surfaceContainerLow" to colors.surfaceContainerLow,
+            "surfaceContainerLowest" to colors.surfaceContainerLowest,
+            "primaryFixed" to colors.primaryFixed,
+            "primaryFixedDim" to colors.primaryFixedDim,
+            "onPrimaryFixed" to colors.onPrimaryFixed,
+            "onPrimaryFixedVariant" to colors.onPrimaryFixedVariant,
+            "secondaryFixed" to colors.secondaryFixed,
+            "secondaryFixedDim" to colors.secondaryFixedDim,
+            "onSecondaryFixed" to colors.onSecondaryFixed,
+            "onSecondaryFixedVariant" to colors.onSecondaryFixedVariant,
+            "tertiaryFixed" to colors.tertiaryFixed,
+            "tertiaryFixedDim" to colors.tertiaryFixedDim,
+            "onTertiaryFixed" to colors.onTertiaryFixed,
+            "onTertiaryFixedVariant" to colors.onTertiaryFixedVariant,
+        )
+        val approvedColors = setOf(
+            AutoserviceColors.Background,
+            AutoserviceColors.Surface,
+            AutoserviceColors.Primary,
+            AutoserviceColors.TextPrimary,
+            AutoserviceColors.TextSecondary,
+            AutoserviceColors.TextMuted,
+            AutoserviceColors.Border,
+            AutoserviceColors.Success,
+            AutoserviceColors.Warning,
+            AutoserviceColors.Danger,
+        )
+        val unapprovedRoles = roles.filterValues { it !in approvedColors }
+
+        assertTrue("Unapproved Material colors: ${unapprovedRoles.toArgbReport()}", unapprovedRoles.isEmpty())
+    }
+
+    private fun Map<String, Color>.toArgbReport(): Map<String, String> =
+        mapValues { (_, color) -> "#%08X".format(color.toArgb()) }
 }
