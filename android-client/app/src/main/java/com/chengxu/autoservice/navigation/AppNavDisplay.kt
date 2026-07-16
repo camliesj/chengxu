@@ -1,0 +1,46 @@
+package com.chengxu.autoservice.navigation
+
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.navigation3.runtime.NavEntry
+import androidx.navigation3.ui.NavDisplay
+import com.chengxu.autoservice.ui.stage.StageScreen
+
+@Composable
+fun AppNavDisplay(
+    navigationState: AppNavigationState,
+    modifier: Modifier = Modifier,
+) {
+    NavDisplay(
+        backStack = navigationState.currentStack,
+        modifier = modifier,
+        onBack = navigationState::pop,
+        entryProvider = { route ->
+            NavEntry(route) { entry ->
+                when (entry) {
+                    AppRoute.Workbench -> WorkbenchShellPlaceholder()
+                    AppRoute.Orders -> StageScreen(title = RootTab.ORDERS.label)
+                    AppRoute.CreateOrder -> StageScreen(title = RootTab.CREATE.label)
+                    AppRoute.Records -> StageScreen(title = RootTab.RECORDS.label)
+                    AppRoute.Profile -> StageScreen(title = RootTab.PROFILE.label)
+                    is AppRoute.OrderDetail -> StageScreen(title = "工单详情")
+                }
+            }
+        },
+    )
+}
+
+@Composable
+private fun WorkbenchShellPlaceholder() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(text = RootTab.WORKBENCH.label, style = MaterialTheme.typography.headlineSmall)
+    }
+}
