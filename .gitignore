@@ -57,3 +57,9 @@ src-tauri/gen/schemas/
 .tauri/
 *.key
 *.key.pub
+
+# Android local and build artifacts
+android-client/.gradle/
+android-client/build/
+android-client/app/build/
+android-client/local.properties
