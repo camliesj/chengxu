@@ -1,6 +1,7 @@
 package com.chengxu.autoservice.core.designsystem
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
@@ -21,6 +22,14 @@ private val AutoserviceColorScheme = lightColorScheme(
 )
 
 private val DefaultTypography = Typography()
+
+val AutoserviceShapes = Shapes(
+    extraSmall = AutoserviceShape,
+    small = AutoserviceShape,
+    medium = AutoserviceShape,
+    large = AutoserviceShape,
+    extraLarge = AutoserviceShape,
+)
 
 private val AutoserviceTypography = Typography(
     displayLarge = DefaultTypography.displayLarge.copy(fontFamily = FontFamily.Default, letterSpacing = 0.sp),
@@ -45,6 +54,7 @@ fun AutoserviceTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = AutoserviceColorScheme,
         typography = AutoserviceTypography,
+        shapes = AutoserviceShapes,
         content = content,
     )
 }
