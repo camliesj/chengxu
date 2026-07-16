@@ -7,7 +7,7 @@
 - 项目目录：`E:\codex\chengxu`
 - 当前分支：`codex/android-mobile-ui-atlas`
 - Android 生产客户端计划基线：`e629577`
-- 当前本地最新代码提交：`f90a0ee`
+- 当前交接文档基线提交：`558cc22`
 - 本次接力文档提交后应先执行 `git pull`，并以远程该分支最新提交为准。
 - Windows 如需代理推送：
 
@@ -62,7 +62,7 @@ git -c safe.directory=E:/codex/chengxu push origin codex/android-mobile-ui-atlas
 - 已实现完整 Material 3 浅色主题、10 个批准色板 token、4/8/12/16/24dp 间距、统一 8dp 圆角、零字距中文系统字体。
 - 已实现 `AutoserviceTheme`、`AutoserviceCard`、`MetricCard`、带文字和图标的 `StatusChip`、带图标和精确文案的 `OfflineBanner`。
 - 所有 48 个 Material 3 颜色槽位只映射到批准色板；测试锁定了十六进制/ARGB 值和全部颜色角色。
-- 历次审查问题均已修复。最后一位复审代理在给出结论前变为 unavailable；新对话先对 `7ab4cef..f90a0ee` 做一次最终代码复核，若无问题即可将 Task 4 标记 complete，不要重复实现。
+- 最终独立复核曾发现横幅原始色值、标签派生 alpha 色及公开 `Color` 参数会绕过色板契约；现已改为批准 token 和受限语义色调，并有 JVM 回归测试。Task 4 已完成。
 
 ## 最新验证
 
@@ -75,20 +75,19 @@ cd E:\codex\chengxu\android-client
 .\gradlew.bat :app:testDebugUnitTest --rerun-tasks :app:compileDebugAndroidTestKotlin :app:assembleDebug
 ```
 
-结果：`BUILD SUCCESSFUL`，56 个 Gradle task 执行成功；当前共 11 个 JVM 测试通过，Android 测试代码编译通过，Debug APK 构建通过。
+结果：`BUILD SUCCESSFUL`，56 个 Gradle task 执行成功；当前共 12 个 JVM 测试通过，Android 测试代码编译通过，Debug APK 构建通过。
 
 当前 APK：`E:\codex\chengxu\android-client\app\build\outputs\apk\debug\app-debug.apk`，约 18.5 MB。这只是基础阶段测试包，最终工作台和导航完成后再复制到正式发布目录交付。
 
 ## 下一步
 
-1. 对 Task 4 最终复核，确认 `7ab4cef..f90a0ee` 无剩余问题。
-2. 执行 APF Task 5：Navigation 3 五栏壳层。
+1. 执行 APF Task 5：Navigation 3 五栏壳层。
    - 使用 `.superpowers/sdd/android-production-foundation/task-5-brief.md`。
    - 每个根标签保留独立返回栈。
    - 重复点击当前标签只重置该标签栈。
    - 离线时禁用第三项“新增”，并显示统一只读提示。
    - 其余页面暂时显示“该模块将在后续阶段接入”，不伪装业务功能。
-3. 依次执行 Task 6 工作台状态、Task 7 员工/管理员工作台 UI、Task 8 应用装配、Task 9 文档与最终验证。
+2. 依次执行 Task 6 工作台状态、Task 7 员工/管理员工作台 UI、Task 8 应用装配、Task 9 文档与最终验证。
 
 ## 用户最新决定
 

@@ -14,9 +14,42 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+
+enum class MetricTone {
+    DEFAULT,
+    PRIMARY,
+    SUCCESS,
+    WARNING,
+    DANGER,
+    ;
+
+    val color
+        get() = when (this) {
+            DEFAULT -> AutoserviceColors.TextPrimary
+            PRIMARY -> AutoserviceColors.Primary
+            SUCCESS -> AutoserviceColors.Success
+            WARNING -> AutoserviceColors.Warning
+            DANGER -> AutoserviceColors.Danger
+        }
+}
+
+enum class StatusTone {
+    PRIMARY,
+    SUCCESS,
+    WARNING,
+    DANGER,
+    ;
+
+    val color
+        get() = when (this) {
+            PRIMARY -> AutoserviceColors.Primary
+            SUCCESS -> AutoserviceColors.Success
+            WARNING -> AutoserviceColors.Warning
+            DANGER -> AutoserviceColors.Danger
+        }
+}
 
 @Composable
 fun AutoserviceCard(
@@ -40,7 +73,7 @@ fun MetricCard(
     value: String,
     modifier: Modifier = Modifier,
     supportText: String? = null,
-    valueColor: Color = AutoserviceColors.TextPrimary,
+    valueTone: MetricTone = MetricTone.DEFAULT,
 ) {
     AutoserviceCard(modifier = modifier) {
         Text(
@@ -51,7 +84,7 @@ fun MetricCard(
         Text(
             text = value,
             modifier = Modifier.padding(top = AutoserviceSpacing.Sm),
-            color = valueColor,
+            color = valueTone.color,
             style = MaterialTheme.typography.headlineMedium,
         )
         supportText?.let {
@@ -70,14 +103,15 @@ fun StatusChip(
     text: String,
     icon: ImageVector,
     modifier: Modifier = Modifier,
-    color: Color = AutoserviceColors.Primary,
+    tone: StatusTone = StatusTone.PRIMARY,
     iconContentDescription: String? = null,
 ) {
     Surface(
         modifier = modifier,
         shape = AutoserviceShape,
-        color = color.copy(alpha = 0.1f),
-        contentColor = color,
+        color = AutoserviceColors.Surface,
+        contentColor = tone.color,
+        border = BorderStroke(1.dp, tone.color),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = AutoserviceSpacing.Sm, vertical = AutoserviceSpacing.Xs),

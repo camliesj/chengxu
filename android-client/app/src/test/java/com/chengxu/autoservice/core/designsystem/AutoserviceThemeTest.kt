@@ -31,6 +31,26 @@ class AutoserviceThemeTest {
     }
 
     @Test
+    fun componentTonesAndOfflineBannerUseOnlyApprovedColors() {
+        val approvedColors = setOf(
+            AutoserviceColors.Background,
+            AutoserviceColors.Surface,
+            AutoserviceColors.Primary,
+            AutoserviceColors.TextPrimary,
+            AutoserviceColors.TextSecondary,
+            AutoserviceColors.TextMuted,
+            AutoserviceColors.Border,
+            AutoserviceColors.Success,
+            AutoserviceColors.Warning,
+            AutoserviceColors.Danger,
+        )
+
+        assertEquals(AutoserviceColors.Background, AutoserviceColors.OfflineBannerBackground)
+        assertTrue(StatusTone.entries.map(StatusTone::color).all { it in approvedColors })
+        assertTrue(MetricTone.entries.map(MetricTone::color).all { it in approvedColors })
+    }
+
+    @Test
     fun everyMaterialColorRoleUsesOnlyApprovedCanonicalColors() {
         val colors = AutoserviceLightColorScheme
         val roles = mapOf(

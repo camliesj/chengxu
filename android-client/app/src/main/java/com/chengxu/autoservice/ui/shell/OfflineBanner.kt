@@ -13,7 +13,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import com.chengxu.autoservice.core.designsystem.AutoserviceColors
 import com.chengxu.autoservice.core.designsystem.AutoserviceSpacing
 
@@ -22,7 +21,7 @@ fun OfflineBanner(modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(color = Color(0xFFFFF7E8))
+            .background(color = AutoserviceColors.OfflineBannerBackground)
             .padding(horizontal = AutoserviceSpacing.Lg, vertical = AutoserviceSpacing.Md),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(AutoserviceSpacing.Sm),
