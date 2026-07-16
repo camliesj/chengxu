@@ -13,7 +13,9 @@ Android 生产客户端第一阶段设计规格已获用户批准，文件位于
 
 Android 生产客户端 Task 1 已完成并通过任务级规格/质量审查，实现提交为 `0c6c107`。`android-client/` 已可独立运行 Gradle 8.13，使用 AGP 8.13.2、Kotlin 2.3.21、JDK 17、`compileSdk 36`、`targetSdk 35`、`minSdk 26`；`BuildSanityTest` 与 `assembleDebug` 均通过，Debug APK 位于 `android-client/app/build/outputs/apk/debug/app-debug.apk`。
 
-Android Task 2 已完成并通过任务级审查，实现提交为 `77845bd`。已新增 `UserRole`、`AppPermission`、`PermissionSnapshot`、`ConnectionState` 和统一 `MutationGate`；员工不含结算、返结算、作废、回执权限，管理员包含全部权限；离线拒绝优先于角色权限，且门禁必须显式传入权限快照，不存在默认管理员放行。Android JVM 测试现为 7 项全部通过。下一项为会话 Repository 与真实网络连接状态。
+Android Task 2 已完成并通过任务级审查，实现提交为 `77845bd`。已新增 `UserRole`、`AppPermission`、`PermissionSnapshot`、`ConnectionState` 和统一 `MutationGate`；员工不含结算、返结算、作废、回执权限，管理员包含全部权限；离线拒绝优先于角色权限，且门禁必须显式传入权限快照，不存在默认管理员放行。
+
+Android Task 3 已完成并通过任务级审查，实现提交为 `6976c20`。已新增不可变 `AppSession`、`SessionRepository`、`InMemorySessionRepository`、`NetworkMonitor` 与 `AndroidConnectivityNetworkMonitor`；真实网络监听从当前网络能力初始化，通过默认网络回调实时更新，并在流关闭时反注册。Android JVM 测试现为 8 项全部通过，网络回调的模拟器级验证保留到 Task 8。下一项为浅色科技设计系统和断网提示组件。
 
 最新验证结果：
 
