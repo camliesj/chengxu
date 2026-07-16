@@ -8,17 +8,55 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.sp
 
-private val AutoserviceColorScheme = lightColorScheme(
+val AutoserviceLightColorScheme = lightColorScheme(
     primary = AutoserviceColors.Primary,
     onPrimary = AutoserviceColors.Surface,
+    primaryContainer = AutoserviceColors.PrimaryContainer,
+    onPrimaryContainer = AutoserviceColors.TextPrimary,
+    inversePrimary = AutoserviceColors.Primary,
+    secondary = AutoserviceColors.TextSecondary,
+    onSecondary = AutoserviceColors.Surface,
+    secondaryContainer = AutoserviceColors.Background,
+    onSecondaryContainer = AutoserviceColors.TextPrimary,
+    tertiary = AutoserviceColors.Success,
+    onTertiary = AutoserviceColors.Surface,
+    tertiaryContainer = AutoserviceColors.SuccessContainer,
+    onTertiaryContainer = AutoserviceColors.TextPrimary,
     background = AutoserviceColors.Background,
     onBackground = AutoserviceColors.TextPrimary,
     surface = AutoserviceColors.Surface,
     onSurface = AutoserviceColors.TextPrimary,
     surfaceVariant = AutoserviceColors.Background,
     onSurfaceVariant = AutoserviceColors.TextSecondary,
-    outline = AutoserviceColors.Border,
+    surfaceTint = AutoserviceColors.Primary,
+    inverseSurface = AutoserviceColors.TextPrimary,
+    inverseOnSurface = AutoserviceColors.Surface,
     error = AutoserviceColors.Danger,
+    onError = AutoserviceColors.Surface,
+    errorContainer = AutoserviceColors.DangerContainer,
+    onErrorContainer = AutoserviceColors.TextPrimary,
+    outline = AutoserviceColors.Border,
+    outlineVariant = AutoserviceColors.Border,
+    scrim = AutoserviceColors.TextPrimary,
+    surfaceBright = AutoserviceColors.Surface,
+    surfaceDim = AutoserviceColors.Background,
+    surfaceContainer = AutoserviceColors.Surface,
+    surfaceContainerHigh = AutoserviceColors.Background,
+    surfaceContainerHighest = AutoserviceColors.Background,
+    surfaceContainerLow = AutoserviceColors.Surface,
+    surfaceContainerLowest = AutoserviceColors.Surface,
+    primaryFixed = AutoserviceColors.PrimaryContainer,
+    primaryFixedDim = AutoserviceColors.Primary,
+    onPrimaryFixed = AutoserviceColors.TextPrimary,
+    onPrimaryFixedVariant = AutoserviceColors.Primary,
+    secondaryFixed = AutoserviceColors.Background,
+    secondaryFixedDim = AutoserviceColors.TextSecondary,
+    onSecondaryFixed = AutoserviceColors.TextPrimary,
+    onSecondaryFixedVariant = AutoserviceColors.TextSecondary,
+    tertiaryFixed = AutoserviceColors.SuccessContainer,
+    tertiaryFixedDim = AutoserviceColors.Success,
+    onTertiaryFixed = AutoserviceColors.TextPrimary,
+    onTertiaryFixedVariant = AutoserviceColors.Success,
 )
 
 private val DefaultTypography = Typography()
@@ -52,7 +90,7 @@ private val AutoserviceTypography = Typography(
 @Composable
 fun AutoserviceTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = AutoserviceColorScheme,
+        colorScheme = AutoserviceLightColorScheme,
         typography = AutoserviceTypography,
         shapes = AutoserviceShapes,
         content = content,

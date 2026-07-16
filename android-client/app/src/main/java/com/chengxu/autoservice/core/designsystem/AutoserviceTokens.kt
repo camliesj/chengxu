@@ -15,6 +15,9 @@ object AutoserviceColors {
     val Success = Color(0xFF12A05C)
     val Warning = Color(0xFFFF8A00)
     val Danger = Color(0xFFFF3B30)
+    val PrimaryContainer = Color(0xFFE8F1FF)
+    val SuccessContainer = Color(0xFFE7F7EF)
+    val DangerContainer = Color(0xFFFFE9E7)
 }
 
 object AutoserviceSpacing {
