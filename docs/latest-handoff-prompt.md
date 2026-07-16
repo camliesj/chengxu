@@ -11,7 +11,9 @@ UI 图集基线提交：`28ab718`（后续接力时先执行 `git pull`，以远
 
 Android 生产客户端第一阶段设计规格已获用户批准，文件位于 `docs/superpowers/specs/2026-07-16-android-production-foundation-design.md`。逐文件实施计划位于 `docs/superpowers/plans/2026-07-16-android-production-foundation.md`，包含 9 个任务和 48 个测试驱动步骤，现已开始生产代码。已确认采用 Kotlin + Jetpack Compose、最低 Android 8.0（API 26）、单 Activity、Navigation 3、ViewModel + StateFlow、Repository 与单向数据流；第一阶段只实现独立 `android-client/` 工程、五栏壳层、设计系统、员工/管理员静态工作台、权限快照和断网只读门禁，不接 API、COS、Room、真实登录或工单写入。
 
-Android 生产客户端 Task 1 已完成并通过任务级规格/质量审查，实现提交为 `0c6c107`。`android-client/` 已可独立运行 Gradle 8.13，使用 AGP 8.13.2、Kotlin 2.3.21、JDK 17、`compileSdk 36`、`targetSdk 35`、`minSdk 26`；`BuildSanityTest` 与 `assembleDebug` 均通过，Debug APK 位于 `android-client/app/build/outputs/apk/debug/app-debug.apk`。下一项为权限模型与统一 MutationGate。
+Android 生产客户端 Task 1 已完成并通过任务级规格/质量审查，实现提交为 `0c6c107`。`android-client/` 已可独立运行 Gradle 8.13，使用 AGP 8.13.2、Kotlin 2.3.21、JDK 17、`compileSdk 36`、`targetSdk 35`、`minSdk 26`；`BuildSanityTest` 与 `assembleDebug` 均通过，Debug APK 位于 `android-client/app/build/outputs/apk/debug/app-debug.apk`。
+
+Android Task 2 已完成并通过任务级审查，实现提交为 `77845bd`。已新增 `UserRole`、`AppPermission`、`PermissionSnapshot`、`ConnectionState` 和统一 `MutationGate`；员工不含结算、返结算、作废、回执权限，管理员包含全部权限；离线拒绝优先于角色权限，且门禁必须显式传入权限快照，不存在默认管理员放行。Android JVM 测试现为 7 项全部通过。下一项为会话 Repository 与真实网络连接状态。
 
 最新验证结果：
 
