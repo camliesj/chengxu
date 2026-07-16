@@ -276,6 +276,14 @@ test('form layouts use two columns on tablet', async ({ page }) => {
   await expect(page.locator('[data-form-grid]')).toHaveAttribute('data-columns', '2');
 });
 
+test('form modal actions keep a stable button height', async ({ page }) => {
+  await page.goto('/?screen=order-create-customer');
+  const buttonHeights = await page.locator('[data-form-actions] button').evaluateAll((buttons) =>
+    buttons.map((button) => Math.round(button.getBoundingClientRect().height)),
+  );
+  expect(buttonHeights).toEqual([44, 44]);
+});
+
 for (const viewport of [
   { width: 360, height: 800 },
   { width: 412, height: 915 },
@@ -296,6 +304,30 @@ for (const viewport of [
       }));
       expect(widths.scroll).toBeLessThanOrEqual(widths.client);
       await expect(page.locator(selector)).toBeInViewport();
+    });
+  }
+}
+
+for (const viewport of [
+  { width: 360, height: 800 },
+  { width: 412, height: 915 },
+  { width: 768, height: 1024 },
+]) {
+  for (const screen of [
+    'workbench-employee',
+    'orders-current',
+    'order-create-insurance',
+    'records-history',
+  ]) {
+    test(`${screen} atlas QA at ${viewport.width}`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await page.goto(`/?screen=${screen}`);
+      const overflow = await page.locator('[data-mobile-shell]').evaluate((node) => ({
+        clientWidth: node.clientWidth,
+        scrollWidth: node.scrollWidth,
+      }));
+      expect(overflow.scrollWidth).toBeLessThanOrEqual(overflow.clientWidth);
+      await expect(page.locator('[data-primary-action]')).toBeInViewport();
     });
   }
 }

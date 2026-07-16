@@ -2,6 +2,7 @@ import React, { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { SCREEN_CATALOG } from './screen-catalog.js';
 import { SCREEN_REGISTRY } from './screens/registry.jsx';
+import { AtlasBoard } from './components/AtlasBoard.jsx';
 import './tokens.css';
 import './app.css';
 
@@ -25,10 +26,13 @@ function UnknownScreen({ id }) {
   );
 }
 
-const screenId =
-  new URLSearchParams(location.search).get('screen') ?? SCREEN_CATALOG[0].id;
+const searchParams = new URLSearchParams(location.search);
+const atlasGroup = searchParams.get('atlas');
+const screenId = searchParams.get('screen') ?? SCREEN_CATALOG[0].id;
 const Screen = SCREEN_REGISTRY[screenId];
 
 createRoot(document.getElementById('root')).render(
-  <StrictMode>{Screen ? <Screen /> : <UnknownScreen id={screenId} />}</StrictMode>,
+  <StrictMode>
+    {atlasGroup ? <AtlasBoard group={atlasGroup} /> : Screen ? <Screen /> : <UnknownScreen id={screenId} />}
+  </StrictMode>,
 );

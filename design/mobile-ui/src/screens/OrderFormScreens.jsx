@@ -296,6 +296,7 @@ function ReviewContent() {
 }
 
 function FormModalShell({
+  screenId,
   title,
   subtitle,
   progress,
@@ -308,31 +309,34 @@ function FormModalShell({
   onTabChange,
 }) {
   return (
-    <FullScreenModal
-      title=""
-      subtitle=""
-      actions={<FormActions primaryLabel={primaryLabel} secondaryLabel={showProgress ? '关闭' : '取消'} />}
-    >
-      <div className="order-form" data-screen-content="order-form">
-        <FormHeader
-          progress={progress}
-          title={title}
-          subtitle={subtitle}
-          showProgress={showProgress}
-          orderNo={orderNo}
-          tabs={tabs}
-          activeTab={activeTab}
-          onTabChange={onTabChange}
-        />
-        <div className="order-form__body">{children}</div>
-      </div>
-    </FullScreenModal>
+    <div data-screen-id={screenId}>
+      <FullScreenModal
+        title=""
+        subtitle=""
+        actions={<FormActions primaryLabel={primaryLabel} secondaryLabel={showProgress ? '关闭' : '取消'} />}
+      >
+        <div className="order-form" data-screen-content="order-form">
+          <FormHeader
+            progress={progress}
+            title={title}
+            subtitle={subtitle}
+            showProgress={showProgress}
+            orderNo={orderNo}
+            tabs={tabs}
+            activeTab={activeTab}
+            onTabChange={onTabChange}
+          />
+          <div className="order-form__body">{children}</div>
+        </div>
+      </FullScreenModal>
+    </div>
   );
 }
 
 export function OrderCreateCustomerScreen() {
   return (
     <FormModalShell
+      screenId="order-create-customer"
       title="客户与车辆"
       subtitle="新增工单第一步，先录入客户与车辆基础信息。"
       progress="1 / 4"
@@ -346,6 +350,7 @@ export function OrderCreateCustomerScreen() {
 export function OrderCreateInsuranceScreen() {
   return (
     <FormModalShell
+      screenId="order-create-insurance"
       title="保险与事故"
       subtitle="保险信息独立成步，必填项与事故分类在这里确认。"
       progress="2 / 4"
@@ -359,6 +364,7 @@ export function OrderCreateInsuranceScreen() {
 export function OrderCreateRepairScreen() {
   return (
     <FormModalShell
+      screenId="order-create-repair"
       title="维修与费用"
       subtitle="维修内容与费用录入保持单列优先，小屏不横向展开。"
       progress="3 / 4"
@@ -372,6 +378,7 @@ export function OrderCreateRepairScreen() {
 export function OrderCreateReviewScreen() {
   return (
     <FormModalShell
+      screenId="order-create-review"
       title="确认并提交"
       subtitle="提交前按业务分组三次复核，不再嵌套卡片。"
       progress="4 / 4"
@@ -444,6 +451,7 @@ export function OrderEditScreen() {
 
   return (
     <FormModalShell
+      screenId="order-edit"
       title="编辑工单"
       subtitle="编辑态不显示四步进度，直接切换三组信息并保留真实预填值。"
       primaryLabel="保存修改"

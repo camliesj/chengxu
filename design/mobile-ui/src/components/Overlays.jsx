@@ -23,7 +23,7 @@ export function FullScreenModal({ title, subtitle, actions, children }) {
   return (
     <div className="overlay-layer overlay-layer--full">
       <section
-        className="full-screen-modal"
+        className={`full-screen-modal${hasHeader ? '' : ' full-screen-modal--headerless'}`}
         data-overlay="full-screen-modal"
         data-mobile-shell
         role="dialog"

@@ -360,7 +360,7 @@ export function OrdersCurrentScreen() {
       title="当前工单"
       subtitle="按工单状态查看在修推进、完工交付与待结算事项。"
       action={
-        <button type="button" className="icon-action-button" aria-label="打开工单筛选">
+        <button type="button" className="icon-action-button" aria-label="打开工单筛选" data-primary-action>
           <Filter size={18} strokeWidth={2} aria-hidden="true" />
         </button>
       }

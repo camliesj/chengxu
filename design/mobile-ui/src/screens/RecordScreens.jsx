@@ -28,9 +28,9 @@ function RecordTabs({ active }) {
   );
 }
 
-function RecordSearch({ placeholder }) {
+function RecordSearch({ placeholder, primary = false }) {
   return (
-    <label className="record-search">
+    <label className="record-search" data-primary-action={primary ? '' : undefined}>
       <Search size={17} strokeWidth={2} aria-hidden="true" />
       <span className="sr-only">搜索档案</span>
       <input type="search" placeholder={placeholder} />
@@ -133,7 +133,7 @@ export function HistoryRecordsScreen() {
       subtitle="仅归档已经完成结算的历史工单"
       active="history"
     >
-      <RecordSearch placeholder="搜索工单号、车牌或客户" />
+      <RecordSearch placeholder="搜索工单号、车牌或客户" primary />
       <div className="record-list">
         {historyRecords.map((record) => (
           <article className="record-card record-card--history" key={record.orderNo}>

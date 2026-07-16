@@ -16,8 +16,13 @@ import {
 function StateBand() {
   return (
     <section className="workbench-state-band" aria-label="工单状态概览">
-      {workbenchStateBand.map((item) => (
-        <button key={item.label} type="button" className="workbench-state-band__item">
+      {workbenchStateBand.map((item, index) => (
+        <button
+          key={item.label}
+          type="button"
+          className="workbench-state-band__item"
+          data-primary-action={index === 0 ? '' : undefined}
+        >
           <span className="workbench-state-band__value">{item.value}</span>
           <span className="workbench-state-band__label">{item.label}</span>
           <span className="workbench-state-band__cue">

@@ -10,6 +10,7 @@
     "design:mobile": "vite design/mobile-ui --host 127.0.0.1 --port 4175",
     "design:mobile:capture": "playwright test -c design/mobile-ui/playwright.config.mjs capture.spec.mjs",
     "test:mobile-ui": "playwright test -c design/mobile-ui/playwright.config.mjs",
+    "test": "node --test test/*.test.mjs",
     "tauri": "tauri",
     "desktop:dev": "tauri dev",
     "desktop:check": "cargo check --manifest-path src-tauri/Cargo.toml",
