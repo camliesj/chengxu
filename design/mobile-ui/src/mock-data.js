@@ -282,3 +282,91 @@ export const receiptFile = {
   updatedAt: '今天 10:24',
   uploader: '财务小李',
 };
+
+export const customerRecords = [
+  {
+    plate: '蒙K·A3816',
+    customer: '张先生',
+    phone: '138****7216',
+    model: '丰田 凯美瑞',
+    vehicleType: '标的车',
+    insurer: '人保财险',
+    repairs: 2,
+  },
+  {
+    plate: '蒙K·Q7285',
+    customer: '李女士',
+    phone: '139****1182',
+    model: '大众 途观 L',
+    vehicleType: '三者车',
+    insurer: '平安保险',
+    repairs: 1,
+  },
+];
+
+export const insuranceRecords = [
+  {
+    plate: '蒙K·B2207',
+    customer: '赵先生',
+    model: '本田 CR-V',
+    insurer: '太平洋保险',
+    expiryDate: '2026-07-18',
+    remaining: '3天到期',
+    tone: 'danger',
+  },
+  {
+    plate: '蒙K·A3816',
+    customer: '张先生',
+    model: '丰田 凯美瑞',
+    insurer: '人保财险',
+    expiryDate: '2026-12-28',
+    remaining: '正常',
+    tone: 'success',
+  },
+];
+
+export const historyRecords = [
+  {
+    orderNo: 'RO202607080011',
+    plate: '蒙K·A3816',
+    customer: '张先生',
+    model: '丰田 凯美瑞',
+    repairSummary: '前保险杠喷漆，右前大灯检测',
+    amount: '3,040',
+    settledAt: '07-08 18:03',
+    hasReceipt: true,
+  },
+  {
+    orderNo: 'RO202606210026',
+    plate: '蒙K·Q7285',
+    customer: '李女士',
+    model: '大众 途观 L',
+    repairSummary: '左后门钣金整形与喷漆',
+    amount: '2,860',
+    settledAt: '06-21 16:40',
+    hasReceipt: false,
+  },
+];
+
+export const profileRows = [
+  { label: '登录账号', value: '002 · 张工' },
+  { label: '当前角色', value: '维修顾问 · 员工权限' },
+  { label: '当前门店', value: '通达汽车服务中心' },
+  { label: '云端同步', value: '最后成功 07-16 09:36', status: '正常' },
+  { label: '应用版本', value: 'Android 规划版 0.1.0' },
+  { label: '版本更新', value: '当前已是最新版本' },
+];
+
+export const cachedOrders = [
+  {
+    orderNo: 'RO202607150021',
+    plate: '蒙K·Q7285',
+    customer: '李女士',
+    phone: '139****1182',
+    statusLabel: '在修',
+    statusTone: 'success',
+    repairSummary: '左后门钣金整形，等待喷漆复检',
+    amountLabel: '预估 2,860',
+    updatedAt: '上次同步 09:20',
+  },
+];

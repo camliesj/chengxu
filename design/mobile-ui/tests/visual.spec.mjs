@@ -361,6 +361,26 @@ test('offline placeholder shows the offline strip inside the shared shell', asyn
   await expect(page.getByRole('navigation', { name: '主导航' })).toBeVisible();
 });
 
+test('records separate customer, insurance, and settled history responsibilities', async ({ page }) => {
+  await page.goto('/?screen=records-customers');
+  await expect(page.getByText('维修记录 2 单')).toBeVisible();
+
+  await page.goto('/?screen=records-insurance');
+  await expect(page.getByText('保险到期').first()).toBeVisible();
+
+  await page.goto('/?screen=records-history');
+  await expect(page.getByText('已结算').first()).toBeVisible();
+  await expect(page.getByText('在修中')).toHaveCount(0);
+});
+
+test('offline state is read-only and explains unavailable actions', async ({ page }) => {
+  await page.goto('/?screen=offline-readonly');
+  await expect(page.getByText('网络不可用')).toBeVisible();
+  await expect(page.getByRole('heading', { name: '当前为只读模式' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '新增工单' })).toBeDisabled();
+  await expect(page.getByText('已显示最近同步的缓存数据')).toBeVisible();
+});
+
 for (const viewport of [
   { width: 360, height: 800 },
   { width: 390, height: 844 },

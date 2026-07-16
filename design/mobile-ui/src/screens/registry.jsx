@@ -22,6 +22,16 @@ import {
   ReverseSettlementDialogScreen,
 } from './OrderScreens.jsx';
 import { AdminWorkbenchScreen, EmployeeWorkbenchScreen } from './WorkbenchScreens.jsx';
+import {
+  CustomerRecordsScreen,
+  HistoryRecordsScreen,
+  InsuranceRecordsScreen,
+} from './RecordScreens.jsx';
+import {
+  OfflineReadonlyScreen,
+  ProfileSyncScreen,
+  StatesGalleryScreen,
+} from './ProfileScreens.jsx';
 
 const GROUP_TAB_MAP = {
   workbench: 'workbench',
@@ -138,6 +148,12 @@ const PLACEHOLDER_REGISTRY = Object.fromEntries(
         'order-settlement',
         'receipt-upload',
         'reverse-settlement-dialog',
+        'records-customers',
+        'records-insurance',
+        'records-history',
+        'profile-sync',
+        'offline-readonly',
+        'states-gallery',
       ].includes(screen.id),
   ).map((screen) => [
     screen.id,
@@ -165,4 +181,10 @@ export const SCREEN_REGISTRY = {
   'order-settlement': OrderSettlementScreen,
   'receipt-upload': ReceiptUploadScreen,
   'reverse-settlement-dialog': ReverseSettlementDialogScreen,
+  'records-customers': CustomerRecordsScreen,
+  'records-insurance': InsuranceRecordsScreen,
+  'records-history': HistoryRecordsScreen,
+  'profile-sync': ProfileSyncScreen,
+  'offline-readonly': OfflineReadonlyScreen,
+  'states-gallery': StatesGalleryScreen,
 };
