@@ -104,6 +104,19 @@ docs/latest-handoff-prompt.md
 
 - [ ] **Step 1: Add the project files and a deliberately failing sanity test**
 
+Before running any project test, create the wrapper from a standalone temporary build directory so the installed Gradle 8.10.2 does not configure the AGP 8.13.2 project:
+
+```powershell
+$bootstrap = Join-Path $env:TEMP 'autoservice-gradle-wrapper'
+New-Item -ItemType Directory -Force -Path $bootstrap | Out-Null
+Set-Content -LiteralPath (Join-Path $bootstrap 'settings.gradle.kts') -Value 'rootProject.name = "wrapper-bootstrap"'
+Set-Content -LiteralPath (Join-Path $bootstrap 'build.gradle.kts') -Value ''
+& 'E:\codex\APP\.android-build\gradle\gradle-8.10.2\bin\gradle.bat' -p $bootstrap wrapper --gradle-version 8.13 --distribution-type bin
+Copy-Item -LiteralPath (Join-Path $bootstrap 'gradlew') -Destination 'android-client\gradlew'
+Copy-Item -LiteralPath (Join-Path $bootstrap 'gradlew.bat') -Destination 'android-client\gradlew.bat'
+Copy-Item -LiteralPath (Join-Path $bootstrap 'gradle') -Destination 'android-client\gradle' -Recurse
+```
+
 Use this version catalog:
 
 ```toml
@@ -315,12 +328,11 @@ class MainActivity : ComponentActivity() {
 </resources>
 ```
 
-- [ ] **Step 4: Generate the wrapper and verify the skeleton**
+- [ ] **Step 4: Verify the completed skeleton**
 
 Run:
 
 ```powershell
-& 'E:\codex\APP\.android-build\gradle\gradle-8.10.2\bin\gradle.bat' wrapper --gradle-version 8.13 --distribution-type bin
 .\gradlew.bat :app:testDebugUnitTest :app:assembleDebug
 ```
 
