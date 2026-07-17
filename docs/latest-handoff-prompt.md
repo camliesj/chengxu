@@ -179,6 +179,18 @@ cd E:\codex\chengxu\android-client
 - 任务级实施计划已完成：`docs/superpowers/plans/2026-07-17-android-orders-cache.md`。计划锁定 Room 2.8.4、KSP2 2.3.9，分为持久层、远端 API、认证清理、缓存仓库、真实指标、生产装配和最终 APK 七个 TDD 任务。
 - 下一步由用户选择计划执行方式，再逐任务实施；每个任务都必须更新本交接文档、提交并推送。
 
+### 优先插入：Android 品牌化 UI 升级（设计已确认）
+
+- 用户调整优先级：先进行 UI 升级迭代，真实工单 API 与 Room 缓存设计/计划保留但暂停执行。
+- 用户提供两张汽车品牌原生应用参考图并明确调用 Product Design；参考图已持久化到 `design/mobile-ui/reference/`。
+- 已选择“原生高保真转译”：颜色可按参考图重新定义，不沿用现有亮蓝风格；使用白、雾灰、浅冰蓝与近黑色构建汽车品牌应用气质，同时保留汽修业务信息架构。
+- 本轮覆盖登录、员工/管理员工作台、五栏导航、“我的”和系统状态；工单/新增/档案只同步视觉壳层与高品质空状态。
+- 默认使用 Hugeicons Stroke Rounded。HTML 使用官方资源，后续 Compose 使用经确认资源转换的本地 VectorDrawable；不手绘或混用图标库。
+- 缺少的车辆、车间和空状态素材由内置图像生成器按实际槽位生成，需要透明底时完成透明 PNG 处理，不使用占位框或 Emoji。
+- 用户确认先升级 `design/mobile-ui/` HTML 原型进行交互与视觉测试，HTML 通过后再单独规划 Compose 移植。
+- 正式设计：`docs/superpowers/specs/2026-07-17-android-ui-brand-upgrade-design.md`。
+- 下一步先由用户复核书面设计；批准后使用 `superpowers:writing-plans` 编写 HTML 原型实施计划。
+
 ## 工作纪律
 
 每次重要改动后必须：
