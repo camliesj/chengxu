@@ -7,7 +7,7 @@
 - 项目目录：`E:\codex\chengxu`
 - 当前分支：`codex/android-mobile-ui-atlas`
 - Android 生产客户端计划基线：`e629577`
-- 当前交接文档基线提交：`f1be73a`
+- 当前交接文档基线提交：`6960a62`
 - 本次接力文档提交后应先执行 `git pull`，并以远程该分支最新提交为准。
 - Windows 如需代理推送：
 
@@ -70,9 +70,15 @@ git -c safe.directory=E:/codex/chengxu push origin codex/android-mobile-ui-atlas
 - 五个根标签顺序固定为“工作台 / 工单 / 新增 / 档案 / 我的”；每个标签有独立返回栈，重复选择当前标签只重置自身。
 - 离线时显示统一只读横幅并禁用第三项“新增”；除工作台外的根页面显示“该模块将在后续阶段接入”，没有伪造业务写入功能。
 
+### APF Task 6：工作台状态与 ViewModel
+
+- 已实现稳定的工作台模型、仓库接口、两条确定性中文演示工单和 `WorkbenchViewModel`。
+- ViewModel 组合会话、网络和工作台数据流；动作只从 `PermissionSnapshot` 放行，并通过 `MutationGate` 携带离线只读拒绝原因。
+- 员工状态不包含“办理结算”；管理员显示经营摘要并拥有该动作。Task 6 已通过独立代码复核。
+
 ## 最新验证
 
-2026-07-16 本机执行：
+2026-07-17 本机执行：
 
 ```powershell
 $env:JAVA_HOME='E:\codex\APP\.android-build\jdk\jdk-17.0.19+10'
@@ -81,14 +87,14 @@ cd E:\codex\chengxu\android-client
 .\gradlew.bat :app:testDebugUnitTest --rerun-tasks :app:compileDebugAndroidTestKotlin :app:assembleDebug
 ```
 
-结果：`BUILD SUCCESSFUL`，56 个 Gradle task 执行成功；当前共 15 个 JVM 测试通过，Android 测试代码编译通过，Debug APK 构建通过。
+结果：`BUILD SUCCESSFUL`，56 个 Gradle task 执行成功；当前共 18 个 JVM 测试通过，Android 测试代码编译通过，Debug APK 构建通过。
 
 当前 APK：`E:\codex\chengxu\android-client\app\build\outputs\apk\debug\app-debug.apk`，约 17.7 MB。这只是基础阶段测试包，最终工作台和导航完成后再复制到正式发布目录交付。
 
 ## 下一步
 
-1. 执行 APF Task 6：工作台状态与 ViewModel。
-2. 依次执行 Task 7 员工/管理员工作台 UI、Task 8 应用装配、Task 9 文档与最终验证。
+1. 执行 APF Task 7：员工/管理员工作台 UI。
+2. 依次执行 Task 8 应用装配、Task 9 文档与最终验证。
 
 ## 用户最新决定
 
