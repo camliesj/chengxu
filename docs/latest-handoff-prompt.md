@@ -153,7 +153,8 @@ cd E:\codex\chengxu\android-client
 - 真实账号登录稳定复现进程崩溃。`logcat -b crash` 根异常为 `InvalidAlgorithmParameterException: Caller-provided IV not permitted`，调用链为 `AesGcmSessionCipher.encrypt` → `EncryptedSessionStore.write` → `AuthenticationRepository.login`。
 - 根因是 AndroidKeyStore 密钥禁止调用方在加密时指定 IV，而当前实现手动生成 12 字节 IV 并传入 `Cipher.init`；普通 JVM `SecretKeySpec` 测试没有覆盖平台约束。
 - 已批准的修复设计见 `docs/superpowers/specs/2026-07-17-android-keystore-login-crash-fix-design.md`：由 AndroidKeyStore 生成加密 IV、保持现有密文格式，并为会话存储失败增加不崩溃的未认证回退。
-- 当前尚未修改生产代码；下一步必须先增加会失败的真实 AndroidKeyStore 仪器测试和存储失败 JVM 测试，再做最小实现。
+- 用户已确认书面设计；实施计划见 `docs/superpowers/plans/2026-07-17-android-keystore-login-crash-fix.md`。
+- 当前尚未修改生产代码；下一步按计划先增加会失败的真实 AndroidKeyStore 仪器测试和存储失败 JVM 测试，再做最小实现。
 
 ## 用户最新决定
 
