@@ -2,9 +2,11 @@ package com.chengxu.autoservice.core.auth
 
 import com.chengxu.autoservice.core.model.UserRole
 import com.chengxu.autoservice.core.session.AppSession
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -24,6 +26,53 @@ class AuthenticationRepositoryTest {
         assertEquals(UserRole.EMPLOYEE, state.session.role)
         assertEquals(state.session, store.value)
         assertEquals(state.session, repository.session.value)
+    }
+
+    @Test
+    fun storageFailureAfterRemoteLoginReturnsUnauthenticatedWithoutPublishingSession() = runTest {
+        val repository = AuthenticationRepository(
+            authApi = FakeAuthApi(AuthResult.Success(remoteSession())),
+            sessionStore = object : SessionStore {
+                override suspend fun read(): AppSession? = null
+
+                override suspend fun write(session: AppSession) =
+                    throw IllegalStateException("storage failed")
+
+                override suspend fun clear() = Unit
+            },
+        )
+
+        repository.login(AuthCredentials("tongda", "worker", "secret12"))
+
+        assertNull(repository.session.value)
+        assertEquals(
+            AuthenticationState.Unauthenticated("无法安全保存登录状态，请重试"),
+            repository.state.value,
+        )
+    }
+
+    @Test
+    fun cancelledSessionWritePropagatesCancellation() = runTest {
+        val cancellation = CancellationException("cancelled")
+        val repository = AuthenticationRepository(
+            authApi = FakeAuthApi(AuthResult.Success(remoteSession())),
+            sessionStore = object : SessionStore {
+                override suspend fun read(): AppSession? = null
+
+                override suspend fun write(session: AppSession) = throw cancellation
+
+                override suspend fun clear() = Unit
+            },
+        )
+        var thrown: CancellationException? = null
+
+        try {
+            repository.login(AuthCredentials("tongda", "worker", "secret12"))
+        } catch (failure: CancellationException) {
+            thrown = failure
+        }
+
+        assertSame(cancellation, thrown)
     }
 
     @Test

@@ -147,7 +147,7 @@ cd E:\codex\chengxu\android-client
 - `docs/android-client.md` 已改为真实双公司认证真机清单，涵盖错误密码、12 小时内恢复、退出、过期重登和离线拒绝登录；本轮没有启动模拟器。
 - 隔离分支已快进合并回 `codex/android-mobile-ui-atlas`；合并后再次执行 JVM 测试、Android 测试代码编译、`lintDebug` 和 APK 构建，65 个 Gradle task 全部成功，主工作树 APK 哈希与发布副本一致。
 
-### AndroidKeyStore 登录闪退修复（Task 1 已完成）
+### AndroidKeyStore 登录闪退修复（Task 1–2 已完成）
 
 - 用户随后明确允许启动 Android 模拟器进行手工复现；API 35 模拟器已启动并配置宿主机代理。生产接口、DNS、TLS、`INTERNET` 权限及直接 POST 诊断均通过。
 - 真实账号登录稳定复现进程崩溃。`logcat -b crash` 根异常为 `InvalidAlgorithmParameterException: Caller-provided IV not permitted`，调用链为 `AesGcmSessionCipher.encrypt` → `EncryptedSessionStore.write` → `AuthenticationRepository.login`。
@@ -156,7 +156,9 @@ cd E:\codex\chengxu\android-client
 - 用户已确认书面设计；实施计划见 `docs/superpowers/plans/2026-07-17-android-keystore-login-crash-fix.md`。
 - Task 1 已按 TDD 完成：新增真实 AndroidKeyStore 仪器测试，旧实现精确失败于 `Caller-provided IV not permitted`；加密现改为由 provider 生成 IV，再读取 `Cipher.iv` 与密文按既有格式保存，解密路径不变。
 - GREEN 验证已通过：`EncryptedSessionStoreTest` 与 `AndroidKeystoreSessionCipherTest` 同次运行 `BUILD SUCCESSFUL`，真实 KeyStore 和普通软件 AES 密钥均可生成不同密文并正确往返。
-- 下一步是 Task 2：先增加会话持久化抛异常的 JVM 失败测试，再让认证仓库回退为带可读消息的未认证状态，避免任何存储异常击穿 UI。
+- Task 2 已按 TDD 完成：会话写入抛出普通异常的测试先失败于未捕获 `IllegalStateException`；认证仓库现仅在持久化成功后发布已认证会话，失败时保持公开会话为空并显示“无法安全保存登录状态，请重试”。
+- 复核时补充了协程取消回归：旧异常边界会吞掉 `CancellationException`，测试先失败；现会重新抛出原取消对象，只兜底真实存储异常。`AuthenticationRepositoryTest` 全类 GREEN。
+- 下一步是 Task 3：全量 JVM/Android/Lint/APK 验证，安装新构建并由用户手工验证登录、重启恢复和退出，再更新发布 APK。
 
 ## 用户最新决定
 

@@ -2,6 +2,7 @@ package com.chengxu.autoservice.core.auth
 
 import com.chengxu.autoservice.core.session.AppSession
 import com.chengxu.autoservice.core.session.SessionRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -36,8 +37,14 @@ class AuthenticationRepository(
         when (val result = authApi.login(credentials)) {
             is AuthResult.Success -> {
                 val authenticated = result.session.toAppSession()
-                sessionStore.write(authenticated)
-                publishAuthenticated(authenticated)
+                try {
+                    sessionStore.write(authenticated)
+                    publishAuthenticated(authenticated)
+                } catch (failure: Exception) {
+                    if (failure is CancellationException) throw failure
+                    mutableSession.value = null
+                    mutableState.value = AuthenticationState.Unauthenticated(SESSION_STORAGE_ERROR_MESSAGE)
+                }
             }
             is AuthResult.Failure -> {
                 mutableState.value = AuthenticationState.Unauthenticated(result.failure.loginMessage())
@@ -62,6 +69,10 @@ class AuthenticationRepository(
     private fun publishAuthenticated(appSession: AppSession) {
         mutableSession.value = appSession
         mutableState.value = AuthenticationState.Authenticated(appSession)
+    }
+
+    private companion object {
+        const val SESSION_STORAGE_ERROR_MESSAGE = "无法安全保存登录状态，请重试"
     }
 }
 
