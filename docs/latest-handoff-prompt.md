@@ -7,7 +7,7 @@
 - 项目目录：`E:\codex\chengxu`
 - 当前分支：`codex/android-mobile-ui-atlas`
 - Android 生产客户端计划基线：`e629577`
-- 当前交接文档基线提交：`6960a62`
+- 当前交接文档基线提交：`0b7e5f1`
 - 本次接力文档提交后应先执行 `git pull`，并以远程该分支最新提交为准。
 - Windows 如需代理推送：
 
@@ -76,6 +76,12 @@ git -c safe.directory=E:/codex/chengxu push origin codex/android-mobile-ui-atlas
 - ViewModel 组合会话、网络和工作台数据流；动作只从 `PermissionSnapshot` 放行，并通过 `MutationGate` 携带离线只读拒绝原因。
 - 员工状态不包含“办理结算”；管理员显示经营摘要并拥有该动作。Task 6 已通过独立代码复核。
 
+### APF Task 7：员工/管理员工作台 UI
+
+- 已实现基于 `WorkbenchUiState` 的员工与管理员工作台 Compose UI，并在 `AppNavDisplay` 预留注入点供应用装配使用。
+- 员工显示问候、今日待办、工单状态和近期工单，且不显示结算；管理员先显示经营摘要，再显示结算与保险优先事项及近期工单。
+- 拒绝的写入动作显示 `MutationDecision.Denied.reason`；UI 不自行按角色或权限推断可见性。布局未使用固定宽度或横向滚动，覆盖长中文公司名场景。Task 7 已通过独立代码复核。
+
 ## 最新验证
 
 2026-07-17 本机执行：
@@ -93,8 +99,8 @@ cd E:\codex\chengxu\android-client
 
 ## 下一步
 
-1. 执行 APF Task 7：员工/管理员工作台 UI。
-2. 依次执行 Task 8 应用装配、Task 9 文档与最终验证。
+1. 执行 APF Task 8：应用装配、仅调试角色注入与真机测试包准备。
+2. 执行 Task 9：文档与最终验证。
 
 ## 用户最新决定
 

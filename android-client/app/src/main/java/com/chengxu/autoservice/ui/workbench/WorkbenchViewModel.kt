@@ -38,15 +38,18 @@ private fun AppSession.toWorkbenchUiState(
     orders: List<WorkbenchOrder>,
 ): WorkbenchUiState = WorkbenchUiState(
     loading = false,
+    companyName = companyName,
+    staffName = staffName,
     title = if (role == UserRole.ADMINISTRATOR) "管理员工作台" else "今日工作",
     subtitle = if (role == UserRole.ADMINISTRATOR) {
         "关注结算节奏、产值进度与高优先事项。"
     } else {
         "优先处理在修推进、费用核对与保险到期提醒。"
     },
-    metrics = if (role == UserRole.ADMINISTRATOR) adminMetrics else employeeMetrics,
+    metrics = if (role == UserRole.ADMINISTRATOR) emptyList() else employeeMetrics,
+    businessMetrics = if (role == UserRole.ADMINISTRATOR) adminBusinessMetrics else emptyList(),
     sections = if (role == UserRole.ADMINISTRATOR) {
-        listOf(WorkbenchSection.TODAY_QUEUE, WorkbenchSection.ORDER_STATUS, WorkbenchSection.BUSINESS_SUMMARY)
+        listOf(WorkbenchSection.BUSINESS_SUMMARY, WorkbenchSection.TODAY_QUEUE)
     } else {
         listOf(WorkbenchSection.TODAY_QUEUE, WorkbenchSection.ORDER_STATUS)
     },
@@ -81,7 +84,7 @@ private val employeeMetrics = listOf(
     WorkbenchMetric("保险到期", "09", "三日内到期", MetricTone.DANGER),
 )
 
-private val adminMetrics = listOf(
+private val adminBusinessMetrics = listOf(
     WorkbenchMetric("本月产值", "286,400", "较上月 +8.6%", MetricTone.PRIMARY),
     WorkbenchMetric("待结算金额", "42,600", "5 单待处理", MetricTone.WARNING),
     WorkbenchMetric("在修车辆", "18", "负荷平稳", MetricTone.SUCCESS),

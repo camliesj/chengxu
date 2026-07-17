@@ -10,11 +10,16 @@ import androidx.compose.ui.Modifier
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.ui.NavDisplay
 import com.chengxu.autoservice.ui.stage.StageScreen
+import com.chengxu.autoservice.ui.workbench.WorkbenchAction
+import com.chengxu.autoservice.ui.workbench.WorkbenchScreen
+import com.chengxu.autoservice.ui.workbench.WorkbenchUiState
 
 @Composable
 fun AppNavDisplay(
     navigationState: AppNavigationState,
     modifier: Modifier = Modifier,
+    workbenchState: WorkbenchUiState? = null,
+    onWorkbenchAction: (WorkbenchAction) -> Unit = {},
 ) {
     NavDisplay(
         backStack = navigationState.currentStack,
@@ -23,7 +28,9 @@ fun AppNavDisplay(
         entryProvider = { route ->
             NavEntry(route) { entry ->
                 when (entry) {
-                    AppRoute.Workbench -> WorkbenchShellPlaceholder()
+                    AppRoute.Workbench -> workbenchState?.let {
+                        WorkbenchScreen(state = it, onAction = onWorkbenchAction)
+                    } ?: WorkbenchShellPlaceholder()
                     AppRoute.Orders -> StageScreen(title = RootTab.ORDERS.label)
                     AppRoute.CreateOrder -> StageScreen(title = RootTab.CREATE.label)
                     AppRoute.Records -> StageScreen(title = RootTab.RECORDS.label)

@@ -35,9 +35,12 @@ data class WorkbenchAction(
 
 data class WorkbenchUiState(
     val loading: Boolean = true,
+    val companyName: String = "",
+    val staffName: String = "",
     val title: String = "",
     val subtitle: String = "",
     val metrics: List<WorkbenchMetric> = emptyList(),
+    val businessMetrics: List<WorkbenchMetric> = emptyList(),
     val sections: List<WorkbenchSection> = emptyList(),
     val quickActions: List<WorkbenchAction> = emptyList(),
     val recentOrders: List<WorkbenchOrder> = emptyList(),
