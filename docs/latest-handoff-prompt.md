@@ -6,15 +6,15 @@
 
 - 项目目录：`E:\codex\chengxu`
 - 当前分支：`codex/android-mobile-ui-atlas`
-- Android 生产客户端计划基线：`e629577`
-- 当前交接文档基线提交：`1cd1a01`
+- Android 认证与会话集成基线：`583ee98`
+- 隔离分支 `codex/android-auth-session` 已快进合并到当前分支；合并后的 JVM 测试、Android 测试代码编译、Lint 与 APK 构建均通过。
 - 本次接力文档提交后应先执行 `git pull`，并以远程该分支最新提交为准。
 - Windows 如需代理推送：
 
 ```powershell
 $env:HTTPS_PROXY='http://127.0.0.1:7897'
 $env:HTTP_PROXY='http://127.0.0.1:7897'
-git -c safe.directory=E:/codex/chengxu push origin codex/android-mobile-ui-atlas
+git -c safe.directory=E:/codex/chengxu -c http.sslBackend=openssl push origin codex/android-mobile-ui-atlas
 ```
 
 ## 产品与权限基线
@@ -113,9 +113,8 @@ cd E:\codex\chengxu\android-client
 
 ## 下一步
 
-1. 将隔离分支 `codex/android-auth-session` 合并回 `codex/android-mobile-ui-atlas`，在目标分支复核提交历史并推送 GitHub。
-2. 在真实 Android 设备上安装当前 Debug APK，按 `docs/android-client.md` 验证通达/鑫齐恒登录、错误密码、12 小时内恢复、退出、过期重登和离线拒绝登录。
-3. 真机认证验收后，再按后续计划将演示工单仓库替换为真实 API 与本地缓存实现。
+1. 在真实 Android 设备上安装当前 Debug APK，按 `docs/android-client.md` 验证通达/鑫齐恒登录、错误密码、12 小时内恢复、退出、过期重登和离线拒绝登录。
+2. 真机认证验收后，再按后续计划将演示工单仓库替换为真实 API 与本地缓存实现。
 
 ### 认证与会话 Task 1：服务端会话契约（已完成）
 
@@ -146,6 +145,7 @@ cd E:\codex\chengxu\android-client
 - 已执行干净的 JVM 测试、Android 测试代码编译、`lintDebug` 和 APK 构建：66 个 Gradle task 全部成功，39 个 JVM 测试全部通过，Lint 无阻塞问题。
 - 已将新 Debug APK 复制到 `dist/releases/android/autoservice-android-debug-0.1.0.apk`，大小 17.91 MiB，SHA-256 为 `C099DAB23831B40CB4DD743522B1E67B6F8EDDCF220347A447C01D8746FC5868`。
 - `docs/android-client.md` 已改为真实双公司认证真机清单，涵盖错误密码、12 小时内恢复、退出、过期重登和离线拒绝登录；本轮没有启动模拟器。
+- 隔离分支已快进合并回 `codex/android-mobile-ui-atlas`；合并后再次执行 JVM 测试、Android 测试代码编译、`lintDebug` 和 APK 构建，65 个 Gradle task 全部成功，主工作树 APK 哈希与发布副本一致。
 
 ## 用户最新决定
 
