@@ -13,6 +13,7 @@ import com.chengxu.autoservice.core.session.SessionRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.stateIn
 
 class WorkbenchViewModel(
@@ -21,7 +22,7 @@ class WorkbenchViewModel(
     private val workbenchRepository: WorkbenchRepository,
 ) : ViewModel() {
     val uiState: StateFlow<WorkbenchUiState> = combine(
-        sessionRepository.session,
+        sessionRepository.session.filterNotNull(),
         networkMonitor.connection,
         workbenchRepository.recentOrders,
     ) { session, connection, orders ->

@@ -14,8 +14,9 @@ class InMemorySessionRepositoryTest {
 
         repository.setDebugRole(UserRole.ADMINISTRATOR)
 
-        assertEquals(UserRole.ADMINISTRATOR, repository.session.value.role)
-        assertTrue(repository.session.value.permissions.allows(AppPermission.SETTLE_ORDER))
+        val session = requireNotNull(repository.session.value)
+        assertEquals(UserRole.ADMINISTRATOR, session.role)
+        assertTrue(session.permissions.allows(AppPermission.SETTLE_ORDER))
     }
 
     private fun employeeSession() = AppSession(

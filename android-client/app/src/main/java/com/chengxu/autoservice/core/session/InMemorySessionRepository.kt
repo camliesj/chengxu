@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.update
 class InMemorySessionRepository(initial: AppSession) : SessionRepository {
     private val mutableSession = MutableStateFlow(initial)
 
-    override val session: StateFlow<AppSession> = mutableSession.asStateFlow()
+    override val session: StateFlow<AppSession?> = mutableSession.asStateFlow()
 
     fun setDebugRole(role: UserRole) {
         mutableSession.update {

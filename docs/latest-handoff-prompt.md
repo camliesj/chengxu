@@ -117,12 +117,18 @@ cd E:\codex\chengxu\android-client
 2. 用户已确认 Android 真实认证与会话方案：仅“公司 + 账号 + 密码”登录，服务端 12 小时会话内保持登录；令牌使用 Keystore 支持的加密存储，401 时清除会话并回登录页。
 3. 认证与会话规格已经确认，实施计划已写入 `docs/superpowers/plans/2026-07-17-android-authentication-session.md`。按计划逐任务测试、审查、提交和推送；之后再替换演示仓库为 API 与本地缓存实现。
 
-### 认证与会话 Task 1：服务端会话契约（已完成，待提交）
+### 认证与会话 Task 1：服务端会话契约（已完成）
 
 - 已添加 `RemoteSession`、`AuthCredentials` 与服务端角色/权限到 Android 会话的映射；管理员拥有全部 Android 权限，员工只获得已知的服务端权限键，未知键不放行。
 - `AppSession` 已具备公司 ID、账号和 Token 字段；Token 不写入日志，密码不属于会话模型。
 - 已增加 `INTERNET` 权限、Kotlin JSON 序列化依赖和生产 HTTPS API 基址；仅 Debug 可通过未提交的 `-PapiOrigin` 覆盖地址。
-- 已完成映射专属测试与 JVM 全量回归，并通过独立代码复核（无阻塞问题）；提交并推送后进入加密存储与认证仓库任务。
+- 已完成映射专属测试与 JVM 全量回归，并通过独立代码复核（无阻塞问题）；提交 `b032b6a` 已推送至隔离开发分支 `codex/android-auth-session`。
+
+### 认证与会话 Task 2：认证仓库与加密存储（进行中）
+
+- 已先行增加登录成功及会话过期清除的 JVM 测试，并实现可注入的 `AuthenticationRepository`、`AuthApi` 结果类型与 `SessionStore` 边界。
+- `SessionRepository` 已改为可空会话流；工作台会过滤空会话，既有内存会话测试已适配。认证仓库专属测试已通过。
+- 仍待实现 Android Keystore AES/GCM 持久化与 `HttpURLConnection` 真实登录客户端，完成后再进行全量验证、独立复核、提交与推送。
 
 ## 用户最新决定
 
