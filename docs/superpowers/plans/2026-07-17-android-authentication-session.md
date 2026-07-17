@@ -228,7 +228,7 @@ git push origin codex/android-mobile-ui-atlas
 - Modify: `docs/latest-handoff-prompt.md`
 - Output: `dist/releases/android/autoservice-android-debug-0.1.0.apk`
 
-- [ ] **Step 1: Add the missing deterministic regression if required**
+- [x] **Step 1: Add the missing deterministic regression if required**
 
 ```kotlin
 @Test fun logoutClearsSessionAndReturnsUnauthenticated() = runTest {
@@ -240,7 +240,7 @@ git push origin codex/android-mobile-ui-atlas
 }
 ```
 
-- [ ] **Step 2: Run the complete required verification**
+- [x] **Step 2: Run the complete required verification**
 
 ```powershell
 $env:JAVA_HOME='E:\codex\APP\.android-build\jdk\jdk-17.0.19+10'
@@ -251,14 +251,14 @@ cd E:\codex\chengxu\android-client
 
 Expected: `BUILD SUCCESSFUL`; no emulator command is run.
 
-- [ ] **Step 3: Copy the APK and calculate its SHA-256**
+- [x] **Step 3: Copy the APK and calculate its SHA-256**
 
 ```powershell
 Copy-Item -LiteralPath E:\codex\chengxu\android-client\app\build\outputs\apk\debug\app-debug.apk -Destination E:\codex\chengxu\dist\releases\android\autoservice-android-debug-0.1.0.apk -Force
 Get-FileHash -Algorithm SHA256 E:\codex\chengxu\dist\releases\android\autoservice-android-debug-0.1.0.apk
 ```
 
-- [ ] **Step 4: Document and commit**
+- [x] **Step 4: Document and commit**
 
 Document real-phone login for both companies, invalid password, restart within 12 hours, logout, expired-session reauthentication and offline login rejection. State that verification did not use an emulator.
 

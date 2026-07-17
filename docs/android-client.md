@@ -24,10 +24,10 @@ cd E:\codex\chengxu\android-client
 $env:JAVA_HOME='E:\codex\APP\.android-build\jdk\jdk-17.0.19+10'
 $env:ANDROID_HOME='E:\codex\APP\.android-build\android-sdk'
 cd E:\codex\chengxu\android-client
-.\gradlew.bat :app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:assembleDebug
+.\gradlew.bat clean :app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:lintDebug :app:assembleDebug
 ```
 
-`testDebugUnitTest` 运行 JVM 状态、权限、导航和网络门禁契约；`compileDebugAndroidTestKotlin` 仅验证 Compose/Activity 测试代码可编译，不会启动设备或模拟器。
+`testDebugUnitTest` 运行 JVM 认证、加密会话、状态、权限、导航和网络门禁契约；`compileDebugAndroidTestKotlin` 仅验证 Compose/Activity 测试代码可编译，不会启动设备或模拟器。`lintDebug` 执行 Android 静态检查。
 
 ## 安装调试 APK
 
@@ -37,23 +37,25 @@ cd E:\codex\chengxu\android-client
 adb install -r E:\codex\chengxu\dist\releases\android\autoservice-android-debug-0.1.0.apk
 ```
 
-初次打开默认显示员工工作台。确认底部固定为“工作台 / 工单 / 新增 / 档案 / 我的”，第三项是“新增”。
+初次打开显示登录页。认证成功后确认底部固定为“工作台 / 工单 / 新增 / 档案 / 我的”，第三项是“新增”。
 
-## 调试角色预览
+## 真实登录与会话真机检查
 
-仅 Debug APK 支持通过 Intent 预览管理员；应用界面不提供角色切换控件。
+当前客户端调用 `https://chengxu.pages.dev/api/access`，只接受“公司 + 账号 + 密码”。公司下拉固定为“通达汽车服务中心”和“鑫齐恒汽车服务中心”；密码和 Token 不写入日志，密码不持久化。
 
-```powershell
-adb shell am force-stop com.chengxu.autoservice
-adb shell am start -n com.chengxu.autoservice/.MainActivity --es demo_role admin
-```
+请在真机依次验证：
 
-管理员应显示“管理员工作台”“经营摘要”和“办理结算”。无参数或 `demo_role=employee` 时显示员工“今日工作”，不显示“办理结算”。Release 构建忽略 `demo_role` 并固定为员工。
+1. 选择通达，使用有效账号密码登录；确认进入工作台，“我的”显示服务端返回的姓名、公司和角色。
+2. 退出登录，再选择鑫齐恒并使用有效账号密码登录；确认没有短暂显示上一账号的姓名、公司或权限界面。
+3. 输入错误密码；确认停留在登录页并显示“账号、密码或公司不正确”，不会进入五栏壳层。
+4. 成功登录后强制停止并重新打开应用；在登录后 12 小时内应从加密本地会话直接恢复，不要求重新输入密码。
+5. 在“我的”点击“退出登录”；确认回到登录页。再次强制停止并打开后仍应停留在登录页。
+6. 保留登录超过服务端 12 小时有效期，或在后续已认证接口返回 `SESSION_EXPIRED` 时，确认本地会话被清除并提示“登录已过期，请重新登录”。当前演示工单仓库尚未发出已认证业务请求，因此自然过期的端到端触发应在真实工单 API 接入后再次验证。
 
 ## 断网验证
 
-1. 在真机关闭 Wi-Fi 与移动数据。
-2. 等待页面顶部出现“网络不可用，当前为只读模式”。
+1. 退出登录，在真机关闭 Wi-Fi 与移动数据，填写账号密码并点击登录；确认不发送登录请求并显示“网络不可用，请检查网络连接后重试”。
+2. 已登录时关闭网络，等待页面顶部出现“网络不可用，当前为只读模式”。
 3. 确认底部第三项“新增”不可点击。
 4. 恢复网络，确认横幅会在网络通过系统验证后消失；未验证的热点仍必须保持只读。
 
@@ -61,10 +63,10 @@ adb shell am start -n com.chengxu.autoservice/.MainActivity --es demo_role admin
 
 ## 正式发布前检查
 
-- 重新确认正式 `applicationId`、版本号、签名密钥和发布渠道；当前 APK 是未签名发布用途的 Debug 测试包。
+- 重新确认正式 `applicationId`、版本号、签名密钥和发布渠道；当前 APK 使用 Debug 签名，仅供真机测试，不是生产发布包。
 - 检查源码中不存在访问码、腾讯云 COS 密钥、账号密码或其他密钥。
-- 确认 Release 构建没有可见角色切换，且 `demo_role` 只受 `BuildConfig.DEBUG` 守卫。
-- 本阶段不包含真实 API、COS、Room、本地持久化、真实登录或真实工单写入。
+- 确认 Release 构建固定使用生产 HTTPS API 地址；Debug 的 `-PapiOrigin` 仅用于显式本地联调，不能写入提交。
+- 本阶段已接入真实登录和加密会话恢复；工单数据仍是演示仓库，尚未接入真实工单 API、COS 或 Room 缓存。
 
 ## 换电脑接力
 

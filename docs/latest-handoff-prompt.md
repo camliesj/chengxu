@@ -104,18 +104,18 @@ git -c safe.directory=E:/codex/chengxu push origin codex/android-mobile-ui-atlas
 $env:JAVA_HOME='E:\codex\APP\.android-build\jdk\jdk-17.0.19+10'
 $env:ANDROID_HOME='E:\codex\APP\.android-build\android-sdk'
 cd E:\codex\chengxu\android-client
-.\gradlew.bat clean :app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:assembleDebug
+.\gradlew.bat clean :app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:lintDebug :app:assembleDebug
 ```
 
-结果：`BUILD SUCCESSFUL`，57 个 Gradle task 执行成功；当前共 20 个 JVM 测试通过，Android 测试代码编译通过，Debug APK 构建通过。网页端 `npm.cmd test` 为 64/64 通过，`npm.cmd run build` 成功。
+结果：`BUILD SUCCESSFUL`，66 个 Gradle task 全部执行成功；当前 39 个 JVM 测试全部通过（0 失败、0 错误、0 跳过），Android 测试代码编译、`lintDebug` 和 Debug APK 构建均通过。认证改动未触碰网页端；网页端最近一次基线仍为 64/64 测试通过、生产构建成功。全过程未启动模拟器。
 
-当前 APK：`E:\codex\chengxu\dist\releases\android\autoservice-android-debug-0.1.0.apk`，17.7 MB，可安装到 API 26+ 真机测试。SHA-256：`5D42617E4F6922BB306B764B25F3BD802F1F5979F42793E477A12AA941B09448`。构建来源仍保留在 `android-client\app\build\outputs\apk\debug\app-debug.apk`。
+当前 APK：`E:\codex\chengxu\dist\releases\android\autoservice-android-debug-0.1.0.apk`，18,777,848 字节（17.91 MiB），可安装到 API 26+ 真机测试。SHA-256：`C099DAB23831B40CB4DD743522B1E67B6F8EDDCF220347A447C01D8746FC5868`。
 
 ## 下一步
 
-1. 在真实 Android 设备上安装当前 Debug APK，按 `docs/android-client.md` 验证员工、管理员和离线只读流程。
-2. 用户已确认 Android 真实认证与会话方案：仅“公司 + 账号 + 密码”登录，服务端 12 小时会话内保持登录；令牌使用 Keystore 支持的加密存储，401 时清除会话并回登录页。
-3. 认证与会话 Task 1—3 已完成。下一步执行 Task 4：运行干净的 JVM 测试、Android 测试代码编译、Lint 与 APK 构建，复制可安装 APK 到 `dist/releases/android/` 并记录 SHA-256；不启动模拟器。之后将隔离分支合并回 `codex/android-mobile-ui-atlas` 并推送。
+1. 将隔离分支 `codex/android-auth-session` 合并回 `codex/android-mobile-ui-atlas`，在目标分支复核提交历史并推送 GitHub。
+2. 在真实 Android 设备上安装当前 Debug APK，按 `docs/android-client.md` 验证通达/鑫齐恒登录、错误密码、12 小时内恢复、退出、过期重登和离线拒绝登录。
+3. 真机认证验收后，再按后续计划将演示工单仓库替换为真实 API 与本地缓存实现。
 
 ### 认证与会话 Task 1：服务端会话契约（已完成）
 
@@ -139,6 +139,13 @@ cd E:\codex\chengxu\android-client
 - “我的”页显示当前服务端会话身份并提供“退出登录”；退出清除加密本地会话并回到登录页。`MainActivity` 已移除 Debug 演示角色装配，改为真实 API、Android Keystore 加密会话存储和网络监控依赖。
 - 每个认证会话使用独立 `ViewModelStoreOwner`；退出或换账号会立即清理旧 `WorkbenchViewModel`，避免上一账号姓名、公司或权限派生状态跨会话残留。
 - 已覆盖空输入、离线、成功凭据映射、密码清空、会话错误同步、重复提交和服务器错误；Android 根切换、公司下拉和退出回登录测试代码可编译。全量 JVM 测试与 Android 测试代码编译通过，独立复核批准，无遗留问题；未启动模拟器。
+
+### 认证与会话 Task 4：最终验证与真机 APK（已完成）
+
+- 已增加显式退出清除持久化会话、清空公开会话并回到未认证状态的确定性 JVM 回归测试。
+- 已执行干净的 JVM 测试、Android 测试代码编译、`lintDebug` 和 APK 构建：66 个 Gradle task 全部成功，39 个 JVM 测试全部通过，Lint 无阻塞问题。
+- 已将新 Debug APK 复制到 `dist/releases/android/autoservice-android-debug-0.1.0.apk`，大小 17.91 MiB，SHA-256 为 `C099DAB23831B40CB4DD743522B1E67B6F8EDDCF220347A447C01D8746FC5868`。
+- `docs/android-client.md` 已改为真实双公司认证真机清单，涵盖错误密码、12 小时内恢复、退出、过期重登和离线拒绝登录；本轮没有启动模拟器。
 
 ## 用户最新决定
 

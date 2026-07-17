@@ -44,6 +44,21 @@ class AuthenticationRepositoryTest {
         )
     }
 
+    @Test
+    fun logoutClearsSessionAndReturnsUnauthenticated() = runTest {
+        val store = FakeSessionStore(remoteSession().toAppSession())
+        val repository = AuthenticationRepository(
+            authApi = FakeAuthApi(AuthResult.Failure(AuthFailure.NetworkUnavailable)),
+            sessionStore = store,
+        )
+
+        repository.logout()
+
+        assertNull(store.value)
+        assertNull(repository.session.value)
+        assertTrue(repository.state.value is AuthenticationState.Unauthenticated)
+    }
+
     private fun remoteSession() = RemoteSession(
         token = "token-123",
         role = "staff",
