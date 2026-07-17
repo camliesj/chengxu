@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-项目已配置本地 Git 接力基础，并已搭建 React + Vite 网页端静态原型。当前阶段优先开发网页端，后续再考虑封装 App 或做更深入的移动端体验。
+项目已配置本地 Git 接力基础，包含 React + Vite 网页端、Windows 客户端和独立 Android 原生客户端。Android 生产基础已完成五栏导航、角色工作台和离线只读壳层；真机测试与构建说明见 [Android 客户端交付与真机测试](docs/android-client.md)。
 
 ## 开发与预览
 
@@ -108,8 +108,8 @@ git push -u origin main
 
 ## 当前开发重点
 
-当前先着重网页端开发：
+当前客户端分工：
 
 - 桌面网页端负责完整录入、查询、汇总、导出。
-- 移动端暂时只做基础响应式适配，方便手机浏览器查看。
-- 后续业务稳定后，再考虑封装 App 或单独优化移动端交互。
+- Android 客户端位于 `android-client/`，采用 Kotlin、Jetpack Compose 和 Navigation 3，保持与网页端独立。
+- Android 第一阶段暂不连接 API、COS 或 Room；Debug 真机测试 APK 位于 `dist/releases/android/`（构建产物不提交 Git）。

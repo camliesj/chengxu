@@ -7,7 +7,7 @@
 - 项目目录：`E:\codex\chengxu`
 - 当前分支：`codex/android-mobile-ui-atlas`
 - Android 生产客户端计划基线：`e629577`
-- 当前交接文档基线提交：`d284d04`
+- 当前交接文档基线提交：`9e6c704`
 - 本次接力文档提交后应先执行 `git pull`，并以远程该分支最新提交为准。
 - Windows 如需代理推送：
 
@@ -88,6 +88,12 @@ git -c safe.directory=E:/codex/chengxu push origin codex/android-mobile-ui-atlas
 - Debug 构建仅接受 Intent `demo_role=admin` 切换管理员演示会话；Release 构建始终回退员工，界面不包含角色切换控件。
 - 已构建并复制可安装真机测试包：`dist/releases/android/autoservice-android-debug-0.1.0.apk`。Task 8 已通过独立代码复核，未启动模拟器。
 
+### APF Task 9：文档与最终验证
+
+- 已创建 `docs/android-client.md`，包含环境、构建、测试、安装、调试角色、断网验证、发布前检查和换机接力说明。
+- 已更新 README，明确 Android 为独立 Kotlin/Compose 客户端，并链接真机测试文档。
+- 最终验证不启动模拟器：Android JVM 测试、Android 测试代码编译和 Debug APK 构建均成功；网页 64/64 测试及生产构建均成功。
+
 ## 最新验证
 
 2026-07-17 本机执行：
@@ -96,17 +102,17 @@ git -c safe.directory=E:/codex/chengxu push origin codex/android-mobile-ui-atlas
 $env:JAVA_HOME='E:\codex\APP\.android-build\jdk\jdk-17.0.19+10'
 $env:ANDROID_HOME='E:\codex\APP\.android-build\android-sdk'
 cd E:\codex\chengxu\android-client
-.\gradlew.bat :app:testDebugUnitTest --rerun-tasks :app:compileDebugAndroidTestKotlin :app:assembleDebug
+.\gradlew.bat clean :app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:assembleDebug
 ```
 
-结果：`BUILD SUCCESSFUL`，56 个 Gradle task 执行成功；当前共 20 个 JVM 测试通过，Android 测试代码编译通过，Debug APK 构建通过。
+结果：`BUILD SUCCESSFUL`，57 个 Gradle task 执行成功；当前共 20 个 JVM 测试通过，Android 测试代码编译通过，Debug APK 构建通过。网页端 `npm.cmd test` 为 64/64 通过，`npm.cmd run build` 成功。
 
-当前 APK：`E:\codex\chengxu\dist\releases\android\autoservice-android-debug-0.1.0.apk`，约 17.8 MB，可安装到 API 26+ 真机测试。构建来源仍保留在 `android-client\app\build\outputs\apk\debug\app-debug.apk`。
+当前 APK：`E:\codex\chengxu\dist\releases\android\autoservice-android-debug-0.1.0.apk`，17.7 MB，可安装到 API 26+ 真机测试。SHA-256：`5D42617E4F6922BB306B764B25F3BD802F1F5979F42793E477A12AA941B09448`。构建来源仍保留在 `android-client\app\build\outputs\apk\debug\app-debug.apk`。
 
 ## 下一步
 
-1. 执行 APF Task 9：文档与最终验证。
-2. 在真实 Android 设备上安装当前 Debug APK，按 `docs/android-client.md`（Task 9 待创建）的清单验证员工、管理员和离线只读流程。
+1. 在真实 Android 设备上安装当前 Debug APK，按 `docs/android-client.md` 验证员工、管理员和离线只读流程。
+2. 下一开发里程碑：接入真实登录/会话 API；之后再替换演示仓库为 API 与本地缓存实现。
 
 ## 用户最新决定
 
