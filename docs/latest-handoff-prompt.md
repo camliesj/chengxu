@@ -7,7 +7,7 @@
 - 项目目录：`E:\codex\chengxu`
 - 当前分支：`codex/android-mobile-ui-atlas`
 - Android 生产客户端计划基线：`e629577`
-- 当前交接文档基线提交：`0b7e5f1`
+- 当前交接文档基线提交：`d284d04`
 - 本次接力文档提交后应先执行 `git pull`，并以远程该分支最新提交为准。
 - Windows 如需代理推送：
 
@@ -82,6 +82,12 @@ git -c safe.directory=E:/codex/chengxu push origin codex/android-mobile-ui-atlas
 - 员工显示问候、今日待办、工单状态和近期工单，且不显示结算；管理员先显示经营摘要，再显示结算与保险优先事项及近期工单。
 - 拒绝的写入动作显示 `MutationDecision.Denied.reason`；UI 不自行按角色或权限推断可见性。布局未使用固定宽度或横向滚动，覆盖长中文公司名场景。Task 7 已通过独立代码复核。
 
+### APF Task 8：应用装配与真机测试包
+
+- `MainActivity` 已装配真实 `AndroidConnectivityNetworkMonitor`、内存会话、演示工单仓库和五栏壳层；网络回调会同时检查 INTERNET 与 VALIDATED，未验证网络保持离线只读。
+- Debug 构建仅接受 Intent `demo_role=admin` 切换管理员演示会话；Release 构建始终回退员工，界面不包含角色切换控件。
+- 已构建并复制可安装真机测试包：`dist/releases/android/autoservice-android-debug-0.1.0.apk`。Task 8 已通过独立代码复核，未启动模拟器。
+
 ## 最新验证
 
 2026-07-17 本机执行：
@@ -93,14 +99,14 @@ cd E:\codex\chengxu\android-client
 .\gradlew.bat :app:testDebugUnitTest --rerun-tasks :app:compileDebugAndroidTestKotlin :app:assembleDebug
 ```
 
-结果：`BUILD SUCCESSFUL`，56 个 Gradle task 执行成功；当前共 18 个 JVM 测试通过，Android 测试代码编译通过，Debug APK 构建通过。
+结果：`BUILD SUCCESSFUL`，56 个 Gradle task 执行成功；当前共 20 个 JVM 测试通过，Android 测试代码编译通过，Debug APK 构建通过。
 
-当前 APK：`E:\codex\chengxu\android-client\app\build\outputs\apk\debug\app-debug.apk`，约 17.7 MB。这只是基础阶段测试包，最终工作台和导航完成后再复制到正式发布目录交付。
+当前 APK：`E:\codex\chengxu\dist\releases\android\autoservice-android-debug-0.1.0.apk`，约 17.8 MB，可安装到 API 26+ 真机测试。构建来源仍保留在 `android-client\app\build\outputs\apk\debug\app-debug.apk`。
 
 ## 下一步
 
-1. 执行 APF Task 8：应用装配、仅调试角色注入与真机测试包准备。
-2. 执行 Task 9：文档与最终验证。
+1. 执行 APF Task 9：文档与最终验证。
+2. 在真实 Android 设备上安装当前 Debug APK，按 `docs/android-client.md`（Task 9 待创建）的清单验证员工、管理员和离线只读流程。
 
 ## 用户最新决定
 

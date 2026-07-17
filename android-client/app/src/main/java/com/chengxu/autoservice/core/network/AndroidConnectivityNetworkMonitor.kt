@@ -18,7 +18,20 @@ class AndroidConnectivityNetworkMonitor(
     override val connection: StateFlow<ConnectionState> = callbackFlow {
         val callback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: android.net.Network) {
-                trySend(ConnectionState.Online)
+                trySend(connectivityManager.currentConnectionState())
+            }
+
+            override fun onCapabilitiesChanged(
+                network: android.net.Network,
+                networkCapabilities: NetworkCapabilities,
+            ) {
+                trySend(
+                    ConnectionStateResolver.fromCapabilities(
+                        networkAvailable = true,
+                        hasInternet = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET),
+                        isValidated = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED),
+                    ),
+                )
             }
 
             override fun onLost(network: android.net.Network) {
@@ -42,13 +55,10 @@ class AndroidConnectivityNetworkMonitor(
         val network = activeNetwork ?: return ConnectionState.Offline
         val capabilities = getNetworkCapabilities(network) ?: return ConnectionState.Offline
 
-        return if (
-            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
-        ) {
-            ConnectionState.Online
-        } else {
-            ConnectionState.Offline
-        }
+        return ConnectionStateResolver.fromCapabilities(
+            networkAvailable = true,
+            hasInternet = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET),
+            isValidated = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED),
+        )
     }
 }

@@ -23,12 +23,16 @@ import com.chengxu.autoservice.core.network.ConnectionState
 import com.chengxu.autoservice.navigation.AppNavDisplay
 import com.chengxu.autoservice.navigation.AppNavigationState
 import com.chengxu.autoservice.navigation.RootTab
+import com.chengxu.autoservice.ui.workbench.WorkbenchAction
+import com.chengxu.autoservice.ui.workbench.WorkbenchUiState
 
 @Composable
 fun AutoserviceShell(
     connection: ConnectionState,
     modifier: Modifier = Modifier,
     navigationState: AppNavigationState = remember { AppNavigationState() },
+    workbenchState: WorkbenchUiState? = null,
+    onWorkbenchAction: (WorkbenchAction) -> Unit = {},
 ) {
     val isOffline = connection == ConnectionState.Offline
 
@@ -39,6 +43,8 @@ fun AutoserviceShell(
         AppNavDisplay(
             navigationState = navigationState,
             modifier = Modifier.weight(1f),
+            workbenchState = workbenchState,
+            onWorkbenchAction = onWorkbenchAction,
         )
         NavigationBar {
             RootTab.entries.forEach { tab ->
