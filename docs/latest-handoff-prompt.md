@@ -133,3 +133,5 @@ cd E:\codex\chengxu\android-client
 3. 更新本文件 `docs/latest-handoff-prompt.md`。
 
 不要提交腾讯云 COS 密钥、账号密码或其他敏感信息。不要修改现有网页端布局来模拟移动端；Android 保持独立 `android-client/` 工程。继续采用测试驱动、任务级审查和小步提交。
+
+如需使用本地隔离 worktree，请放在项目根目录 `.worktrees/`；该目录已被 Git 忽略，不能提交其中的构建产物或工作文件。
