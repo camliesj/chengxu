@@ -107,14 +107,14 @@ cd E:\codex\chengxu\android-client
 .\gradlew.bat clean :app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:lintDebug :app:assembleDebug
 ```
 
-结果：`BUILD SUCCESSFUL`，66 个 Gradle task 全部执行成功；当前 39 个 JVM 测试全部通过（0 失败、0 错误、0 跳过），Android 测试代码编译、`lintDebug` 和 Debug APK 构建均通过。认证改动未触碰网页端；网页端最近一次基线仍为 64/64 测试通过、生产构建成功。全过程未启动模拟器。
+结果：强制重跑 `BUILD SUCCESSFUL`，65 个 Gradle task 全部执行成功；当前 41 个 JVM 测试全部通过（0 失败、0 错误、0 跳过），Android 测试代码编译、`lintDebug` 和 Debug APK 构建均通过。随后在 API 35 模拟器重新执行完整 `connectedDebugAndroidTest`，10/10 Android 测试通过（0 失败、0 错误、0 跳过）。认证改动未触碰网页端；网页端最近一次基线仍为 64/64 测试通过、生产构建成功。
 
-当前 APK：`E:\codex\chengxu\dist\releases\android\autoservice-android-debug-0.1.0.apk`，18,777,848 字节（17.91 MiB），可安装到 API 26+ 真机测试。SHA-256：`C099DAB23831B40CB4DD743522B1E67B6F8EDDCF220347A447C01D8746FC5868`。
+当前 APK：`E:\codex\chengxu\dist\releases\android\autoservice-android-debug-0.1.0.apk`，18,777,848 字节（17.91 MiB），可安装到 API 26+ 真机测试。SHA-256：`1FFF7347B6E0A6EC2306C16AC5DE581B71938B20B8885F7AE87F6E489E837420`。
 
 ## 下一步
 
-1. 在真实 Android 设备上安装当前 Debug APK，按 `docs/android-client.md` 验证通达/鑫齐恒登录、错误密码、12 小时内恢复、退出、过期重登和离线拒绝登录。
-2. 真机认证验收后，再按后续计划将演示工单仓库替换为真实 API 与本地缓存实现。
+1. 在真实 Android 设备上安装当前 Debug APK，继续按 `docs/android-client.md` 验证双公司切换、错误密码、退出、过期重登和离线拒绝登录；模拟器真实账号登录已由用户确认不再闪退。
+2. 继续下一产品阶段：将演示工单仓库替换为真实 API 与本地缓存实现，并保持离线只读和权限门禁契约。
 
 ### 认证与会话 Task 1：服务端会话契约（已完成）
 
@@ -147,7 +147,7 @@ cd E:\codex\chengxu\android-client
 - `docs/android-client.md` 已改为真实双公司认证真机清单，涵盖错误密码、12 小时内恢复、退出、过期重登和离线拒绝登录；本轮没有启动模拟器。
 - 隔离分支已快进合并回 `codex/android-mobile-ui-atlas`；合并后再次执行 JVM 测试、Android 测试代码编译、`lintDebug` 和 APK 构建，65 个 Gradle task 全部成功，主工作树 APK 哈希与发布副本一致。
 
-### AndroidKeyStore 登录闪退修复（Task 1–2 已完成）
+### AndroidKeyStore 登录闪退修复（已完成）
 
 - 用户随后明确允许启动 Android 模拟器进行手工复现；API 35 模拟器已启动并配置宿主机代理。生产接口、DNS、TLS、`INTERNET` 权限及直接 POST 诊断均通过。
 - 真实账号登录稳定复现进程崩溃。`logcat -b crash` 根异常为 `InvalidAlgorithmParameterException: Caller-provided IV not permitted`，调用链为 `AesGcmSessionCipher.encrypt` → `EncryptedSessionStore.write` → `AuthenticationRepository.login`。
@@ -158,7 +158,9 @@ cd E:\codex\chengxu\android-client
 - GREEN 验证已通过：`EncryptedSessionStoreTest` 与 `AndroidKeystoreSessionCipherTest` 同次运行 `BUILD SUCCESSFUL`，真实 KeyStore 和普通软件 AES 密钥均可生成不同密文并正确往返。
 - Task 2 已按 TDD 完成：会话写入抛出普通异常的测试先失败于未捕获 `IllegalStateException`；认证仓库现仅在持久化成功后发布已认证会话，失败时保持公开会话为空并显示“无法安全保存登录状态，请重试”。
 - 复核时补充了协程取消回归：旧异常边界会吞掉 `CancellationException`，测试先失败；现会重新抛出原取消对象，只兜底真实存储异常。`AuthenticationRepositoryTest` 全类 GREEN。
-- 下一步是 Task 3：全量 JVM/Android/Lint/APK 验证，安装新构建并由用户手工验证登录、重启恢复和退出，再更新发布 APK。
+- Task 3 已完成：干净 JVM/Android 编译/Lint/APK 验证通过；完整连接式 Android 测试 10/10 通过，其中包含真实 AndroidKeyStore 往返测试。
+- 新 APK 已安装到 API 35 模拟器；用户使用真实账号确认可以正常登录且原闪退已解决，登录后的 crash buffer 为空。自动化测试继续覆盖会话恢复和退出清除。
+- 发布副本已更新为 18,777,848 字节，SHA-256 `1FFF7347B6E0A6EC2306C16AC5DE581B71938B20B8885F7AE87F6E489E837420`。
 
 ## 用户最新决定
 

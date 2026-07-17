@@ -29,6 +29,14 @@ cd E:\codex\chengxu\android-client
 
 `testDebugUnitTest` 运行 JVM 认证、加密会话、状态、权限、导航和网络门禁契约；`compileDebugAndroidTestKotlin` 仅验证 Compose/Activity 测试代码可编译，不会启动设备或模拟器。`lintDebug` 执行 Android 静态检查。
 
+登录与 AndroidKeyStore 相关改动还应在已连接设备上执行：
+
+```powershell
+.\gradlew.bat :app:connectedDebugAndroidTest
+```
+
+2026-07-17 最新验证结果：41 个 JVM 测试和 10 个连接式 Android 测试全部通过，0 失败、0 错误、0 跳过；`lintDebug` 与 Debug APK 构建通过。真实 AndroidKeyStore 测试会验证 provider 自动生成 AES-GCM IV，防止登录成功后保存会话时发生 `Caller-provided IV not permitted` 崩溃。
+
 ## 安装调试 APK
 
 将 `dist\releases\android\autoservice-android-debug-0.1.0.apk` 复制到真机并允许安装未知来源应用，然后打开“汽修接待”。也可在已连接 USB 调试的真机上执行：
@@ -38,6 +46,8 @@ adb install -r E:\codex\chengxu\dist\releases\android\autoservice-android-debug-
 ```
 
 初次打开显示登录页。认证成功后确认底部固定为“工作台 / 工单 / 新增 / 档案 / 我的”，第三项是“新增”。
+
+当前交付 APK 为 18,777,848 字节，SHA-256：`1FFF7347B6E0A6EC2306C16AC5DE581B71938B20B8885F7AE87F6E489E837420`。
 
 ## 真实登录与会话真机检查
 
