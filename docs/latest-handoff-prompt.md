@@ -7,7 +7,7 @@
 - 项目目录：`E:\codex\chengxu`
 - 当前分支：`codex/android-mobile-ui-atlas`
 - Android 生产客户端计划基线：`e629577`
-- 当前交接文档基线提交：`9e6c704`
+- 当前交接文档基线提交：`1cd1a01`
 - 本次接力文档提交后应先执行 `git pull`，并以远程该分支最新提交为准。
 - Windows 如需代理推送：
 
@@ -30,6 +30,7 @@ git -c safe.directory=E:/codex/chengxu push origin codex/android-mobile-ui-atlas
 
 - 生产基础设计：`docs/superpowers/specs/2026-07-16-android-production-foundation-design.md`
 - 九阶段实施计划：`docs/superpowers/plans/2026-07-16-android-production-foundation.md`
+- 已确认的认证与会话设计：`docs/superpowers/specs/2026-07-17-android-authentication-session-design.md`
 - 移动 UI 图集：`design/mobile-ui/`
 - UI 图集说明：`docs/mobile-ui-atlas.md`
 - 子任务记录：`.superpowers/sdd/android-production-foundation/`
@@ -112,7 +113,8 @@ cd E:\codex\chengxu\android-client
 ## 下一步
 
 1. 在真实 Android 设备上安装当前 Debug APK，按 `docs/android-client.md` 验证员工、管理员和离线只读流程。
-2. 下一开发里程碑：接入真实登录/会话 API；之后再替换演示仓库为 API 与本地缓存实现。
+2. 用户已确认 Android 真实认证与会话方案：仅“公司 + 账号 + 密码”登录，服务端 12 小时会话内保持登录；令牌使用 Keystore 支持的加密存储，401 时清除会话并回登录页。
+3. 请先审阅 `docs/superpowers/specs/2026-07-17-android-authentication-session-design.md`；确认后再编写详细实施计划并开始实现。之后再替换演示仓库为 API 与本地缓存实现。
 
 ## 用户最新决定
 
