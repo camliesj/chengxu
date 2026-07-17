@@ -6,7 +6,7 @@
 
 - 项目目录：`E:\codex\chengxu`
 - 当前分支：`codex/android-mobile-ui-atlas`
-- Android 认证与会话集成基线：`583ee98`
+- Android 认证与会话集成基线：`99d5454`
 - 隔离分支 `codex/android-auth-session` 已快进合并到当前分支；合并后的 JVM 测试、Android 测试代码编译、Lint 与 APK 构建均通过。
 - 本次接力文档提交后应先执行 `git pull`，并以远程该分支最新提交为准。
 - Windows 如需代理推送：
@@ -147,9 +147,17 @@ cd E:\codex\chengxu\android-client
 - `docs/android-client.md` 已改为真实双公司认证真机清单，涵盖错误密码、12 小时内恢复、退出、过期重登和离线拒绝登录；本轮没有启动模拟器。
 - 隔离分支已快进合并回 `codex/android-mobile-ui-atlas`；合并后再次执行 JVM 测试、Android 测试代码编译、`lintDebug` 和 APK 构建，65 个 Gradle task 全部成功，主工作树 APK 哈希与发布副本一致。
 
+### AndroidKeyStore 登录闪退修复（设计已批准，待实现）
+
+- 用户随后明确允许启动 Android 模拟器进行手工复现；API 35 模拟器已启动并配置宿主机代理。生产接口、DNS、TLS、`INTERNET` 权限及直接 POST 诊断均通过。
+- 真实账号登录稳定复现进程崩溃。`logcat -b crash` 根异常为 `InvalidAlgorithmParameterException: Caller-provided IV not permitted`，调用链为 `AesGcmSessionCipher.encrypt` → `EncryptedSessionStore.write` → `AuthenticationRepository.login`。
+- 根因是 AndroidKeyStore 密钥禁止调用方在加密时指定 IV，而当前实现手动生成 12 字节 IV 并传入 `Cipher.init`；普通 JVM `SecretKeySpec` 测试没有覆盖平台约束。
+- 已批准的修复设计见 `docs/superpowers/specs/2026-07-17-android-keystore-login-crash-fix-design.md`：由 AndroidKeyStore 生成加密 IV、保持现有密文格式，并为会话存储失败增加不崩溃的未认证回退。
+- 当前尚未修改生产代码；下一步必须先增加会失败的真实 AndroidKeyStore 仪器测试和存储失败 JVM 测试，再做最小实现。
+
 ## 用户最新决定
 
-- 不需要在 Android 模拟器中安装或运行测试。
+- 常规后续开发不需要启动 Android 模拟器；本次登录闪退排障已由用户明确允许启动，并要求记录手工测试结果。
 - 保留 JVM 单元测试、Android 测试代码编译、Lint/构建检查。
 - 功能完成后生成可安装 APK，放到项目发布目录并给出文件路径，由用户在真实手机上测试。
 - 因此 Task 8 中的模拟器 QA 改为“构建可安装测试 APK + 提供真机测试清单”，不要启动模拟器。
