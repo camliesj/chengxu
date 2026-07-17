@@ -5,6 +5,9 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+val productionApiOrigin = "https://chengxu.pages.dev"
+val debugApiOrigin = providers.gradleProperty("apiOrigin").orNull
+
 android {
     namespace = "com.chengxu.autoservice"
     compileSdk = 36
@@ -15,6 +18,14 @@ android {
         versionCode = 1
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("String", "API_ORIGIN", "\"$productionApiOrigin\"")
+    }
+    buildTypes {
+        getByName("debug") {
+            if (!debugApiOrigin.isNullOrBlank()) {
+                buildConfigField("String", "API_ORIGIN", "\"$debugApiOrigin\"")
+            }
+        }
     }
     buildFeatures { compose = true; buildConfig = true }
     compileOptions {
@@ -43,6 +54,7 @@ dependencies {
     implementation(libs.compose.material3)
     implementation(libs.compose.material.icons.extended)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.serialization.json)
     debugImplementation(libs.compose.ui.tooling)
     debugImplementation(libs.compose.ui.test.manifest)
     testImplementation(libs.junit)

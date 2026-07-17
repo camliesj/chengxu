@@ -46,7 +46,7 @@
 - Produces `AuthCredentials(companyId, username, password)`, serializable `RemoteSession`, `RemoteSession.toAppSession()`, and `PermissionSnapshot.fromServer(role, permissionKeys)`.
 - `AppSession` gains `companyId`, `username`, and `token`; `AppPermission` remains the sole UI authorization type.
 
-- [ ] **Step 1: Write the failing mapper tests**
+- [x] **Step 1: Write the failing mapper tests**
 
 ```kotlin
 @Test fun staffMapsOnlyKnownReturnedPermissions() {
@@ -63,13 +63,13 @@
 }
 ```
 
-- [ ] **Step 2: Prove the test fails**
+- [x] **Step 2: Prove the test fails**
 
 Run: `cd android-client; .\gradlew.bat :app:testDebugUnitTest --tests "com.chengxu.autoservice.core.auth.SessionMapperTest"`
 
 Expected: compilation fails because `RemoteSession` and `toAppSession` do not exist.
 
-- [ ] **Step 3: Add the smallest contract implementation**
+- [x] **Step 3: Add the smallest contract implementation**
 
 ```kotlin
 @Serializable
@@ -92,7 +92,7 @@ fun RemoteSession.toAppSession() = AppSession(
 
 Add the JSON catalog alias for `org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0`, `BuildConfig.API_ORIGIN`, Debug `-PapiOrigin` support, and `android.permission.INTERNET`.
 
-- [ ] **Step 4: Verify and commit**
+- [x] **Step 4: Verify and commit**
 
 Run: `cd android-client; .\gradlew.bat :app:testDebugUnitTest --tests "com.chengxu.autoservice.core.auth.SessionMapperTest" :app:testDebugUnitTest`
 

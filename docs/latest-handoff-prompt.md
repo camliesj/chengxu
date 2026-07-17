@@ -117,6 +117,13 @@ cd E:\codex\chengxu\android-client
 2. 用户已确认 Android 真实认证与会话方案：仅“公司 + 账号 + 密码”登录，服务端 12 小时会话内保持登录；令牌使用 Keystore 支持的加密存储，401 时清除会话并回登录页。
 3. 认证与会话规格已经确认，实施计划已写入 `docs/superpowers/plans/2026-07-17-android-authentication-session.md`。按计划逐任务测试、审查、提交和推送；之后再替换演示仓库为 API 与本地缓存实现。
 
+### 认证与会话 Task 1：服务端会话契约（已完成，待提交）
+
+- 已添加 `RemoteSession`、`AuthCredentials` 与服务端角色/权限到 Android 会话的映射；管理员拥有全部 Android 权限，员工只获得已知的服务端权限键，未知键不放行。
+- `AppSession` 已具备公司 ID、账号和 Token 字段；Token 不写入日志，密码不属于会话模型。
+- 已增加 `INTERNET` 权限、Kotlin JSON 序列化依赖和生产 HTTPS API 基址；仅 Debug 可通过未提交的 `-PapiOrigin` 覆盖地址。
+- 已完成映射专属测试与 JVM 全量回归，并通过独立代码复核（无阻塞问题）；提交并推送后进入加密存储与认证仓库任务。
+
 ## 用户最新决定
 
 - 不需要在 Android 模拟器中安装或运行测试。
