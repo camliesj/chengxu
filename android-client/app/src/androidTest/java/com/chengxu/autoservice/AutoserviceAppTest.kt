@@ -1,23 +1,24 @@
 package com.chengxu.autoservice
 
-import android.content.Intent
-import androidx.test.core.app.ActivityScenario
-import androidx.test.platform.app.InstrumentationRegistry
-import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import com.chengxu.autoservice.core.auth.AuthApi
+import com.chengxu.autoservice.core.auth.AuthCredentials
+import com.chengxu.autoservice.core.auth.AuthFailure
+import com.chengxu.autoservice.core.auth.AuthResult
+import com.chengxu.autoservice.core.auth.AuthenticationRepository
+import com.chengxu.autoservice.core.auth.SessionStore
 import com.chengxu.autoservice.core.model.UserRole
 import com.chengxu.autoservice.core.network.ConnectionState
 import com.chengxu.autoservice.core.network.NetworkMonitor
 import com.chengxu.autoservice.core.session.AppSession
 import com.chengxu.autoservice.core.session.PermissionSnapshot
-import com.chengxu.autoservice.core.session.SessionRepository
 import com.chengxu.autoservice.ui.workbench.DemoWorkbenchRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
@@ -26,59 +27,61 @@ class AutoserviceAppTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun debugAdminIntentLaunchesAdminWorkbench() {
-        val role = resolveDemoRole(Intent().putExtra("demo_role", "admin"), debug = true)
-        setApp(role)
+    fun unauthenticatedRootShowsCompanyAccountPasswordAndLogin() {
+        setApp(storedSession = null)
 
-        composeRule.onNodeWithText("管理员工作台").assertIsDisplayed()
-        composeRule.onNodeWithText("办理结算").assertIsDisplayed()
+        composeRule.onNodeWithText("公司").assertIsDisplayed()
+        composeRule.onNodeWithText("账号").assertIsDisplayed()
+        composeRule.onNodeWithText("密码").assertIsDisplayed()
+        composeRule.onNodeWithText("登录").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("选择公司").performClick()
+        composeRule.onNodeWithText("鑫齐恒汽车服务中心").assertIsDisplayed()
     }
 
     @Test
-    fun debugAdminIntentIsReadByMainActivity() {
-        val intent = Intent(
-            InstrumentationRegistry.getInstrumentation().targetContext,
-            MainActivity::class.java,
-        ).putExtra("demo_role", "admin")
+    fun authenticatedRootShowsWorkbenchAndProfileLogout() {
+        setApp(storedSession = employeeSession())
 
-        ActivityScenario.launch<MainActivity>(intent).use { scenario ->
-            scenario.onActivity { activity ->
-                assertEquals(UserRole.ADMINISTRATOR, activity.activeRoleForTesting)
-            }
-        }
+        composeRule.onNodeWithText("今日工作").assertIsDisplayed()
+        composeRule.onNodeWithText("我的").performClick()
+        composeRule.onNodeWithText("退出登录").assertIsDisplayed()
+        composeRule.onNodeWithText("退出登录").performClick()
+        composeRule.onNodeWithText("登录").assertIsDisplayed()
     }
 
-    @Test
-    fun releaseRoleResolutionAndEmployeeAppDoNotExposeRoleSwitch() {
-        assertEquals(
-            UserRole.EMPLOYEE,
-            resolveDemoRole(Intent().putExtra("demo_role", "admin"), debug = false),
+    private fun setApp(storedSession: AppSession?) {
+        val authenticationRepository = AuthenticationRepository(
+            authApi = FakeAuthApi(),
+            sessionStore = FakeSessionStore(storedSession),
         )
-        setApp(UserRole.EMPLOYEE)
-
-        composeRule.onAllNodesWithText("切换角色").assertCountEquals(0)
-        composeRule.onAllNodesWithText("办理结算").assertCountEquals(0)
-    }
-
-    private fun setApp(role: UserRole) {
         composeRule.setContent {
             AutoserviceApp(
-                sessionRepository = FakeSessionRepository(role),
+                authenticationRepository = authenticationRepository,
                 networkMonitor = FakeNetworkMonitor(),
                 workbenchRepository = DemoWorkbenchRepository(),
             )
         }
     }
 
-    private class FakeSessionRepository(role: UserRole) : SessionRepository {
-        override val session: StateFlow<AppSession> = MutableStateFlow(
-            AppSession(
-                companyName = "通达汽车服务中心",
-                staffName = "张工",
-                role = role,
-                permissions = PermissionSnapshot.forRole(role),
-            ),
-        )
+    private fun employeeSession() = AppSession(
+        companyId = "tongda",
+        companyName = "通达汽车服务中心",
+        username = "worker",
+        staffName = "通达员工",
+        token = "token-123",
+        role = UserRole.EMPLOYEE,
+        permissions = PermissionSnapshot.forRole(UserRole.EMPLOYEE),
+    )
+
+    private class FakeAuthApi : AuthApi {
+        override suspend fun login(credentials: AuthCredentials): AuthResult =
+            AuthResult.Failure(AuthFailure.InvalidCredentials)
+    }
+
+    private class FakeSessionStore(private var session: AppSession?) : SessionStore {
+        override suspend fun read(): AppSession? = session
+        override suspend fun write(session: AppSession) { this.session = session }
+        override suspend fun clear() { session = null }
     }
 
     private class FakeNetworkMonitor : NetworkMonitor {

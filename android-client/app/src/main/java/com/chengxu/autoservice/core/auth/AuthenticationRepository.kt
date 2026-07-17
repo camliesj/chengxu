@@ -16,7 +16,7 @@ class AuthenticationRepository(
     private val authApi: AuthApi,
     private val sessionStore: SessionStore,
 ) : SessionRepository {
-    private val mutableState = MutableStateFlow<AuthenticationState>(AuthenticationState.Unauthenticated())
+    private val mutableState = MutableStateFlow<AuthenticationState>(AuthenticationState.Restoring)
     private val mutableSession = MutableStateFlow<AppSession?>(null)
 
     val state: StateFlow<AuthenticationState> = mutableState.asStateFlow()

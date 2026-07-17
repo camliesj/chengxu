@@ -115,7 +115,7 @@ cd E:\codex\chengxu\android-client
 
 1. 在真实 Android 设备上安装当前 Debug APK，按 `docs/android-client.md` 验证员工、管理员和离线只读流程。
 2. 用户已确认 Android 真实认证与会话方案：仅“公司 + 账号 + 密码”登录，服务端 12 小时会话内保持登录；令牌使用 Keystore 支持的加密存储，401 时清除会话并回登录页。
-3. 认证与会话规格已经确认，实施计划已写入 `docs/superpowers/plans/2026-07-17-android-authentication-session.md`。按计划逐任务测试、审查、提交和推送；之后再替换演示仓库为 API 与本地缓存实现。
+3. 认证与会话 Task 1—3 已完成。下一步执行 Task 4：运行干净的 JVM 测试、Android 测试代码编译、Lint 与 APK 构建，复制可安装 APK 到 `dist/releases/android/` 并记录 SHA-256；不启动模拟器。之后将隔离分支合并回 `codex/android-mobile-ui-atlas` 并推送。
 
 ### 认证与会话 Task 1：服务端会话契约（已完成）
 
@@ -131,6 +131,14 @@ cd E:\codex\chengxu\android-client
 - 已实现 Android Keystore AES-256-GCM 非导出密钥、每次加密随机 12 字节 IV、私有 SharedPreferences 密文保存和 12 小时本地过期；损坏或过期密文会清除且不恢复。
 - 已实现 `HttpURLConnection` 真实登录客户端：10 秒连接/读取超时、`POST /api/access` JSON、200 会话解析、401 无效账号、网络失败与其他服务端错误映射；不记录密码或 Token。
 - 加密存储、异常密文、HTTP 成功/401/网络失败/异常 200/服务端错误均有 JVM 回归测试；认证专属测试、全量 JVM 测试与 Android 测试代码编译通过，独立安全复核无阻塞问题。
+
+### 认证与会话 Task 3：登录根入口与退出登录（已完成）
+
+- `AutoserviceApp` 现在按 `Restoring / Unauthenticated / Authenticated` 切换根界面：恢复中仅显示无敏感信息的进度指示，未登录显示登录页，已登录才创建五栏工作台。
+- 登录页只提供通达、鑫齐恒两家公司下拉选择，包含账号、屏蔽密码、离线/校验/服务端错误、提交中状态与重复提交保护；成功后清空密码。
+- “我的”页显示当前服务端会话身份并提供“退出登录”；退出清除加密本地会话并回到登录页。`MainActivity` 已移除 Debug 演示角色装配，改为真实 API、Android Keystore 加密会话存储和网络监控依赖。
+- 每个认证会话使用独立 `ViewModelStoreOwner`；退出或换账号会立即清理旧 `WorkbenchViewModel`，避免上一账号姓名、公司或权限派生状态跨会话残留。
+- 已覆盖空输入、离线、成功凭据映射、密码清空、会话错误同步、重复提交和服务器错误；Android 根切换、公司下拉和退出回登录测试代码可编译。全量 JVM 测试与 Android 测试代码编译通过，独立复核批准，无遗留问题；未启动模拟器。
 
 ## 用户最新决定
 

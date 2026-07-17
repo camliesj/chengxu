@@ -1,32 +1,26 @@
 package com.chengxu.autoservice
 
-import android.content.Intent
 import android.net.ConnectivityManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.lifecycle.lifecycleScope
-import com.chengxu.autoservice.core.model.UserRole
+import com.chengxu.autoservice.core.auth.AuthenticationRepository
+import com.chengxu.autoservice.core.auth.EncryptedSessionStore
+import com.chengxu.autoservice.core.auth.HttpUrlConnectionAuthApi
+import com.chengxu.autoservice.core.auth.SharedPreferencesEncryptedValueStore
+import com.chengxu.autoservice.core.auth.androidKeystoreSessionCipher
 import com.chengxu.autoservice.core.network.AndroidConnectivityNetworkMonitor
-import com.chengxu.autoservice.core.session.AppSession
-import com.chengxu.autoservice.core.session.InMemorySessionRepository
-import com.chengxu.autoservice.core.session.PermissionSnapshot
 import com.chengxu.autoservice.ui.workbench.DemoWorkbenchRepository
 
 class MainActivity : ComponentActivity() {
-    internal lateinit var activeRoleForTesting: UserRole
-        private set
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val role = resolveDemoRole(intent, BuildConfig.DEBUG)
-        activeRoleForTesting = role
-        val sessionRepository = InMemorySessionRepository(
-            AppSession(
-                companyName = "通达汽车服务中心",
-                staffName = "张工",
-                role = role,
-                permissions = PermissionSnapshot.forRole(role),
+        val authenticationRepository = AuthenticationRepository(
+            authApi = HttpUrlConnectionAuthApi(BuildConfig.API_ORIGIN),
+            sessionStore = EncryptedSessionStore(
+                valueStore = SharedPreferencesEncryptedValueStore(applicationContext),
+                cipher = androidKeystoreSessionCipher(),
             ),
         )
         val networkMonitor = AndroidConnectivityNetworkMonitor(
@@ -36,18 +30,10 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             AutoserviceApp(
-                sessionRepository = sessionRepository,
+                authenticationRepository = authenticationRepository,
                 networkMonitor = networkMonitor,
                 workbenchRepository = DemoWorkbenchRepository(),
             )
         }
-    }
-}
-
-internal fun resolveDemoRole(intent: Intent, debug: Boolean): UserRole {
-    if (!debug) return UserRole.EMPLOYEE
-    return when (intent.getStringExtra("demo_role")) {
-        "admin" -> UserRole.ADMINISTRATOR
-        else -> UserRole.EMPLOYEE
     }
 }

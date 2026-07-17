@@ -183,7 +183,7 @@ git push origin codex/android-mobile-ui-atlas
 
 **Interfaces:** `AutoserviceApp` consumes `AuthenticationRepository.state`; `AppNavDisplay` and `AutoserviceShell` receive `onLogout: () -> Unit`; only the authenticated branch creates `WorkbenchViewModel`.
 
-- [ ] **Step 1: Write failing root-switch tests**
+- [x] **Step 1: Write failing root-switch tests**
 
 ```kotlin
 @Test fun unauthenticatedRootShowsLogin() {
@@ -199,17 +199,17 @@ git push origin codex/android-mobile-ui-atlas
 }
 ```
 
-- [ ] **Step 2: Prove the Android test code does not compile yet**
+- [x] **Step 2: Prove the Android test code does not compile yet**
 
 Run: `cd android-client; .\gradlew.bat :app:compileDebugAndroidTestKotlin`
 
 Expected: compilation fails because the login root and logout control do not exist.
 
-- [ ] **Step 3: Implement the UI and application assembly**
+- [x] **Step 3: Implement the UI and application assembly**
 
 Build the login UI with exactly two companies (`tongda` and `xinqiheng`), username, masked password, duplicate-submit disabling, `登录中…` and readable validation/network/server errors. During `Restoring`, show only a non-sensitive progress indicator; during `Unauthenticated`, show `LoginScreen`; during `Authenticated`, show the existing shell. Replace only `AppRoute.Profile` with `ProfileScreen` and wire its `退出登录` callback. `MainActivity` constructs the real auth repository and removes the debug role assembly.
 
-- [ ] **Step 4: Verify and commit**
+- [x] **Step 4: Verify and commit**
 
 Run: `cd android-client; .\gradlew.bat :app:compileDebugAndroidTestKotlin :app:testDebugUnitTest`
 

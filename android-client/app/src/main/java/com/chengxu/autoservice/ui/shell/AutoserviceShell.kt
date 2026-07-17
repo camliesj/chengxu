@@ -20,6 +20,7 @@ import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.testTag
 import com.chengxu.autoservice.core.network.ConnectionState
+import com.chengxu.autoservice.core.session.AppSession
 import com.chengxu.autoservice.navigation.AppNavDisplay
 import com.chengxu.autoservice.navigation.AppNavigationState
 import com.chengxu.autoservice.navigation.RootTab
@@ -33,6 +34,8 @@ fun AutoserviceShell(
     navigationState: AppNavigationState = remember { AppNavigationState() },
     workbenchState: WorkbenchUiState? = null,
     onWorkbenchAction: (WorkbenchAction) -> Unit = {},
+    profileSession: AppSession? = null,
+    onLogout: () -> Unit = {},
 ) {
     val isOffline = connection == ConnectionState.Offline
 
@@ -45,6 +48,8 @@ fun AutoserviceShell(
             modifier = Modifier.weight(1f),
             workbenchState = workbenchState,
             onWorkbenchAction = onWorkbenchAction,
+            profileSession = profileSession,
+            onLogout = onLogout,
         )
         NavigationBar {
             RootTab.entries.forEach { tab ->

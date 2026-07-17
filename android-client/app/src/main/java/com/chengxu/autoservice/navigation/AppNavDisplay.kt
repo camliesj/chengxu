@@ -9,6 +9,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.ui.NavDisplay
+import com.chengxu.autoservice.core.session.AppSession
+import com.chengxu.autoservice.ui.profile.ProfileScreen
 import com.chengxu.autoservice.ui.stage.StageScreen
 import com.chengxu.autoservice.ui.workbench.WorkbenchAction
 import com.chengxu.autoservice.ui.workbench.WorkbenchScreen
@@ -20,6 +22,8 @@ fun AppNavDisplay(
     modifier: Modifier = Modifier,
     workbenchState: WorkbenchUiState? = null,
     onWorkbenchAction: (WorkbenchAction) -> Unit = {},
+    profileSession: AppSession? = null,
+    onLogout: () -> Unit = {},
 ) {
     NavDisplay(
         backStack = navigationState.currentStack,
@@ -34,7 +38,9 @@ fun AppNavDisplay(
                     AppRoute.Orders -> StageScreen(title = RootTab.ORDERS.label)
                     AppRoute.CreateOrder -> StageScreen(title = RootTab.CREATE.label)
                     AppRoute.Records -> StageScreen(title = RootTab.RECORDS.label)
-                    AppRoute.Profile -> StageScreen(title = RootTab.PROFILE.label)
+                    AppRoute.Profile -> profileSession?.let {
+                        ProfileScreen(session = it, onLogout = onLogout)
+                    } ?: StageScreen(title = RootTab.PROFILE.label)
                     is AppRoute.OrderDetail -> StageScreen(title = "工单详情")
                 }
             }
