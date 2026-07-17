@@ -189,7 +189,8 @@ cd E:\codex\chengxu\android-client
 - 缺少的车辆、车间和空状态素材由内置图像生成器按实际槽位生成，需要透明底时完成透明 PNG 处理，不使用占位框或 Emoji。
 - 用户确认先升级 `design/mobile-ui/` HTML 原型进行交互与视觉测试，HTML 通过后再单独规划 Compose 移植。
 - 正式设计：`docs/superpowers/specs/2026-07-17-android-ui-brand-upgrade-design.md`。
-- 下一步先由用户复核书面设计；批准后使用 `superpowers:writing-plans` 编写 HTML 原型实施计划。
+- 用户已复核并批准书面设计。HTML 原型实施计划已完成：`docs/superpowers/plans/2026-07-17-html-brand-ui-prototype.md`，共六个任务：素材与 Hugeicons、设计系统四态、交互登录、五栏壳层/我的/弹层、双角色工作台、自动截图与视觉 QA。
+- 下一步由用户选择计划执行方式，再按 TDD 与视觉 QA 检查点实施；HTML 通过后才规划 Compose 移植。
 
 ## 工作纪律
 
