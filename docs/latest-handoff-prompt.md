@@ -190,7 +190,15 @@ cd E:\codex\chengxu\android-client
 - 用户确认先升级 `design/mobile-ui/` HTML 原型进行交互与视觉测试，HTML 通过后再单独规划 Compose 移植。
 - 正式设计：`docs/superpowers/specs/2026-07-17-android-ui-brand-upgrade-design.md`。
 - 用户已复核并批准书面设计。HTML 原型实施计划已完成：`docs/superpowers/plans/2026-07-17-html-brand-ui-prototype.md`，共六个任务：素材与 Hugeicons、设计系统四态、交互登录、五栏壳层/我的/弹层、双角色工作台、自动截图与视觉 QA。
-- 下一步由用户选择计划执行方式，再按 TDD 与视觉 QA 检查点实施；HTML 通过后才规划 Compose 移植。
+- 用户选择在当前功能分支内联执行，不创建子代理或额外 worktree。
+
+### HTML 品牌原型 Task 1：素材与 Hugeicons（已完成）
+
+- 已安装官方 `@hugeicons/react@1.1.9` 与 `@hugeicons/core-free-icons@4.2.2`，建立单一 `BrandIcon` 渲染边界和受控图标映射；状态合集使用到的底部导航、离线标识和系统状态图标已迁移，不再混用 Lucide。
+- 已使用内置 ImageGen 按参考图的冷色汽车应用气质分别生成车辆 Hero 与维修工具空状态素材，再使用官方技能附带的色键去底工具本地移除背景；最终文件为 `design/mobile-ui/public/brand-assets/login-service-vehicle.png`（716×500 RGBA）和 `empty-service-tools.png`（440×330 RGBA）。
+- 两张 PNG 的四个角 Alpha 均为 0，Alpha 范围均为 0–255；素材无品牌标记、文字、水印和人物，并已登记到 `asset-manifest.js`，状态合集会实际加载两张图片用于自动校验。
+- TDD 记录：`brand-assets.spec.mjs` 先失败于缺少 `[data-brand-icon]`，实现后聚焦测试 1/1 通过；完整网页单元测试 64/64、移动 UI 回归 80/80 通过。
+- 下一步执行 HTML 品牌原型 Task 2：替换品牌令牌，建立按钮、字段、卡片、导航与弹层的默认、悬停、按下、聚焦、选中和禁用状态矩阵。
 
 ## 工作纪律
 

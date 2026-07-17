@@ -1680,6 +1680,32 @@ button:disabled {
   gap: 0;
 }
 
+.brand-asset-preview {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 10px;
+  padding: 4px 0 14px;
+  border-bottom: 1px solid var(--atlas-border);
+}
+
+.brand-asset-preview__item {
+  display: grid;
+  min-width: 0;
+  min-height: 112px;
+  margin: 0;
+  place-items: center;
+  overflow: hidden;
+  border-radius: var(--atlas-radius-card);
+  background: var(--atlas-surface-muted);
+}
+
+.brand-asset-preview__item img {
+  display: block;
+  width: 100%;
+  height: 112px;
+  object-fit: contain;
+}
+
 .state-panel {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;

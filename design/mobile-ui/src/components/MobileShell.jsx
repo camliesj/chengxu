@@ -1,5 +1,5 @@
 import React from 'react';
-import { WifiOff } from 'lucide-react';
+import { BrandIcon } from './BrandIcon.jsx';
 import { BottomNav } from './BottomNav.jsx';
 
 export function MobileShell({
@@ -23,7 +23,7 @@ export function MobileShell({
           </div>
           {offline ? (
             <div className="mobile-shell__offline-strip" role="status">
-              <WifiOff size={14} strokeWidth={2} aria-hidden="true" />
+              <BrandIcon name="offline" size={14} strokeWidth={2} decorative />
               <span>网络不可用，当前为只读模式</span>
             </div>
           ) : null}

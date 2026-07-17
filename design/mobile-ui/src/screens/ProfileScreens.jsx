@@ -16,6 +16,7 @@ import { OrderCard } from '../components/OrderCard.jsx';
 import { StatePanel } from '../components/StatePanel.jsx';
 import { StatusPill } from '../components/StatusPill.jsx';
 import { cachedOrders, profileRows } from '../mock-data.js';
+import { BRAND_ASSETS } from '../assets/brand/asset-manifest.js';
 
 function ProfileRow({ Icon, label, value, status }) {
   return (
@@ -90,6 +91,19 @@ export function StatesGalleryScreen() {
       showBottomNav
     >
       <div className="states-gallery">
+        <section className="brand-asset-preview" data-brand-preview aria-label="品牌图片资产">
+          {Object.entries(BRAND_ASSETS).map(([key, asset]) => (
+            <figure key={key} className="brand-asset-preview__item">
+              <img
+                data-brand-asset={key}
+                src={asset.src}
+                width={asset.width}
+                height={asset.height}
+                alt={asset.alt}
+              />
+            </figure>
+          ))}
+        </section>
         <StatePanel type="loading" title="正在同步数据" description="正在获取最新工单，请稍候。" />
         <StatePanel type="empty" title="暂无相关记录" description="调整筛选条件后再试一次。" actionLabel="清除筛选" />
         <StatePanel type="error" title="云端连接失败" description="数据暂未更新，可检查网络后重试。" actionLabel="重新加载" />

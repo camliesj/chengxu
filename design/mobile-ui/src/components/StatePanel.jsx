@@ -1,20 +1,20 @@
 import React from 'react';
-import { CloudOff, Inbox, LoaderCircle, ShieldX } from 'lucide-react';
+import { BrandIcon } from './BrandIcon.jsx';
 
 const ICONS = {
-  loading: LoaderCircle,
-  empty: Inbox,
-  error: CloudOff,
-  permission: ShieldX,
+  loading: 'refresh',
+  empty: 'records',
+  error: 'offline',
+  permission: 'shield',
 };
 
 export function StatePanel({ type, title, description, actionLabel }) {
-  const Icon = ICONS[type] ?? Inbox;
+  const icon = ICONS[type] ?? 'records';
 
   return (
     <section className={`state-panel state-panel--${type}`} data-state-panel={type}>
       <span className="state-panel__icon" aria-hidden="true">
-        <Icon size={22} strokeWidth={2} />
+        <BrandIcon name={icon} size={22} strokeWidth={2} decorative />
       </span>
       <div className="state-panel__copy">
         <h2>{title}</h2>
