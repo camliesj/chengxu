@@ -2,11 +2,11 @@ import { test, expect } from '@playwright/test';
 
 test('login screen exposes company choice and credentials', async ({ page }) => {
   await page.goto('/?screen=login-company');
-  await expect(page.getByRole('heading', { name: '选择门店' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '登录维修业务移动端' })).toBeVisible();
   await expect(page.getByText('通达汽车服务中心')).toBeVisible();
   await expect(page.getByText('鑫齐恒汽车服务中心')).toBeVisible();
   await expect(page.getByLabel('账号')).toBeVisible();
-  await expect(page.getByLabel('密码')).toBeVisible();
+  await expect(page.getByLabel('密码', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: '进入系统' })).toBeVisible();
   await expect(page.getByRole('navigation', { name: '主导航' })).toHaveCount(0);
 });

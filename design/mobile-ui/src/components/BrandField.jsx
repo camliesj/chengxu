@@ -16,13 +16,12 @@ export function BrandField({
   const errorId = error ? `${inputId}-error` : undefined;
 
   return (
-    <label
+    <div
       className={['brand-field', error ? 'brand-field--error' : '', className].filter(Boolean).join(' ')}
-      htmlFor={inputId}
       data-force-state={forceState}
       data-interaction-ready="true"
     >
-      <span className="brand-field__label">{label}</span>
+      <label className="brand-field__label" htmlFor={inputId}>{label}</label>
       <span className="brand-field__control">
         {leadingIcon ? (
           <span className="brand-field__leading" aria-hidden="true">
@@ -39,6 +38,6 @@ export function BrandField({
         {trailingAction ? <span className="brand-field__trailing">{trailingAction}</span> : null}
       </span>
       {error ? <span id={errorId} className="brand-field__error">{error}</span> : null}
-    </label>
+    </div>
   );
 }

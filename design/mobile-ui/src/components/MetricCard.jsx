@@ -8,7 +8,7 @@ export function MetricCard({
   detail,
   tone = 'neutral',
   disabled = false,
-  selected = false,
+  selected,
   className = '',
   ...props
 }) {

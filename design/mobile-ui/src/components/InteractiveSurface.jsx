@@ -6,7 +6,7 @@ export const InteractiveSurface = forwardRef(function InteractiveSurface(
   {
     as: Component = 'button',
     disabled = false,
-    selected = false,
+    selected,
     className = '',
     children,
     type,
@@ -26,7 +26,7 @@ export const InteractiveSurface = forwardRef(function InteractiveSurface(
       data-selected={selected ? 'true' : undefined}
       disabled={isNative ? disabled : undefined}
       aria-disabled={disabled ? 'true' : undefined}
-      aria-pressed={isButton && selected ? true : undefined}
+      aria-pressed={isButton && selected !== undefined ? Boolean(selected) : undefined}
       tabIndex={!isNative && disabled ? -1 : props.tabIndex}
       type={isButton ? (type ?? 'button') : type}
     >

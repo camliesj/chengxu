@@ -4,7 +4,7 @@ test('renders login-company placeholder for a valid screen id', async ({ page })
   await page.goto('/?screen=login-company');
 
   await expect(page.locator('[data-screen-id="login-company"]')).toBeVisible();
-  await expect(page.getByText('登录与公司选择')).toBeVisible();
+  await expect(page.getByText('欢迎回来')).toBeVisible();
 });
 
 test('renders workbench-admin screen for another valid screen id', async ({ page }) => {

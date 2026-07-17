@@ -1,6 +1,6 @@
 export const companies = [
-  { shortName: '通达汽车服务中心', fullName: '鄂尔多斯市通达汽车服务有限公司' },
-  { shortName: '鑫齐恒汽车服务中心', fullName: '鄂尔多斯市鑫齐恒汽车服务有限公司' },
+  { id: 'tongda', shortName: '通达汽车服务中心', fullName: '鄂尔多斯市通达汽车服务有限公司' },
+  { id: 'xinqiheng', shortName: '鑫齐恒汽车服务中心', fullName: '鄂尔多斯市鑫齐恒汽车服务有限公司' },
 ];
 
 export const sampleOrder = {

@@ -1,106 +1,150 @@
-import React, { useState } from 'react';
-import { CheckCircle2, Circle, ShieldCheck } from 'lucide-react';
-import { MobileShell } from '../components/MobileShell.jsx';
-import { LabeledInput, formIcons } from '../components/FormControls.jsx';
+import React, { useReducer } from 'react';
+import { BRAND_ASSETS } from '../assets/brand/asset-manifest.js';
+import { BrandButton } from '../components/BrandButton.jsx';
+import { BrandField } from '../components/BrandField.jsx';
+import { BrandIcon } from '../components/BrandIcon.jsx';
+import { InteractiveSurface } from '../components/InteractiveSurface.jsx';
 import { companies } from '../mock-data.js';
+import { initialPrototypeState, prototypeReducer } from '../prototype-state.js';
 
-function CompanyOption({ company, selected, onSelect }) {
+function CompanyOption({ company, selected, disabled, onSelect }) {
   return (
-    <button
-      type="button"
-      className={[
-        'company-option',
-        selected ? 'company-option--selected' : '',
-      ]
-        .filter(Boolean)
-        .join(' ')}
-      aria-pressed={selected}
+    <InteractiveSurface
+      className="brand-company-option"
+      selected={selected}
+      disabled={disabled}
+      aria-label={`选择${company.shortName}`}
       onClick={onSelect}
     >
-      <span className="company-option__copy">
-        <span className="company-option__title">{company.shortName}</span>
-        <span className="company-option__subtitle">{company.fullName}</span>
+      <span className="brand-company-option__icon" aria-hidden="true">
+        <BrandIcon name="building" size={20} decorative />
       </span>
-      <span
-        className={[
-          'company-option__check',
-          selected ? 'company-option__check--selected' : 'company-option__check--idle',
-        ].join(' ')}
-        aria-hidden="true"
-        data-selected-icon={selected ? 'true' : 'false'}
-      >
-        {selected ? (
-          <CheckCircle2 size={18} strokeWidth={2} />
-        ) : (
-          <Circle size={18} strokeWidth={2} />
-        )}
+      <span className="brand-company-option__copy">
+        <strong>{company.shortName}</strong>
+        <small>{company.fullName}</small>
       </span>
-    </button>
+      <span className="brand-company-option__check" aria-hidden="true" data-selected-icon={selected ? 'true' : 'false'}>
+        {selected ? <BrandIcon name="check" size={20} decorative /> : <span />}
+      </span>
+    </InteractiveSurface>
   );
 }
 
-export function LoginCompanyScreen() {
-  const [selectedCompany, setSelectedCompany] = useState(companies[0].fullName);
+export function LoginCompanyScreen({ state: controlledState, dispatch: controlledDispatch }) {
+  const [localState, localDispatch] = useReducer(prototypeReducer, initialPrototypeState);
+  const state = controlledState ?? localState;
+  const dispatch = controlledDispatch ?? localDispatch;
+
+  function submit(event) {
+    event.preventDefault();
+    if (!state.submitting) dispatch({ type: 'SUBMIT_LOGIN' });
+  }
 
   return (
-    <MobileShell
-      screenId="login-company"
-      eyebrow="登录与公司选择"
-      title="选择门店"
-      subtitle="请选择当前登录门店，并输入账号密码进入系统。"
-    >
-      <div className="auth-screen">
-        <section className="auth-panel">
-          <div className="auth-panel__brand">
-            <p className="auth-panel__product">维修业务移动端</p>
-            <p className="auth-panel__description">
-              面向前台与车间人员的移动工单入口
-            </p>
-          </div>
-
-          <div className="auth-section">
-            <h2 className="auth-section__title">门店选择</h2>
-            <div className="auth-section__stack">
-              {companies.map((company) => (
-                <CompanyOption
-                  key={company.fullName}
-                  company={company}
-                  selected={selectedCompany === company.fullName}
-                  onSelect={() => setSelectedCompany(company.fullName)}
-                />
-              ))}
+    <main className="atlas-root brand-login-root" data-screen-id="login-company">
+      <section className="mobile-shell brand-login-shell" data-mobile-shell>
+        <div className="brand-login-scroll">
+          <header className="brand-login-hero">
+            <div className="mobile-shell__status-row brand-login-hero__status">
+              <span>9:41</span>
+              <span>5G</span>
             </div>
-          </div>
+            <div className="brand-login-hero__copy">
+              <p>Autoservice mobile</p>
+              <h1>让每一次服务<br />更从容</h1>
+              <span>门店业务与车辆服务协同入口</span>
+            </div>
+            <img
+              className="brand-login-hero__vehicle"
+              data-brand-asset="loginHero"
+              src={BRAND_ASSETS.loginHero.src}
+              width={BRAND_ASSETS.loginHero.width}
+              height={BRAND_ASSETS.loginHero.height}
+              alt={BRAND_ASSETS.loginHero.alt}
+            />
+          </header>
 
-          <div className="auth-section">
-            <h2 className="auth-section__title">账号登录</h2>
-            <div className="auth-section__stack">
-              <LabeledInput
-                id="login-account"
+          <form className="brand-login-panel" onSubmit={submit} noValidate>
+            <div className="brand-login-panel__heading">
+              <p>欢迎回来</p>
+              <h2>登录维修业务移动端</h2>
+              <span>选择企业并使用现有业务账号登录</span>
+            </div>
+
+            <fieldset className="brand-login-companies" disabled={state.submitting}>
+              <legend>所属企业</legend>
+              <div className="brand-login-companies__list">
+                {companies.map((company) => (
+                  <CompanyOption
+                    key={company.id}
+                    company={company}
+                    selected={state.companyId === company.id}
+                    disabled={state.submitting}
+                    onSelect={() => dispatch({ type: 'SELECT_COMPANY', companyId: company.id })}
+                  />
+                ))}
+              </div>
+              {state.errors.companyId ? <p className="brand-login-error">{state.errors.companyId}</p> : null}
+            </fieldset>
+
+            <div className="brand-login-fields">
+              <BrandField
+                id="brand-login-account"
                 label="账号"
-                placeholder="必填，请输入登录账号"
-                icon={formIcons.account}
+                leadingIcon="user"
+                placeholder="请输入登录账号"
+                autoComplete="username"
+                value={state.username}
+                disabled={state.submitting}
+                error={state.errors.username}
+                onChange={(event) => dispatch({ type: 'SET_USERNAME', value: event.target.value })}
               />
-              <LabeledInput
-                id="login-password"
+              <BrandField
+                id="brand-login-password"
                 label="密码"
-                type="password"
-                placeholder="必填，请输入登录密码"
-                icon={formIcons.password}
+                leadingIcon="lock"
+                type={state.passwordVisible ? 'text' : 'password'}
+                placeholder="请输入登录密码"
+                autoComplete="current-password"
+                value={state.password}
+                disabled={state.submitting}
+                error={state.errors.password}
+                onChange={(event) => dispatch({ type: 'SET_PASSWORD', value: event.target.value })}
+                trailingAction={(
+                  <BrandButton
+                    type="button"
+                    tone="quiet"
+                    icon={state.passwordVisible ? 'eyeOff' : 'eye'}
+                    iconOnly
+                    disabled={state.submitting}
+                    aria-label={state.passwordVisible ? '隐藏密码' : '显示密码'}
+                    onClick={() => dispatch({ type: 'TOGGLE_PASSWORD' })}
+                  >
+                    {state.passwordVisible ? '隐藏密码' : '显示密码'}
+                  </BrandButton>
+                )}
               />
             </div>
-          </div>
 
-          <button type="button" className="auth-submit" data-primary-action>
-            进入系统
-          </button>
+            {state.errors.form ? <p className="brand-login-form-error" role="alert">{state.errors.form}</p> : null}
 
-          <p className="auth-note">
-            <ShieldCheck size={14} strokeWidth={2} aria-hidden="true" />
-            <span>请确认当前网络安全后再登录，账号数据仅用于业务操作验证。</span>
-          </p>
-        </section>
-      </div>
-    </MobileShell>
+            <BrandButton
+              type="submit"
+              className="brand-login-submit"
+              loading={state.submitting}
+              data-primary-action
+              aria-label={state.submitting ? '正在登录' : '进入系统'}
+            >
+              {state.submitting ? '正在登录' : '进入系统'}
+            </BrandButton>
+
+            <p className="brand-login-note">
+              <BrandIcon name="shield" size={15} decorative />
+              <span>本 HTML 原型仅模拟本地状态，不连接生产接口，也不会保存账号密码。</span>
+            </p>
+          </form>
+        </div>
+      </section>
+    </main>
   );
 }
