@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   BellRing,
   ChevronRight,
@@ -15,6 +15,11 @@ import { MobileShell } from '../components/MobileShell.jsx';
 import { OrderCard } from '../components/OrderCard.jsx';
 import { StatePanel } from '../components/StatePanel.jsx';
 import { StatusPill } from '../components/StatusPill.jsx';
+import { BrandButton } from '../components/BrandButton.jsx';
+import { BrandField } from '../components/BrandField.jsx';
+import { BrandIcon } from '../components/BrandIcon.jsx';
+import { InteractiveSurface } from '../components/InteractiveSurface.jsx';
+import { MetricCard } from '../components/MetricCard.jsx';
 import { cachedOrders, profileRows } from '../mock-data.js';
 import { BRAND_ASSETS } from '../assets/brand/asset-manifest.js';
 
@@ -80,6 +85,132 @@ export function OfflineReadonlyScreen() {
   );
 }
 
+const INTERACTION_STATES = ['default', 'hover', 'pressed', 'focus', 'selected', 'disabled'];
+const SELECTABLE_COMPONENTS = new Set(['navigation-item', 'selection-card']);
+const INTERACTION_COMPONENTS = [
+  ['button', '主按钮'],
+  ['icon-button', '图标按钮'],
+  ['navigation-item', '导航项'],
+  ['selection-card', '选择卡'],
+  ['metric-card', '指标卡'],
+  ['field', '输入字段'],
+  ['dialog-action', '弹层动作'],
+];
+
+const STATE_LABELS = {
+  default: '默认',
+  hover: '悬停',
+  pressed: '按下',
+  focus: '聚焦',
+  selected: '选中',
+  disabled: '禁用',
+};
+
+function InteractionFixture({ component, state, children }) {
+  return (
+    <div
+      className="interaction-fixture"
+      data-component={component}
+      data-force-state={state}
+    >
+      <span className="interaction-fixture__label">{STATE_LABELS[state]}</span>
+      {children}
+    </div>
+  );
+}
+
+function FixtureControl({ component, state }) {
+  const disabled = state === 'disabled';
+  const selected = state === 'selected';
+
+  switch (component) {
+    case 'button':
+      return <BrandButton disabled={disabled}>保存工单</BrandButton>;
+    case 'icon-button':
+      return <BrandButton icon="add" iconOnly disabled={disabled} aria-label="新建工单示例">新建工单</BrandButton>;
+    case 'navigation-item':
+      return (
+        <InteractiveSurface className="brand-nav-demo" disabled={disabled} selected={selected}>
+          <BrandIcon name="home" size={19} decorative />
+          <span>工作台</span>
+        </InteractiveSurface>
+      );
+    case 'selection-card':
+      return (
+        <InteractiveSurface className="brand-selection-card" disabled={disabled} selected={selected} aria-label="选择门店示例">
+          <span className="brand-selection-card__icon"><BrandIcon name="building" size={19} decorative /></span>
+          <span><strong>通达汽车</strong><small>服务中心</small></span>
+          {selected ? <BrandIcon name="check" size={18} decorative /> : null}
+        </InteractiveSurface>
+      );
+    case 'metric-card':
+      return (
+        <MetricCard
+          label="今日接车"
+          value="12"
+          detail="较昨日 +2"
+          tone="primary"
+          disabled={disabled}
+          aria-label="今日接车 12"
+        />
+      );
+    case 'field':
+      return <BrandField label="账号" leadingIcon="user" defaultValue="zhang.gong" disabled={disabled} />;
+    case 'dialog-action':
+      return (
+        <div className="brand-dialog-action-demo">
+          <BrandButton tone="secondary" disabled={disabled}>暂不退出</BrandButton>
+        </div>
+      );
+    default:
+      return null;
+  }
+}
+
+function InteractionMatrix() {
+  const [companySelected, setCompanySelected] = useState(false);
+
+  return (
+    <section className="interaction-matrix" aria-labelledby="interaction-matrix-title">
+      <div className="interaction-matrix__heading">
+        <div>
+          <p>Shared primitives</p>
+          <h2 id="interaction-matrix-title">交互状态矩阵</h2>
+        </div>
+        <StatusPill tone="success">键盘可用</StatusPill>
+      </div>
+
+      <div className="interaction-live" aria-label="实时交互示例">
+        <BrandButton>实时交互按钮</BrandButton>
+        <InteractiveSurface
+          className="brand-selection-card"
+          selected={companySelected}
+          onClick={() => setCompanySelected((selected) => !selected)}
+          aria-label="选择通达汽车服务中心"
+        >
+          <span className="brand-selection-card__icon"><BrandIcon name="building" size={19} decorative /></span>
+          <span><strong>通达汽车</strong><small>服务中心</small></span>
+          {companySelected ? <BrandIcon name="check" size={18} decorative /> : null}
+        </InteractiveSurface>
+        <BrandButton tone="secondary" disabled>禁用操作</BrandButton>
+      </div>
+
+      {INTERACTION_COMPONENTS.map(([component, label]) => (
+        <section key={component} className="interaction-group" aria-label={`${label}状态`}>
+          <h3>{label}</h3>
+          <div className="interaction-fixtures">
+            {INTERACTION_STATES.filter((state) => state !== 'selected' || SELECTABLE_COMPONENTS.has(component)).map((state) => (
+              <InteractionFixture key={state} component={component} state={state}>
+                <FixtureControl component={component} state={state} />
+              </InteractionFixture>
+            ))}
+          </div>
+        </section>
+      ))}
+    </section>
+  );
+}
+
 export function StatesGalleryScreen() {
   return (
     <MobileShell
@@ -104,6 +235,7 @@ export function StatesGalleryScreen() {
             </figure>
           ))}
         </section>
+        <InteractionMatrix />
         <StatePanel type="loading" title="正在同步数据" description="正在获取最新工单，请稍候。" />
         <StatePanel type="empty" title="暂无相关记录" description="调整筛选条件后再试一次。" actionLabel="清除筛选" />
         <StatePanel type="error" title="云端连接失败" description="数据暂未更新，可检查网络后重试。" actionLabel="重新加载" />

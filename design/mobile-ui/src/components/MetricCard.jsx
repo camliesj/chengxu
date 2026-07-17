@@ -1,15 +1,30 @@
 import React from 'react';
-import { ChevronRight } from 'lucide-react';
+import { BrandIcon } from './BrandIcon.jsx';
+import { InteractiveSurface } from './InteractiveSurface.jsx';
 
-export function MetricCard({ label, value, detail, tone = 'neutral' }) {
+export function MetricCard({
+  label,
+  value,
+  detail,
+  tone = 'neutral',
+  disabled = false,
+  selected = false,
+  className = '',
+  ...props
+}) {
   return (
-    <section className={['metric-card', `metric-card--${tone}`].join(' ')}>
+    <InteractiveSurface
+      {...props}
+      disabled={disabled}
+      selected={selected}
+      className={['metric-card', `metric-card--${tone}`, className].filter(Boolean).join(' ')}
+    >
       <div className="metric-card__content">
         <p className="metric-card__label">{label}</p>
         <p className="metric-card__value">{value}</p>
         {detail ? <p className="metric-card__detail">{detail}</p> : null}
       </div>
-      <ChevronRight size={18} strokeWidth={2} aria-hidden="true" />
-    </section>
+      <BrandIcon name="arrowRight" size={18} strokeWidth={1.8} decorative />
+    </InteractiveSurface>
   );
 }

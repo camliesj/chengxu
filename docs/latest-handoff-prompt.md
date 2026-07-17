@@ -198,7 +198,14 @@ cd E:\codex\chengxu\android-client
 - 已使用内置 ImageGen 按参考图的冷色汽车应用气质分别生成车辆 Hero 与维修工具空状态素材，再使用官方技能附带的色键去底工具本地移除背景；最终文件为 `design/mobile-ui/public/brand-assets/login-service-vehicle.png`（716×500 RGBA）和 `empty-service-tools.png`（440×330 RGBA）。
 - 两张 PNG 的四个角 Alpha 均为 0，Alpha 范围均为 0–255；素材无品牌标记、文字、水印和人物，并已登记到 `asset-manifest.js`，状态合集会实际加载两张图片用于自动校验。
 - TDD 记录：`brand-assets.spec.mjs` 先失败于缺少 `[data-brand-icon]`，实现后聚焦测试 1/1 通过；完整网页单元测试 64/64、移动 UI 回归 80/80 通过。
-- 下一步执行 HTML 品牌原型 Task 2：替换品牌令牌，建立按钮、字段、卡片、导航与弹层的默认、悬停、按下、聚焦、选中和禁用状态矩阵。
+
+### HTML 品牌原型 Task 2：品牌令牌与交互状态（已完成）
+
+- `tokens.css` 已切换为参考图导向的白、雾灰、浅冰蓝与近黑色令牌，并通过 `--atlas-*` 别名维持旧页面兼容；壳层圆角、面板圆角、阴影和动效速度均统一到品牌变量。
+- 已新增 `InteractiveSurface`、`BrandButton`、`BrandField` 三个共享原语；`MetricCard` 与 `StatusPill` 已改用共享交互边界和 Hugeicons。按钮及卡片的触控高度至少 48px，支持键盘聚焦、`aria-pressed`、原生禁用与 reduced-motion。
+- 系统状态合集新增完整交互矩阵：主按钮、图标按钮、导航项、选择卡、指标卡、输入字段和弹层动作均展示默认、悬停、按下、聚焦和禁用状态；导航项与选择卡另含选中态，实时示例可点击切换。
+- TDD 记录：`brand-states.spec.mjs` 先失败于缺少矩阵和实时控件；实现后 2/2 通过，并验证悬停背景变化、强制聚焦轮廓、按下变换、选中语义与禁用透明度。完整网页单元测试 64/64、移动 UI 回归 82/82 通过。
+- 下一步执行 HTML 品牌原型 Task 3：实现纯 reducer、状态化 `?prototype=brand` 路由和高保真登录/企业选择流程。
 
 ## 工作纪律
 
