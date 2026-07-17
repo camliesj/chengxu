@@ -3,7 +3,6 @@ package com.chengxu.autoservice.core.auth
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import java.security.KeyStore
-import java.security.SecureRandom
 import java.util.Base64
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -17,13 +16,13 @@ interface SessionCipher {
 
 class AesGcmSessionCipher(
     private val keyProvider: () -> SecretKey,
-    private val secureRandom: SecureRandom = SecureRandom(),
 ) : SessionCipher {
     override fun encrypt(plaintext: String): String {
-        val iv = ByteArray(IV_SIZE_BYTES).also(secureRandom::nextBytes)
         val cipher = Cipher.getInstance(TRANSFORMATION).apply {
-            init(Cipher.ENCRYPT_MODE, keyProvider(), GCMParameterSpec(TAG_SIZE_BITS, iv))
+            init(Cipher.ENCRYPT_MODE, keyProvider())
         }
+        val iv = cipher.iv
+        require(iv.size == IV_SIZE_BYTES) { "AES-GCM provider returned an invalid IV" }
         val encrypted = cipher.doFinal(plaintext.toByteArray(Charsets.UTF_8))
         return Base64.getEncoder().encodeToString(iv + encrypted)
     }
