@@ -31,6 +31,7 @@ git -c safe.directory=E:/codex/chengxu push origin codex/android-mobile-ui-atlas
 - 生产基础设计：`docs/superpowers/specs/2026-07-16-android-production-foundation-design.md`
 - 九阶段实施计划：`docs/superpowers/plans/2026-07-16-android-production-foundation.md`
 - 已确认的认证与会话设计：`docs/superpowers/specs/2026-07-17-android-authentication-session-design.md`
+- 认证与会话实施计划：`docs/superpowers/plans/2026-07-17-android-authentication-session.md`
 - 移动 UI 图集：`design/mobile-ui/`
 - UI 图集说明：`docs/mobile-ui-atlas.md`
 - 子任务记录：`.superpowers/sdd/android-production-foundation/`
@@ -114,7 +115,7 @@ cd E:\codex\chengxu\android-client
 
 1. 在真实 Android 设备上安装当前 Debug APK，按 `docs/android-client.md` 验证员工、管理员和离线只读流程。
 2. 用户已确认 Android 真实认证与会话方案：仅“公司 + 账号 + 密码”登录，服务端 12 小时会话内保持登录；令牌使用 Keystore 支持的加密存储，401 时清除会话并回登录页。
-3. 请先审阅 `docs/superpowers/specs/2026-07-17-android-authentication-session-design.md`；确认后再编写详细实施计划并开始实现。之后再替换演示仓库为 API 与本地缓存实现。
+3. 认证与会话规格已经确认，实施计划已写入 `docs/superpowers/plans/2026-07-17-android-authentication-session.md`。按计划逐任务测试、审查、提交和推送；之后再替换演示仓库为 API 与本地缓存实现。
 
 ## 用户最新决定
 
