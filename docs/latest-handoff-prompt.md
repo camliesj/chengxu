@@ -124,11 +124,13 @@ cd E:\codex\chengxu\android-client
 - 已增加 `INTERNET` 权限、Kotlin JSON 序列化依赖和生产 HTTPS API 基址；仅 Debug 可通过未提交的 `-PapiOrigin` 覆盖地址。
 - 已完成映射专属测试与 JVM 全量回归，并通过独立代码复核（无阻塞问题）；提交 `b032b6a` 已推送至隔离开发分支 `codex/android-auth-session`。
 
-### 认证与会话 Task 2：认证仓库与加密存储（进行中）
+### 认证与会话 Task 2：认证仓库与加密存储（已完成）
 
 - 已先行增加登录成功及会话过期清除的 JVM 测试，并实现可注入的 `AuthenticationRepository`、`AuthApi` 结果类型与 `SessionStore` 边界。
 - `SessionRepository` 已改为可空会话流；工作台会过滤空会话，既有内存会话测试已适配。认证仓库专属测试已通过。
-- 仍待实现 Android Keystore AES/GCM 持久化与 `HttpURLConnection` 真实登录客户端，完成后再进行全量验证、独立复核、提交与推送。
+- 已实现 Android Keystore AES-256-GCM 非导出密钥、每次加密随机 12 字节 IV、私有 SharedPreferences 密文保存和 12 小时本地过期；损坏或过期密文会清除且不恢复。
+- 已实现 `HttpURLConnection` 真实登录客户端：10 秒连接/读取超时、`POST /api/access` JSON、200 会话解析、401 无效账号、网络失败与其他服务端错误映射；不记录密码或 Token。
+- 加密存储、异常密文、HTTP 成功/401/网络失败/异常 200/服务端错误均有 JVM 回归测试；认证专属测试、全量 JVM 测试与 Android 测试代码编译通过，独立安全复核无阻塞问题。
 
 ## 用户最新决定
 

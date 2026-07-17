@@ -129,7 +129,7 @@ sealed interface AuthenticationState {
 
 `AuthenticationRepository` also implements `SessionRepository`, whose `session` changes to `StateFlow<AppSession?>`.
 
-- [ ] **Step 1: Write failing repository tests using fakes**
+- [x] **Step 1: Write failing repository tests using fakes**
 
 ```kotlin
 @Test fun successfulLoginPersistsMappedSessionAndPublishesAuthenticated() = runTest {
@@ -147,17 +147,17 @@ sealed interface AuthenticationState {
 }
 ```
 
-- [ ] **Step 2: Prove the test fails**
+- [x] **Step 2: Prove the test fails**
 
 Run: `cd android-client; .\gradlew.bat :app:testDebugUnitTest --tests "com.chengxu.autoservice.core.auth.AuthenticationRepositoryTest"`
 
 Expected: compilation fails because the repository, API and store contracts do not exist.
 
-- [ ] **Step 3: Implement one boundary at a time**
+- [x] **Step 3: Implement one boundary at a time**
 
 Implement `HttpUrlConnectionAuthApi` with POST JSON, 10-second timeouts, `https://chengxu.pages.dev/api/access`, and distinct failures for offline/network, invalid account, malformed response and expired session. Implement a non-exportable AndroidKeyStore AES key with a 12-byte random GCM IV; persist one Base64 `iv + ciphertext` record in private SharedPreferences. Use `AuthenticationRepository.restore()`, `login()`, `logout()`, and `invalidate()` to map persistence/API outcomes into `AuthenticationState`; clear storage on every 401 and never persist the password.
 
-- [ ] **Step 4: Verify and commit**
+- [x] **Step 4: Verify and commit**
 
 Run: `cd android-client; .\gradlew.bat :app:testDebugUnitTest --tests "com.chengxu.autoservice.core.auth.*" :app:testDebugUnitTest`
 

@@ -6,7 +6,11 @@ import com.chengxu.autoservice.core.model.UserRole
 data class PermissionSnapshot(private val granted: Set<AppPermission>) {
     fun allows(permission: AppPermission): Boolean = permission in granted
 
+    fun grantedPermissions(): Set<AppPermission> = granted.toSet()
+
     companion object {
+        fun fromGranted(permissions: Set<AppPermission>): PermissionSnapshot = PermissionSnapshot(permissions.toSet())
+
         fun fromServer(role: String, permissionKeys: List<String>): PermissionSnapshot {
             if (role == "admin") return PermissionSnapshot(AppPermission.entries.toSet())
 
