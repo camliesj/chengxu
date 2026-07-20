@@ -28,6 +28,7 @@ import com.chengxu.autoservice.core.designsystem.BrandButtonTone
 import com.chengxu.autoservice.core.designsystem.BrandIcon
 import com.chengxu.autoservice.core.designsystem.BrandIconResource
 import com.chengxu.autoservice.core.designsystem.StatusChip
+import com.chengxu.autoservice.core.designsystem.StatusTone
 
 @Composable
 fun OrderDetailScreen(
@@ -62,6 +63,11 @@ fun OrderDetailScreen(
                 modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.titleLarge,
                 color = AutoserviceColors.Ink,
+            )
+            StatusChip(
+                text = "只读",
+                icon = BrandIconResource.Shield,
+                tone = StatusTone.NEUTRAL,
             )
         }
 
@@ -126,7 +132,8 @@ private fun OrderDetailContent(
             icon = BrandIconResource.Orders,
             rows = listOf(
                 "工单号" to order.id,
-                "日期时间" to order.dateTimeLabel,
+                "接车日期" to order.date,
+                "接车时间" to order.time,
                 "状态" to order.status,
             ),
         )

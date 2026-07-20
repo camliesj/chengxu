@@ -167,6 +167,25 @@ internal fun OrderCard(
                 tone = order.statusTone.toDesignTone(),
             )
         }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = AutoserviceSpacing.Sm),
+            horizontalArrangement = Arrangement.spacedBy(AutoserviceSpacing.Sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            BrandIcon(
+                resource = BrandIconResource.Calendar,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = AutoserviceColors.InkMuted,
+            )
+            Text(
+                text = "预计交车 ${order.delivery}",
+                style = MaterialTheme.typography.bodySmall,
+                color = AutoserviceColors.InkMuted,
+            )
+        }
     }
 }
 
@@ -232,7 +251,7 @@ internal fun ErrorOrdersState() {
 @Composable
 internal fun EmptyOrdersState() {
     OrdersCenteredState(
-        title = "暂无工单",
+        title = "暂无工单数据",
         supportingText = "当前企业还没有可查看的工单",
     )
 }
@@ -247,7 +266,7 @@ internal fun NoMatchingOrdersState(onClearFilters: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(AutoserviceSpacing.Sm),
     ) {
         Text(
-            text = "没有匹配的工单",
+            text = "未找到匹配工单",
             style = MaterialTheme.typography.titleMedium,
             color = AutoserviceColors.Ink,
         )

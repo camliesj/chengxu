@@ -32,11 +32,14 @@ class OrderDetailScreenTest {
         }
 
         composeRule.onNodeWithText("工单详情").assertIsDisplayed()
+        composeRule.onNodeWithText("只读").assertIsDisplayed()
         composeRule.onNodeWithText("蒙A12345").assertIsDisplayed()
         listOf("工单信息", "车辆与服务", "交付与保障", "费用").forEach {
             composeRule.onNodeWithText(it).assertIsDisplayed()
         }
         composeRule.onNodeWithText("¥1,234.56").assertIsDisplayed()
+        composeRule.onNodeWithText("2026-07-20").assertIsDisplayed()
+        composeRule.onNodeWithText("09:30").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("返回")
             .assertHasClickAction()
             .assertHeightIsAtLeast(48.dp)

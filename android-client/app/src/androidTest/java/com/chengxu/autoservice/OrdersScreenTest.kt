@@ -38,6 +38,7 @@ class OrdersScreenTest {
         composeRule.onNodeWithText("工单").assertIsDisplayed()
         composeRule.onNodeWithText("共 2 单").assertIsDisplayed()
         composeRule.onAllNodesWithText("蒙A12345 · 张先生").onFirst().assertIsDisplayed()
+        composeRule.onAllNodesWithText("预计交车 2026-07-21").onFirst().assertIsDisplayed()
         composeRule.onNodeWithTag("${OrdersTestTags.ORDER_CARD_PREFIX}RO-PENDING")
             .assertHasClickAction()
             .assertHeightIsAtLeast(48.dp)
@@ -115,7 +116,7 @@ class OrdersScreenTest {
     @Test
     fun trueEmptyStateDoesNotExposeClearFilters() {
         setOrders(state = OrdersUiState(loading = false))
-        composeRule.onNodeWithText("暂无工单").assertIsDisplayed()
+        composeRule.onNodeWithText("暂无工单数据").assertIsDisplayed()
         composeRule.onNodeWithTag(OrdersTestTags.CLEAR_FILTERS).assertDoesNotExist()
     }
 
@@ -131,7 +132,7 @@ class OrdersScreenTest {
             ),
             onClearFilters = { clearCount += 1 },
         )
-        composeRule.onNodeWithText("没有匹配的工单").assertIsDisplayed()
+        composeRule.onNodeWithText("未找到匹配工单").assertIsDisplayed()
         composeRule.onNodeWithTag(OrdersTestTags.CLEAR_FILTERS)
             .assertHeightIsAtLeast(48.dp)
             .performClick()

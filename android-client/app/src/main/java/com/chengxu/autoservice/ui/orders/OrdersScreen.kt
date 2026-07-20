@@ -61,7 +61,7 @@ fun OrdersScreen(
                     color = AutoserviceColors.Ink,
                 )
                 Text(
-                    text = "共 ${state.totalCount} 单",
+                    text = "共 ${state.visibleCount} 单",
                     style = MaterialTheme.typography.labelLarge,
                     color = AutoserviceColors.InkMuted,
                 )

@@ -420,7 +420,7 @@ cd E:\codex\chengxu\android-client
 
 #### 只读工单中心 Task 2：真实缓存工单列表（已完成）
 
-- 新增 `OrdersScreen` 与组件层：页头显示当前企业缓存总数，搜索框和五项横向滚动状态筛选直接绑定 Task 1 状态；列表严格渲染 `visibleOrders`，不会在界面层重排或发起服务端搜索。
+- 新增 `OrdersScreen` 与组件层：页头显示当前搜索/筛选结果数，搜索框和五项横向滚动状态筛选直接绑定 Task 1 状态；列表严格渲染 `visibleOrders`，不会在界面层重排或发起服务端搜索。
 - 工单卡片展示车牌/客户、维修摘要、日期时间、金额、工单号和原始状态，整卡至少 48dp 且可点击；筛选控件、重试和清除筛选均至少 48dp，并使用现有浅色科技 Token、Surface、圆角和本地 Hugeicons。
 - 加载、刷新保留缓存、陈旧提示、在线重试、离线隐藏重试、真空列表和有数据但无匹配均已按决策表区分；未知状态在“全部”下保留原文，并新增 `StatusTone.NEUTRAL` 显示为中性灰色，避免误传业务状态。
 - Compose 契约先精确 RED 于 `OrdersScreen`/`OrdersTestTags` 不存在；实现后 `:app:compileDebugAndroidTestKotlin` 成功。配套 JVM 单测先精确 RED 于中性色映射不存在，补入实现后完整 JVM 为 19 个 suite、91/91 测试、0 失败、0 错误；组合命令 `:app:compileDebugAndroidTestKotlin :app:testDebugUnitTest` 已 `BUILD SUCCESSFUL`。
@@ -434,7 +434,16 @@ cd E:\codex\chengxu\android-client
 - 认证后使用同一 `SessionViewModelStoreOwner` 创建 `OrdersViewModel`，与工作台共享既有 `OrdersRepository`；退出登录会清空会话级 ViewModelStore，未改 API、Room Schema、数据库版本或公司隔离逻辑。
 - 详情与工作台入口契约先 RED 于详情组件/回调不存在，导航装配契约再 RED 于 `ordersState` 缺失；实现后聚焦 Navigation/ViewModel 测试和 Android 测试源码编译通过。完整 `:app:compileDebugAndroidTestKotlin :app:testDebugUnitTest :app:lintDebug :app:assembleDebug` 为 68 个 task、JVM 19 个 suite、91/91 通过、Lint 0 Fatal/0 Error/11 Warning，并生成 Debug APK。
 - 已删除不再路由的工单阶段占位枚举与“工单列表正在升级”“详情将在后续阶段接入”文案；只读详情生产目录没有“新增工单”或“办理结算”。本阶段仍未启动模拟器、未执行连接式测试或原生视觉对比。
-- 下一步执行 Task 4：从 clean 状态全量重跑、补充真机验收清单、复制并校验可安装 APK，然后提交发布里程碑。
+- Task 4 已继续完成，见下节。
+
+#### 只读工单中心 Task 4：clean 验证与 APK 交付（已完成）
+
+- 最终规格复核补齐了工单卡“预计交车”、详情顶部“只读”状态，以及分开的“接车日期/接车时间”；列表页头改为当前结果数，真空/无匹配文案严格收口为“暂无工单数据”“未找到匹配工单”。
+- 2026-07-20 从 clean 状态执行 `clean :app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:lintDebug :app:assembleDebug --rerun-tasks`，69 个 Gradle task 全部重新执行并 `BUILD SUCCESSFUL`。
+- JVM XML 客观统计为 19 个 suite、91/91 测试、0 失败、0 错误、0 跳过；Android 测试 Kotlin 编译完成。Lint XML 为 0 Fatal、0 Error、11 Warning。
+- `docs/android-client.md` 已增加真实列表顺序/状态、五字段搜索、固定筛选、未知状态、清除筛选、离线详情、陈旧重试、双入口独立返回栈、详情失效、无写入口、360dp/大字体/输入法/横向筛选和 48dp 控件真机清单。
+- 最终 API 26+ Debug APK 已复制到 `E:\codex\chengxu\dist\releases\android\autoservice-android-debug-0.1.0.apk`，大小 19,475,098 字节，SHA-256 `6E33A6632A2BA35FA2D96F0F7E3D7263F6B7E1E3D881E9C5649B1E1F1938B77B`；发布副本与 clean 构建源哈希一致，`apksigner verify` 确认 v2 签名有效，签名者为 Android Debug。
+- 本轮没有启动模拟器、没有执行连接式 Compose/Room 测试，也没有生成原生截图；列表密度、筛选滚动、输入法、详情返回、离线缓存和生产数据由用户安装该 APK 后在真实手机验收。
 
 ## 工作纪律
 

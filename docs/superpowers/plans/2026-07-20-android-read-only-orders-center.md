@@ -472,7 +472,7 @@ git push origin codex/android-mobile-ui-atlas
 - Consumes: completed list/detail implementation and all existing tests.
 - Produces: verified API 26+ Debug APK and an exact real-device orders-center checklist.
 
-- [ ] **Step 1: Run full clean verification**
+- [x] **Step 1: Run full clean verification**
 
 ```powershell
 .\gradlew.bat clean :app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:lintDebug :app:assembleDebug --rerun-tasks
@@ -480,7 +480,7 @@ git push origin codex/android-mobile-ui-atlas
 
 Expected: `BUILD SUCCESSFUL`; all JVM tests pass; Android test Kotlin compiles; Lint has zero Fatal and zero Error; Debug APK exists. Read actual task/test/Lint counts from output and XML.
 
-- [ ] **Step 2: Update the real-device checklist**
+- [x] **Step 2: Update the real-device checklist**
 
 Add checks for:
 
@@ -494,20 +494,20 @@ Add checks for:
 - absence of write controls;
 - 360dp width, large font, keyboard, horizontal filter scrolling, and 48dp controls.
 
-- [ ] **Step 3: Copy, hash, and verify APK**
+- [x] **Step 3: Copy, hash, and verify APK**
 
 Copy `android-client/app/build/outputs/apk/debug/app-debug.apk` over the tracked release APK. Compare both SHA-256 hashes and run Android SDK `apksigner verify --verbose`. Expected: hashes match and v2 signing verifies.
 
-- [ ] **Step 4: Perform final code/spec review**
+- [x] **Step 4: Perform final code/spec review**
 
 Re-read `docs/superpowers/specs/2026-07-20-android-read-only-orders-center-design.md`. Confirm every requirement maps to source, JVM evidence, compiled Android test code, or a real-device checklist item. Record explicitly that native visual comparison and connected tests were not performed because no emulator was started.
 
-- [ ] **Step 5: Update handoff, commit, and push release**
+- [x] **Step 5: Update handoff, commit, and push release**
 
 Record exact verification counts, APK size/hash/signature, and limitations, then:
 
 ```powershell
-git add docs/android-client.md docs/latest-handoff-prompt.md dist/releases/android/autoservice-android-debug-0.1.0.apk
+git add android-client/app/src/main/java/com/chengxu/autoservice/ui/orders/OrdersComponents.kt android-client/app/src/main/java/com/chengxu/autoservice/ui/orders/OrdersScreen.kt android-client/app/src/main/java/com/chengxu/autoservice/ui/orders/OrderDetailScreen.kt android-client/app/src/androidTest/java/com/chengxu/autoservice/OrdersScreenTest.kt android-client/app/src/androidTest/java/com/chengxu/autoservice/OrderDetailScreenTest.kt docs/android-client.md docs/latest-handoff-prompt.md docs/superpowers/plans/2026-07-20-android-read-only-orders-center.md dist/releases/android/autoservice-android-debug-0.1.0.apk
 git commit -m "build(android): release read-only orders APK"
 git push origin codex/android-mobile-ui-atlas
 ```
