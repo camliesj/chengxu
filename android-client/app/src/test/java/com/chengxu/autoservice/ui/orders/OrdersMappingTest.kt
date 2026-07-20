@@ -1,6 +1,7 @@
 package com.chengxu.autoservice.ui.orders
 
 import com.chengxu.autoservice.core.orders.RepairOrder
+import com.chengxu.autoservice.core.designsystem.StatusTone
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -93,6 +94,14 @@ class OrdersMappingTest {
         assertEquals(listOf("completed"), filterOrders(rows, "", OrderStatusFilter.COMPLETED).map { it.id })
         assertEquals(listOf("pending"), filterOrders(rows, "", OrderStatusFilter.PENDING_SETTLEMENT).map { it.id })
         assertEquals(listOf("settled"), filterOrders(rows, "", OrderStatusFilter.SETTLED).map { it.id })
+    }
+
+    @Test
+    fun orderStatusToneMapsUnknownStatusesToNeutralDesignTone() {
+        assertEquals(StatusTone.NEUTRAL, OrderStatusTone.NEUTRAL.toDesignTone())
+        assertEquals(StatusTone.PRIMARY, OrderStatusTone.PRIMARY.toDesignTone())
+        assertEquals(StatusTone.SUCCESS, OrderStatusTone.SUCCESS.toDesignTone())
+        assertEquals(StatusTone.WARNING, OrderStatusTone.WARNING.toDesignTone())
     }
 
     private fun order(

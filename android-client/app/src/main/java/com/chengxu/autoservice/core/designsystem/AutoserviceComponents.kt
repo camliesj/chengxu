@@ -38,6 +38,7 @@ enum class StatusTone {
     SUCCESS,
     WARNING,
     DANGER,
+    NEUTRAL,
     ;
 
     val color
@@ -46,6 +47,7 @@ enum class StatusTone {
             SUCCESS -> AutoserviceColors.Success
             WARNING -> AutoserviceColors.Warning
             DANGER -> AutoserviceColors.Danger
+            NEUTRAL -> AutoserviceColors.InkMuted
         }
 }
 

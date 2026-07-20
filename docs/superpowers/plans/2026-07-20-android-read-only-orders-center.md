@@ -254,7 +254,7 @@ git push origin codex/android-mobile-ui-atlas
 - Consumes: `OrdersUiState`, `isOffline`, and callbacks for query, filter, clear, refresh, and order selection.
 - Produces: `OrdersScreen(state, isOffline, onQueryChange, onFilterSelected, onClearFilters, onRefresh, onOrderSelected)` and stable `OrdersTestTags`.
 
-- [ ] **Step 1: Write failing Compose source contracts**
+- [x] **Step 1: Write failing Compose source contracts**
 
 Create Android tests that call the wished-for screen and assert:
 
@@ -271,7 +271,7 @@ composeRule.onNodeWithText("RO-PENDING").assertIsDisplayed()
 
 Add cases for query callback, loading, refreshing with retained cards, stale with retry once, true empty, no match with clear filters, unknown status under all, and offline retry hidden/disabled. Use test tags for search, filter items, order cards, retry, and clear filters.
 
-- [ ] **Step 2: Compile Android tests and verify RED**
+- [x] **Step 2: Compile Android tests and verify RED**
 
 ```powershell
 .\gradlew.bat :app:compileDebugAndroidTestKotlin
@@ -279,7 +279,7 @@ Add cases for query callback, loading, refreshing with retained cards, stale wit
 
 Expected: compilation fails because `OrdersScreen` and `OrdersTestTags` do not exist.
 
-- [ ] **Step 3: Implement the list components**
+- [x] **Step 3: Implement the list components**
 
 `OrdersComponents.kt` must provide:
 
@@ -290,7 +290,7 @@ Expected: compilation fails because `OrdersScreen` and `OrdersTestTags` do not e
 
 Map `OrderStatusTone` to design-system `StatusTone` in this UI-only file. Do not add any write control.
 
-- [ ] **Step 4: Implement OrdersScreen**
+- [x] **Step 4: Implement OrdersScreen**
 
 Use a Canvas background and `LazyColumn` with 16dp horizontal padding. The header shows `工单` and `共 N 单`; the existing `BrandTextField` is labeled `搜索工单号、车牌、客户`. Render filters above the sync state. Apply this decision table exactly:
 
@@ -306,7 +306,7 @@ when {
 
 Continue showing sync status above non-empty results. Do not expose retry while `isOffline` is true.
 
-- [ ] **Step 5: Compile Android tests and run JVM regression**
+- [x] **Step 5: Compile Android tests and run JVM regression**
 
 ```powershell
 .\gradlew.bat :app:compileDebugAndroidTestKotlin :app:testDebugUnitTest
@@ -314,12 +314,12 @@ Continue showing sync status above non-empty results. Do not expose retry while 
 
 Expected: Android test Kotlin compiles and the full JVM suite passes. Do not claim device execution.
 
-- [ ] **Step 6: Update handoff, commit, and push Task 2**
+- [x] **Step 6: Update handoff, commit, and push Task 2**
 
 Record list states and compile evidence, then:
 
 ```powershell
-git add android-client/app/src/main/java/com/chengxu/autoservice/ui/orders/OrdersScreen.kt android-client/app/src/main/java/com/chengxu/autoservice/ui/orders/OrdersComponents.kt android-client/app/src/androidTest/java/com/chengxu/autoservice/OrdersScreenTest.kt docs/latest-handoff-prompt.md
+git add android-client/app/src/main/java/com/chengxu/autoservice/core/designsystem/AutoserviceComponents.kt android-client/app/src/main/java/com/chengxu/autoservice/ui/orders/OrdersScreen.kt android-client/app/src/main/java/com/chengxu/autoservice/ui/orders/OrdersComponents.kt android-client/app/src/test/java/com/chengxu/autoservice/ui/orders/OrdersMappingTest.kt android-client/app/src/androidTest/java/com/chengxu/autoservice/OrdersScreenTest.kt docs/latest-handoff-prompt.md docs/superpowers/plans/2026-07-20-android-read-only-orders-center.md
 git commit -m "feat(android): build cached orders list"
 git push origin codex/android-mobile-ui-atlas
 ```

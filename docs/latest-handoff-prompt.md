@@ -416,7 +416,15 @@ cd E:\codex\chengxu\android-client
 - 展示模型额外保留独立 `record` 字段，这是详情页逐字段展示维修记录所必需；搜索严格只覆盖工单号、车牌、客户、车型和维修记录，不向服务端发请求，筛选与搜索取交集且不改变仓库原始顺序。
 - 新增会话级 `OrdersViewModel`，组合现有 `OrdersRepository.snapshot` 与本地查询/筛选状态；加载、刷新、陈旧提示、重试标记、真空列表和无匹配均由统一状态表达，刷新不会清空查询或筛选，仓库移除工单后 `allOrders` 会同步失效。
 - TDD RED 分别精确失败于映射 API 和 `OrdersViewModel` 不存在；补入最小实现后，聚焦映射/ViewModel 测试通过。完整 `:app:testDebugUnitTest` 为 19 个 suite、90/90 测试、0 失败、0 错误并 `BUILD SUCCESSFUL`。
-- 下一步执行 Task 2：先编写真实缓存工单列表的 Compose 源码契约并确认 RED，再实现搜索、固定筛选、工单卡片以及加载/刷新/陈旧/离线/空列表/无匹配界面；仍仅编译 Android 测试代码，不启动模拟器。
+- Task 2 已继续完成，见下节。
+
+#### 只读工单中心 Task 2：真实缓存工单列表（已完成）
+
+- 新增 `OrdersScreen` 与组件层：页头显示当前企业缓存总数，搜索框和五项横向滚动状态筛选直接绑定 Task 1 状态；列表严格渲染 `visibleOrders`，不会在界面层重排或发起服务端搜索。
+- 工单卡片展示车牌/客户、维修摘要、日期时间、金额、工单号和原始状态，整卡至少 48dp 且可点击；筛选控件、重试和清除筛选均至少 48dp，并使用现有浅色科技 Token、Surface、圆角和本地 Hugeicons。
+- 加载、刷新保留缓存、陈旧提示、在线重试、离线隐藏重试、真空列表和有数据但无匹配均已按决策表区分；未知状态在“全部”下保留原文，并新增 `StatusTone.NEUTRAL` 显示为中性灰色，避免误传业务状态。
+- Compose 契约先精确 RED 于 `OrdersScreen`/`OrdersTestTags` 不存在；实现后 `:app:compileDebugAndroidTestKotlin` 成功。配套 JVM 单测先精确 RED 于中性色映射不存在，补入实现后完整 JVM 为 19 个 suite、91/91 测试、0 失败、0 错误；组合命令 `:app:compileDebugAndroidTestKotlin :app:testDebugUnitTest` 已 `BUILD SUCCESSFUL`。
+- 本阶段未启动模拟器，Compose 测试只完成源码编译，未声称连接式执行或原生视觉对比。下一步执行 Task 3：只读详情、工作台最近工单入口、每标签独立 Navigation 3 返回栈和认证会话级生产装配。
 
 ## 工作纪律
 
