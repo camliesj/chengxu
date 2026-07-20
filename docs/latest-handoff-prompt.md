@@ -477,6 +477,14 @@ cd E:\codex\chengxu\android-client
 - 网页/Functions 全量 Node 测试 66/66 通过，0 失败、0 跳过。本任务没有访问或修改远端 D1；远端备份、migration 0010 应用和 Pages 部署仍留在 Task 8 的生产门禁。
 - 下一步执行 Task 3：Cloudflare 状态、能力、游标与幂等基础函数。
 
+#### 阶段 1 Task 3：Cloudflare 状态、能力、游标与幂等基础函数（已完成）
+
+- 新增 `functions/_shared/order-foundation.js`：提供 UTF-8/base64url 的 `full|delta` 类型安全游标、公司能力读取，以及 `findOperation`、`beginOperation`、`completeOperation` 幂等基础函数；游标支持中文 ID，并拒绝非法模式、空时间和非字符串 ID。
+- 能力返回严格取公司已启用开关与会话角色/权限的交集：无配置公司仅安全默认 `VIEW_ORDERS`；员工写能力仍要求 `repair` 且永远不能获得管理员能力，管理员也不能绕过关闭的公司功能开关。
+- `shared/orderStatusPermissions.js` 保留旧 `canEmployeeSetOrderStatus` 兼容导出，同时新增精确 `canTransitionOrderStatus`，与 Android Task 1 的相邻状态矩阵一致。
+- TDD RED 先分别失败于共享模块不存在和精确状态函数未导出；GREEN 后聚焦 11/11，通过游标、能力、幂等和状态测试。网页/Functions 全量 Node 测试现为 73/73，0 失败、0 跳过。
+- 本任务没有访问远端 D1、没有部署 Pages。下一步执行 Task 4：兼容的 current/history 分页、增量 tombstone 与详情读取 API。
+
 ## 工作纪律
 
 每次重要改动后必须：

@@ -335,7 +335,7 @@ git push origin codex/android-mobile-ui-atlas
 - Consumes: `session.role`、`session.permissions`、D1 `company_capabilities` 和 `order_operations`。
 - Produces: `canTransitionOrderStatus`、`readCapabilities`、`encodeOrderCursor`、`decodeOrderCursor`、`findOperation`、`beginOperation`、`completeOperation`。
 
-- [ ] **Step 1: 写服务端基础逻辑 RED 测试**
+- [x] **Step 1: 写服务端基础逻辑 RED 测试**
 
 覆盖：员工只能相邻向前、管理员可相邻回退、无效/跨级拒绝；游标往返且非法游标返回 `null`；能力必须同时满足数据库开启和角色权限；同一 `company+actor+action+operationId` 可返回已完成结果。
 
@@ -348,13 +348,13 @@ test('cursor round trips mode updatedAt and id', () => {
 });
 ```
 
-- [ ] **Step 2: 运行 RED**
+- [x] **Step 2: 运行 RED**
 
 Run: `node --test test/orderFoundationLogic.test.mjs test/orderStatusPermissions.test.mjs`
 
 Expected: FAIL because the new shared module and transition function do not exist。
 
-- [ ] **Step 3: 实现状态和游标纯函数**
+- [x] **Step 3: 实现状态和游标纯函数**
 
 在 `shared/orderStatusPermissions.js` 保留 `canEmployeeSetOrderStatus` 兼容导出，并新增：
 
@@ -370,7 +370,7 @@ export function canTransitionOrderStatus(role, from, to) {
 
 在 `order-foundation.js` 使用 UTF-8 JSON 的 base64url 游标，Node 和 Workers 均通过 `btoa`/`atob` 可用；解析时验证 `mode` 只能为 `full|delta`，并且 `updatedAt`、`id` 是非空字符串。完整分页使用 `mode=full`，增量后续页使用 `mode=delta`，防止把两种排序方向的游标混用。
 
-- [ ] **Step 4: 实现能力与幂等存取函数**
+- [x] **Step 4: 实现能力与幂等存取函数**
 
 能力函数精确返回字符串数组，并先按会话权限过滤：员工可获得 `VIEW_ORDERS`、`CREATE_ORDER`、`EDIT_ORDER`、`ADVANCE_ORDER_STATUS`、`VIEW_RECORDS`；管理员可获得全部能力。D1 未配置时仅 `VIEW_ORDERS` 默认开启。
 
@@ -398,7 +398,7 @@ export async function completeOperation(env, key, httpStatus, response) {
 
 `actor` 使用认证会话中的 `username || label`；任何后续写命令都必须先校验已存在操作的 `request_hash`，不同请求体复用同一 ID 返回 409。
 
-- [ ] **Step 5: 运行聚焦与全量测试**
+- [x] **Step 5: 运行聚焦与全量测试**
 
 Run:
 
@@ -409,7 +409,7 @@ npm.cmd test
 
 Expected: 聚焦和全量 Node 测试全部 PASS，现有网页状态权限合同不回归。
 
-- [ ] **Step 6: 更新交接、提交并推送**
+- [x] **Step 6: 更新交接、提交并推送**
 
 ```powershell
 git add functions/_shared/order-foundation.js shared/orderStatusPermissions.js test/orderFoundationLogic.test.mjs test/orderStatusPermissions.test.mjs docs/latest-handoff-prompt.md
