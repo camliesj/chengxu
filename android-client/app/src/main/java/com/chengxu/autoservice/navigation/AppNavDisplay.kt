@@ -11,6 +11,10 @@ import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.ui.NavDisplay
 import com.chengxu.autoservice.core.session.AppSession
 import com.chengxu.autoservice.ui.profile.ProfileScreen
+import com.chengxu.autoservice.ui.orders.OrderDetailScreen
+import com.chengxu.autoservice.ui.orders.OrderStatusFilter
+import com.chengxu.autoservice.ui.orders.OrdersScreen
+import com.chengxu.autoservice.ui.orders.OrdersUiState
 import com.chengxu.autoservice.ui.stage.StageScreen
 import com.chengxu.autoservice.ui.stage.StageKind
 import com.chengxu.autoservice.ui.workbench.WorkbenchAction
@@ -24,6 +28,11 @@ fun AppNavDisplay(
     workbenchState: WorkbenchUiState? = null,
     onWorkbenchAction: (WorkbenchAction) -> Unit = {},
     onWorkbenchRefresh: () -> Unit = {},
+    ordersState: OrdersUiState = OrdersUiState(loading = false),
+    onOrdersQueryChange: (String) -> Unit = {},
+    onOrdersFilterSelected: (OrderStatusFilter) -> Unit = {},
+    onOrdersClearFilters: () -> Unit = {},
+    onOrdersRefresh: () -> Unit = {},
     profileSession: AppSession? = null,
     onLogout: () -> Unit = {},
     isOffline: Boolean = false,
@@ -40,15 +49,31 @@ fun AppNavDisplay(
                             state = it,
                             onAction = onWorkbenchAction,
                             onRefresh = onWorkbenchRefresh,
+                            onOrderSelected = { orderId ->
+                                navigationState.push(AppRoute.OrderDetail(orderId))
+                            },
                         )
                     } ?: WorkbenchShellPlaceholder()
-                    AppRoute.Orders -> StageScreen(kind = StageKind.ORDERS, offline = isOffline)
+                    AppRoute.Orders -> OrdersScreen(
+                        state = ordersState,
+                        isOffline = isOffline,
+                        onQueryChange = onOrdersQueryChange,
+                        onFilterSelected = onOrdersFilterSelected,
+                        onClearFilters = onOrdersClearFilters,
+                        onRefresh = onOrdersRefresh,
+                        onOrderSelected = { orderId ->
+                            navigationState.push(AppRoute.OrderDetail(orderId))
+                        },
+                    )
                     AppRoute.CreateOrder -> StageScreen(kind = StageKind.CREATE, offline = isOffline)
                     AppRoute.Records -> StageScreen(kind = StageKind.RECORDS, offline = isOffline)
                     AppRoute.Profile -> profileSession?.let {
                         ProfileScreen(session = it, offline = isOffline, onLogout = onLogout)
                     } ?: ShellPlaceholder(title = RootTab.PROFILE.label)
-                    is AppRoute.OrderDetail -> ShellPlaceholder(title = "工单详情")
+                    is AppRoute.OrderDetail -> OrderDetailScreen(
+                        order = ordersState.allOrders.firstOrNull { order -> order.id == entry.orderId },
+                        onBack = navigationState::pop,
+                    )
                 }
             }
         },

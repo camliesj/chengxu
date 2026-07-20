@@ -28,6 +28,7 @@ fun WorkbenchScreen(
     state: WorkbenchUiState,
     onAction: (WorkbenchAction) -> Unit,
     onRefresh: () -> Unit,
+    onOrderSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -118,11 +119,7 @@ fun WorkbenchScreen(
                         state.recentOrders.forEach { order ->
                             WorkbenchOrderCard(
                                 order = order,
-                                onClick = {
-                                    coroutineScope.launch {
-                                        snackbarHostState.showSnackbar("${order.orderNumber} 详情将在后续阶段接入")
-                                    }
-                                },
+                                onClick = { onOrderSelected(order.orderNumber) },
                             )
                         }
                     }

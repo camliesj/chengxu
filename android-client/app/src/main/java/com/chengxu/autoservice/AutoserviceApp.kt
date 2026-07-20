@@ -39,6 +39,7 @@ import com.chengxu.autoservice.core.orders.OrdersRepository
 import com.chengxu.autoservice.ui.auth.LoginScreen
 import com.chengxu.autoservice.ui.auth.LoginViewModel
 import com.chengxu.autoservice.ui.shell.AutoserviceShell
+import com.chengxu.autoservice.ui.orders.OrdersViewModel
 import com.chengxu.autoservice.ui.workbench.WorkbenchViewModel
 import kotlinx.coroutines.launch
 
@@ -152,7 +153,12 @@ private fun AuthenticatedRoot(
         viewModelStoreOwner = sessionViewModelStoreOwner,
         factory = workbenchViewModelFactory(authenticationRepository, networkMonitor, ordersRepository),
     )
+    val ordersViewModel: OrdersViewModel = viewModel(
+        viewModelStoreOwner = sessionViewModelStoreOwner,
+        factory = ordersViewModelFactory(ordersRepository),
+    )
     val state by workbenchViewModel.uiState.collectAsStateWithLifecycle()
+    val ordersState by ordersViewModel.uiState.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
 
     AutoserviceShell(
@@ -160,6 +166,11 @@ private fun AuthenticatedRoot(
         workbenchState = state,
         onWorkbenchAction = {},
         onWorkbenchRefresh = workbenchViewModel::refresh,
+        ordersState = ordersState,
+        onOrdersQueryChange = ordersViewModel::updateQuery,
+        onOrdersFilterSelected = ordersViewModel::selectFilter,
+        onOrdersClearFilters = ordersViewModel::clearFilters,
+        onOrdersRefresh = ordersViewModel::refresh,
         profileSession = authenticationState.session,
         onLogout = { scope.launch { authenticationRepository.logout() } },
     )
@@ -192,6 +203,18 @@ private fun workbenchViewModelFactory(
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(WorkbenchViewModel::class.java)) {
             return WorkbenchViewModel(authenticationRepository, networkMonitor, ordersRepository) as T
+        }
+        throw IllegalArgumentException("Unsupported ViewModel class: ${modelClass.name}")
+    }
+}
+
+private fun ordersViewModelFactory(
+    ordersRepository: OrdersRepository,
+): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(OrdersViewModel::class.java)) {
+            return OrdersViewModel(ordersRepository) as T
         }
         throw IllegalArgumentException("Unsupported ViewModel class: ${modelClass.name}")
     }

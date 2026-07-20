@@ -36,12 +36,6 @@ enum class StageKind(
     val description: String,
     val actionLabel: String,
 ) {
-    ORDERS(
-        title = "工单列表正在升级",
-        phase = "视觉壳层 · 待接真实数据",
-        description = "下一阶段将接入本地缓存与在线刷新；当前版本先提供稳定导航与只读状态。",
-        actionLabel = "查看接入说明",
-    ),
     CREATE(
         title = "新增工单即将接入",
         phase = "阶段功能 · 暂未开放",

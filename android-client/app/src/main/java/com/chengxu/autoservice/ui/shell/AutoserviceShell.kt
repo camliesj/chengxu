@@ -31,6 +31,8 @@ import com.chengxu.autoservice.navigation.AppNavigationState
 import com.chengxu.autoservice.navigation.RootTab
 import com.chengxu.autoservice.ui.workbench.WorkbenchAction
 import com.chengxu.autoservice.ui.workbench.WorkbenchUiState
+import com.chengxu.autoservice.ui.orders.OrderStatusFilter
+import com.chengxu.autoservice.ui.orders.OrdersUiState
 
 @Composable
 fun AutoserviceShell(
@@ -40,6 +42,11 @@ fun AutoserviceShell(
     workbenchState: WorkbenchUiState? = null,
     onWorkbenchAction: (WorkbenchAction) -> Unit = {},
     onWorkbenchRefresh: () -> Unit = {},
+    ordersState: OrdersUiState = OrdersUiState(loading = false),
+    onOrdersQueryChange: (String) -> Unit = {},
+    onOrdersFilterSelected: (OrderStatusFilter) -> Unit = {},
+    onOrdersClearFilters: () -> Unit = {},
+    onOrdersRefresh: () -> Unit = {},
     profileSession: AppSession? = null,
     onLogout: () -> Unit = {},
 ) {
@@ -67,6 +74,11 @@ fun AutoserviceShell(
             workbenchState = workbenchState,
             onWorkbenchAction = routeWorkbenchAction,
             onWorkbenchRefresh = onWorkbenchRefresh,
+            ordersState = ordersState,
+            onOrdersQueryChange = onOrdersQueryChange,
+            onOrdersFilterSelected = onOrdersFilterSelected,
+            onOrdersClearFilters = onOrdersClearFilters,
+            onOrdersRefresh = onOrdersRefresh,
             profileSession = profileSession,
             onLogout = onLogout,
             isOffline = isOffline,

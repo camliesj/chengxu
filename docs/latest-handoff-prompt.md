@@ -424,7 +424,17 @@ cd E:\codex\chengxu\android-client
 - 工单卡片展示车牌/客户、维修摘要、日期时间、金额、工单号和原始状态，整卡至少 48dp 且可点击；筛选控件、重试和清除筛选均至少 48dp，并使用现有浅色科技 Token、Surface、圆角和本地 Hugeicons。
 - 加载、刷新保留缓存、陈旧提示、在线重试、离线隐藏重试、真空列表和有数据但无匹配均已按决策表区分；未知状态在“全部”下保留原文，并新增 `StatusTone.NEUTRAL` 显示为中性灰色，避免误传业务状态。
 - Compose 契约先精确 RED 于 `OrdersScreen`/`OrdersTestTags` 不存在；实现后 `:app:compileDebugAndroidTestKotlin` 成功。配套 JVM 单测先精确 RED 于中性色映射不存在，补入实现后完整 JVM 为 19 个 suite、91/91 测试、0 失败、0 错误；组合命令 `:app:compileDebugAndroidTestKotlin :app:testDebugUnitTest` 已 `BUILD SUCCESSFUL`。
-- 本阶段未启动模拟器，Compose 测试只完成源码编译，未声称连接式执行或原生视觉对比。下一步执行 Task 3：只读详情、工作台最近工单入口、每标签独立 Navigation 3 返回栈和认证会话级生产装配。
+- 本阶段未启动模拟器，Compose 测试只完成源码编译，未声称连接式执行或原生视觉对比。Task 3 已继续完成，见下节。
+
+#### 只读工单中心 Task 3：详情、双入口与 Navigation 3 装配（已完成）
+
+- 新增只读 `OrderDetailScreen`，按“工单信息 / 车辆与服务 / 交付与保障 / 费用”四区展示已缓存字段；顶部与失效态返回控件均至少 48dp，工单被刷新移除后显示“工单不存在或已失效”，不保留旧对象，也不提供新增、编辑、推进或结算按钮。
+- 工作台最近工单卡已从临时 Snackbar 改为回传真实工单 ID；“工单”页卡片与工作台均 push 现有 `AppRoute.OrderDetail(orderId)`，详情始终从当前 `ordersState.allOrders` 查找。
+- `AppNavDisplay` 和 `AutoserviceShell` 已接入真实列表/详情及搜索、筛选、清除、刷新回调；Navigation 3 继续为五个根标签维护独立栈，Android 契约覆盖从工单与工作台打开同一详情、切换标签保留详情以及返回各自根页。
+- 认证后使用同一 `SessionViewModelStoreOwner` 创建 `OrdersViewModel`，与工作台共享既有 `OrdersRepository`；退出登录会清空会话级 ViewModelStore，未改 API、Room Schema、数据库版本或公司隔离逻辑。
+- 详情与工作台入口契约先 RED 于详情组件/回调不存在，导航装配契约再 RED 于 `ordersState` 缺失；实现后聚焦 Navigation/ViewModel 测试和 Android 测试源码编译通过。完整 `:app:compileDebugAndroidTestKotlin :app:testDebugUnitTest :app:lintDebug :app:assembleDebug` 为 68 个 task、JVM 19 个 suite、91/91 通过、Lint 0 Fatal/0 Error/11 Warning，并生成 Debug APK。
+- 已删除不再路由的工单阶段占位枚举与“工单列表正在升级”“详情将在后续阶段接入”文案；只读详情生产目录没有“新增工单”或“办理结算”。本阶段仍未启动模拟器、未执行连接式测试或原生视觉对比。
+- 下一步执行 Task 4：从 clean 状态全量重跑、补充真机验收清单、复制并校验可安装 APK，然后提交发布里程碑。
 
 ## 工作纪律
 

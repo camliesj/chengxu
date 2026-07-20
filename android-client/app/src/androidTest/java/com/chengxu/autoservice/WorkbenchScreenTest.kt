@@ -140,16 +140,35 @@ class WorkbenchScreenTest {
         assertEquals(1, refreshCount)
     }
 
+    @Test
+    fun recentOrderClickEmitsItsRealIdExactlyOnce() {
+        var selectedId: String? = null
+        setWorkbench(
+            state = employeeState(),
+            onOrderSelected = { selectedId = it },
+        )
+
+        composeRule.onNodeWithText("蒙K·A3816 · 张先生").performClick()
+
+        assertEquals("RO202607150018", selectedId)
+    }
+
     private fun setWorkbench(
         state: WorkbenchUiState,
         widthDp: Int? = null,
         onRefresh: () -> Unit = {},
+        onOrderSelected: (String) -> Unit = {},
     ) {
         composeRule.setContent {
             AutoserviceTheme {
                 val screenModifier = if (widthDp == null) Modifier else Modifier.requiredWidth(widthDp.dp)
                 Box(modifier = screenModifier) {
-                    WorkbenchScreen(state = state, onAction = {}, onRefresh = onRefresh)
+                    WorkbenchScreen(
+                        state = state,
+                        onAction = {},
+                        onRefresh = onRefresh,
+                        onOrderSelected = onOrderSelected,
+                    )
                 }
             }
         }

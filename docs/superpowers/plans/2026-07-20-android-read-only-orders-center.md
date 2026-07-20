@@ -332,6 +332,7 @@ git push origin codex/android-mobile-ui-atlas
 - Create: `android-client/app/src/main/java/com/chengxu/autoservice/ui/orders/OrderDetailScreen.kt`
 - Create: `android-client/app/src/androidTest/java/com/chengxu/autoservice/OrderDetailScreenTest.kt`
 - Modify: `android-client/app/src/main/java/com/chengxu/autoservice/ui/workbench/WorkbenchScreen.kt`
+- Modify: `android-client/app/src/main/java/com/chengxu/autoservice/ui/stage/StageScreen.kt`
 - Modify: `android-client/app/src/main/java/com/chengxu/autoservice/navigation/AppNavDisplay.kt`
 - Modify: `android-client/app/src/main/java/com/chengxu/autoservice/ui/shell/AutoserviceShell.kt`
 - Modify: `android-client/app/src/main/java/com/chengxu/autoservice/AutoserviceApp.kt`
@@ -344,7 +345,7 @@ git push origin codex/android-mobile-ui-atlas
 - Consumes: `OrdersUiState.allOrders`, `AppRoute.OrderDetail(orderId)`, existing `AppNavigationState.push/pop`, and session-scoped owner.
 - Produces: `OrderDetailScreen(order, onBack)`, workbench `onOrderSelected(orderId)`, orders callbacks through shell/nav display, and an `OrdersViewModel` production factory.
 
-- [ ] **Step 1: Write failing detail Compose tests**
+- [x] **Step 1: Write failing detail Compose tests**
 
 Cover a populated detail and a missing detail. Assert exact section labels and 48dp back action:
 
@@ -360,7 +361,7 @@ composeRule.onNodeWithContentDescription("返回").assertHeightIsAtLeast(48.dp)
 
 Missing order must show `工单不存在或已失效` and a clickable `返回工单列表` control. Assert no text matching `新增工单`, `编辑`, `推进状态`, or `办理结算` exists.
 
-- [ ] **Step 2: Write failing navigation and workbench contracts**
+- [x] **Step 2: Write failing navigation and workbench contracts**
 
 - Update `WorkbenchScreenTest` to pass `onOrderSelected`, click a recent card, and assert the real ID is emitted once instead of a Snackbar.
 - Update `AutoserviceShellTest` to provide a non-empty `OrdersUiState`, select the orders tab, open `OrderDetail`, return, then open the same ID from workbench and verify each tab’s stack remains independent.
@@ -372,7 +373,7 @@ Compile and expect failures for missing callbacks/screens:
 .\gradlew.bat :app:compileDebugAndroidTestKotlin
 ```
 
-- [ ] **Step 3: Implement OrderDetailScreen**
+- [x] **Step 3: Implement OrderDetailScreen**
 
 Use a Canvas background, a 48dp back `IconButton`, a scrollable column, and brand Surfaces. Render the approved overview and four exact sections. Use `StatusChip` and local icons. Every blank field is already normalized by `OrderDisplayModel`; do not read `RepairOrder` directly and do not render action buttons.
 
@@ -387,11 +388,11 @@ fun OrderDetailScreen(
 )
 ```
 
-- [ ] **Step 4: Replace workbench placeholder click with navigation callback**
+- [x] **Step 4: Replace workbench placeholder click with navigation callback**
 
 Change `WorkbenchScreen` to accept `onOrderSelected: (String) -> Unit = {}` and call it with `order.orderNumber`. Remove the coroutine Snackbar text ending in `详情将在后续阶段接入`. Keep permission-denial Snackbar behavior unchanged.
 
-- [ ] **Step 5: Wire list/detail routes through Navigation 3**
+- [x] **Step 5: Wire list/detail routes through Navigation 3**
 
 Extend `AppNavDisplay` and `AutoserviceShell` with `ordersState`, query/filter/clear/refresh callbacks. In `AppNavDisplay`:
 
@@ -413,7 +414,7 @@ is AppRoute.OrderDetail -> OrderDetailScreen(
 
 Pass the same push callback into `WorkbenchScreen`. Preserve all existing quick-action routes and five-tab behavior.
 
-- [ ] **Step 6: Assemble OrdersViewModel in the authenticated session**
+- [x] **Step 6: Assemble OrdersViewModel in the authenticated session**
 
 Create `OrdersViewModel` with the existing `sessionViewModelStoreOwner`, collect `ordersState`, and pass its callbacks to `AutoserviceShell`. Add a factory parallel to `workbenchViewModelFactory`:
 
@@ -431,7 +432,7 @@ private fun ordersViewModelFactory(
 }
 ```
 
-- [ ] **Step 7: Run focused navigation/UI compilation and full JVM tests**
+- [x] **Step 7: Run focused navigation/UI compilation and full JVM tests**
 
 ```powershell
 .\gradlew.bat :app:testDebugUnitTest --tests "*AppNavigationStateTest" --tests "*OrdersViewModelTest"
@@ -440,7 +441,7 @@ private fun ordersViewModelFactory(
 
 Expected: focused JVM tests pass; Android test Kotlin compiles; full JVM, Lint, and Debug APK tasks exit successfully. No emulator is started.
 
-- [ ] **Step 8: Review scope and remove placeholders**
+- [x] **Step 8: Review scope and remove placeholders**
 
 Run:
 
@@ -450,10 +451,10 @@ rg -n "工单列表正在升级|详情将在后续阶段接入|ShellPlaceholder\
 
 Expected: the orders list/detail placeholder strings are absent from their former routes; any remaining `新增工单` or `办理结算` matches belong only to existing workbench/create-stage permission flows, never to `ui/orders`.
 
-- [ ] **Step 9: Update handoff, commit, and push Task 3**
+- [x] **Step 9: Update handoff, commit, and push Task 3**
 
 ```powershell
-git add android-client/app/src/main/java/com/chengxu/autoservice/ui/orders/OrderDetailScreen.kt android-client/app/src/main/java/com/chengxu/autoservice/ui/workbench/WorkbenchScreen.kt android-client/app/src/main/java/com/chengxu/autoservice/navigation/AppNavDisplay.kt android-client/app/src/main/java/com/chengxu/autoservice/ui/shell/AutoserviceShell.kt android-client/app/src/main/java/com/chengxu/autoservice/AutoserviceApp.kt android-client/app/src/androidTest/java/com/chengxu/autoservice/OrderDetailScreenTest.kt android-client/app/src/androidTest/java/com/chengxu/autoservice/WorkbenchScreenTest.kt android-client/app/src/androidTest/java/com/chengxu/autoservice/AutoserviceShellTest.kt android-client/app/src/androidTest/java/com/chengxu/autoservice/AutoserviceAppTest.kt docs/latest-handoff-prompt.md
+git add android-client/app/src/main/java/com/chengxu/autoservice/ui/orders/OrderDetailScreen.kt android-client/app/src/main/java/com/chengxu/autoservice/ui/workbench/WorkbenchScreen.kt android-client/app/src/main/java/com/chengxu/autoservice/ui/stage/StageScreen.kt android-client/app/src/main/java/com/chengxu/autoservice/navigation/AppNavDisplay.kt android-client/app/src/main/java/com/chengxu/autoservice/ui/shell/AutoserviceShell.kt android-client/app/src/main/java/com/chengxu/autoservice/AutoserviceApp.kt android-client/app/src/androidTest/java/com/chengxu/autoservice/OrderDetailScreenTest.kt android-client/app/src/androidTest/java/com/chengxu/autoservice/WorkbenchScreenTest.kt android-client/app/src/androidTest/java/com/chengxu/autoservice/AutoserviceShellTest.kt android-client/app/src/androidTest/java/com/chengxu/autoservice/AutoserviceAppTest.kt docs/latest-handoff-prompt.md docs/superpowers/plans/2026-07-20-android-read-only-orders-center.md
 git commit -m "feat(android): add read-only order details"
 git push origin codex/android-mobile-ui-atlas
 ```

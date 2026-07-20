@@ -26,6 +26,7 @@ import com.chengxu.autoservice.core.network.NetworkMonitor
 import com.chengxu.autoservice.core.orders.OrderSyncState
 import com.chengxu.autoservice.core.orders.OrdersRepository
 import com.chengxu.autoservice.core.orders.OrdersSnapshot
+import com.chengxu.autoservice.core.orders.RepairOrder
 import com.chengxu.autoservice.core.session.AppSession
 import com.chengxu.autoservice.core.session.PermissionSnapshot
 import com.chengxu.autoservice.core.designsystem.AutoserviceTheme
@@ -96,6 +97,8 @@ class AutoserviceAppTest {
         setApp(storedSession = employeeSession())
 
         composeRule.onNodeWithText("今日工作").assertIsDisplayed()
+        composeRule.onNodeWithText("工单").performClick()
+        composeRule.onNodeWithText("RO-APP-1").assertIsDisplayed()
         composeRule.onNodeWithText("我的").performClick()
         composeRule.onNodeWithText("退出登录").assertIsDisplayed()
         composeRule.onNodeWithText("退出登录").performClick()
@@ -148,7 +151,29 @@ class AutoserviceAppTest {
 
     private class FakeOrdersRepository : OrdersRepository {
         override val snapshot: StateFlow<OrdersSnapshot> =
-            MutableStateFlow(OrdersSnapshot(syncState = OrderSyncState.Ready))
+            MutableStateFlow(
+                OrdersSnapshot(
+                    orders = listOf(
+                        RepairOrder(
+                            id = "RO-APP-1",
+                            companyId = "tongda",
+                            date = "2026-07-20",
+                            dateSortKey = "2026-07-20",
+                            time = "09:30",
+                            plate = "蒙A12345",
+                            customer = "张先生",
+                            car = "大众帕萨特",
+                            type = "常规保养",
+                            status = "在修中",
+                            amountCents = 50_000,
+                            record = "更换机油与滤芯",
+                            insuranceExpiry = "2026-12-31",
+                            delivery = "2026-07-21",
+                        ),
+                    ),
+                    syncState = OrderSyncState.Ready,
+                ),
+            )
 
         override suspend fun refresh() = Unit
     }
