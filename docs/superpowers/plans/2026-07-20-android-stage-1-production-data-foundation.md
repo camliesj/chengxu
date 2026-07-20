@@ -153,7 +153,8 @@ enum class BusinessCapability {
 
 data class OrderPage(
     val orders: List<OrderSummary>, val nextCursor: String?,
-    val serverTime: String, val capabilities: Set<BusinessCapability>,
+    val removedOrderIds: List<String>, val serverTime: String,
+    val capabilities: Set<BusinessCapability>,
 )
 ```
 
@@ -339,9 +340,10 @@ git push origin codex/android-mobile-ui-atlas
 覆盖：员工只能相邻向前、管理员可相邻回退、无效/跨级拒绝；游标往返且非法游标返回 `null`；能力必须同时满足数据库开启和角色权限；同一 `company+actor+action+operationId` 可返回已完成结果。
 
 ```js
-test('cursor round trips updatedAt and id', () => {
-  const cursor = encodeOrderCursor({ updatedAt: '2026-07-20 10:00:00', id: 'RO-1' });
-  assert.deepEqual(decodeOrderCursor(cursor), { updatedAt: '2026-07-20 10:00:00', id: 'RO-1' });
+test('cursor round trips mode updatedAt and id', () => {
+  const value = { mode: 'delta', updatedAt: '2026-07-20 10:00:00', id: 'RO-1' };
+  const cursor = encodeOrderCursor(value);
+  assert.deepEqual(decodeOrderCursor(cursor), value);
   assert.equal(decodeOrderCursor('not-base64'), null);
 });
 ```
@@ -366,7 +368,7 @@ export function canTransitionOrderStatus(role, from, to) {
 }
 ```
 
-在 `order-foundation.js` 使用 UTF-8 JSON 的 base64url 游标，Node 和 Workers 均通过 `btoa`/`atob` 可用；解析时验证对象只有非空 `updatedAt` 和 `id` 字符串。
+在 `order-foundation.js` 使用 UTF-8 JSON 的 base64url 游标，Node 和 Workers 均通过 `btoa`/`atob` 可用；解析时验证 `mode` 只能为 `full|delta`，并且 `updatedAt`、`id` 是非空字符串。完整分页使用 `mode=full`，增量后续页使用 `mode=delta`，防止把两种排序方向的游标混用。
 
 - [ ] **Step 4: 实现能力与幂等存取函数**
 
@@ -437,9 +439,10 @@ git push origin codex/android-mobile-ui-atlas
 2. `scope=current` 只查三种普通状态和 `voided=0`；
 3. `scope=history` 只查 `已结算` 和 `voided=0`；
 4. `limit` 默认 50，最大 100，多取一行生成 `nextCursor`；
-5. `updatedAfter` 和 cursor 都作为公司隔离查询条件；
+5. `updatedAfter` 首个增量页按 `updated_at ASC, id ASC` 查询公司全部变更；后续 `mode=delta` cursor 继续增量页，不能漏掉超过单页上限的变更；
 6. 详情必须同时按 `id` 和会话 `company_id` 查询，缺失为 404；
-7. 响应包含 `version`，但不暴露 `settlement_receipt_key`。
+7. 已离开请求 scope 或已作废的增量记录进入 `removedOrderIds`，使客户端删除旧缓存；
+8. 响应包含 `version`，但不暴露 `settlement_receipt_key`。
 
 - [ ] **Step 2: 运行 RED**
 
@@ -492,7 +495,9 @@ export async function onRequestGet({ request, env }) {
 }
 ```
 
-`readScopedOrders` 使用 `updated_at DESC, id DESC`，`limit + 1` 取数，`limit` 截断到 1..100；cursor 条件为 `(updated_at < ? OR (updated_at = ? AND id < ?))`。`updatedAfter` 仅接受可解析的 ISO/SQLite 时间字符串，否则返回 `400 INVALID_UPDATED_AFTER`。同时传 cursor 与 `updatedAfter` 返回 `400 AMBIGUOUS_PAGINATION`，避免丢数。
+`readScopedOrders` 的完整分页使用 `updated_at DESC, id DESC`，`mode=full` cursor 条件为 `(updated_at < ? OR (updated_at = ? AND id < ?))`。首个增量页使用 `updatedAfter`，不预先按状态过滤，按 `updated_at ASC, id ASC` 读取公司全部变化；`mode=delta` cursor 使用 `(updated_at > ? OR (updated_at = ? AND id > ?))` 继续后续页。每种模式都以 `limit + 1` 取数并把 `limit` 截断到 1..100。
+
+增量映射时，仍属于请求 scope 且未作废的行进入 `orders`；已经离开该 scope 或 `voided=1` 的行只把 ID 放入 `removedOrderIds`。`updatedAfter` 仅接受可解析的 ISO/SQLite 时间字符串，否则返回 `400 INVALID_UPDATED_AFTER`；同时传 cursor 与 `updatedAfter` 返回 `400 AMBIGUOUS_PAGINATION`。完整响应也固定包含空数组 `removedOrderIds: []`，避免 Android 分支解析。
 
 - [ ] **Step 5: 实现公司隔离详情**
 
@@ -556,7 +561,7 @@ git push origin codex/android-mobile-ui-atlas
 
 - [ ] **Step 1: 写网络契约 RED 测试**
 
-测试精确 URL 编码、Bearer Token、current/history/cursor/updatedAfter、完整详情映射、未知字段忽略、非法必填字段导致 `MalformedResponse`、可选字段安全默认、401/403/404/5xx、IOException 和取消传播。禁止把手机号/VIN 写到日志断言中。
+测试精确 URL 编码、Bearer Token、current/history/full cursor/delta cursor/updatedAfter、`removedOrderIds`、完整详情映射、未知字段忽略、非法必填字段导致 `MalformedResponse`、可选字段安全默认、401/403/404/5xx、IOException 和取消传播。禁止把手机号/VIN 写到日志断言中。
 
 - [ ] **Step 2: 运行 RED**
 
@@ -607,7 +612,7 @@ interface OrderReadApi {
 
 复用现有 `OrdersHttpTransport`，新增 `encodeURIComponent` 等价的 `URLEncoder.encode(value, UTF_8).replace("+", "%20")`。列表 URL 固定参数顺序：`scope=${query.scope.name.lowercase()}`、`limit`、`cursor` 或 `updatedAfter`。详情 ID 必须编码为单一路径段。
 
-JSON 映射要求：`id/companyId/date/status/version/updatedAt` 缺失或类型非法则丢弃该行；详情缺少任何必需摘要字段则整个详情返回 `MalformedResponse`；金额继续使用整数分优先，兼容旧 decimal 字段。`receipt` 只映射元数据。
+JSON 映射要求：`id/companyId/date/status/version/updatedAt` 缺失或类型非法则丢弃该行；`removedOrderIds` 缺失时兼容为空数组，存在时只接受非空字符串并去重；详情缺少任何必需摘要字段则整个详情返回 `MalformedResponse`；金额继续使用整数分优先，兼容旧 decimal 字段。`receipt` 只映射元数据。
 
 - [ ] **Step 5: 保留旧 API 适配器**
 

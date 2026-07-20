@@ -457,7 +457,7 @@ cd E:\codex\chengxu\android-client
 - 八阶段依次为：模型/存储/API 基础，新增工单，编辑/状态推进，档案中心，管理员结算，高风险管理，导出/账户/后台读取同步，正式发布。每阶段独立测试、文档、Git 提交、GitHub 推送和可安装 APK，并可通过能力开关回退到安全只读状态。
 - 用户已批准完整主设计规格 `docs/superpowers/specs/2026-07-20-android-complete-business-capability-design.md`。阶段 1 任务级计划已生成：`docs/superpowers/plans/2026-07-20-android-stage-1-production-data-foundation.md`，严格限定为领域/权限/状态机、D1 版本与幂等基础、兼容读取 API、Android 扩展读取、通用 AES-GCM、Room v2、生产兼容接线和最终 APK 八个任务，不提前接入写入 UI。
 - 阶段 1 计划包含生产 D1 备份、只应用 migration 0010、Pages Functions 部署和未认证 401 冒烟；每个任务独立 RED/GREEN、更新本文件、提交并推送，最后从 clean 状态完成 Node/Vite、Android JVM、Android 测试源码编译、Lint、APK 哈希和 v2 签名验证。
-- 当前没有开始阶段 1 业务代码；下一步按 `writing-plans` 交接选择执行方式。沿用此前用户偏好时选择 Inline Execution，在当前会话使用 `executing-plans` 分批执行并设置检查点；不创建子代理或 worktree。
+- 用户已选择 Inline Execution；当前会话使用 `executing-plans` 分批执行，不创建子代理或 worktree。执行前复核补齐增量同步删除语义：`updatedAfter`/delta cursor 查询公司全部变更，离开 current/history scope 或已作废的行通过 `removedOrderIds` tombstone 清理旧缓存，避免状态迁移后客户端残留重复工单。
 - 后续仍按要求默认不启动 Android 模拟器，保留 JVM 单元测试、Android 测试代码编译、Lint、APK 构建和真机交接。
 
 ## 工作纪律
