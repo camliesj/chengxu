@@ -12,8 +12,8 @@ import {
 
 test('cursor round trips full and delta modes with unicode-safe values', () => {
   for (const value of [
-    { mode: 'full', updatedAt: '2026-07-20 10:00:00', id: 'RO-1' },
-    { mode: 'delta', updatedAt: '2026-07-20 10:00:01', id: '蒙K-2' },
+    { mode: 'full', scope: 'current', updatedAt: '2026-07-20 10:00:00', id: 'RO-1' },
+    { mode: 'delta', scope: 'history', updatedAt: '2026-07-20 10:00:01', id: '蒙K-2' },
   ]) {
     assert.deepEqual(decodeOrderCursor(encodeOrderCursor(value)), value);
   }
@@ -21,9 +21,11 @@ test('cursor round trips full and delta modes with unicode-safe values', () => {
 
 test('cursor rejects malformed payloads and unsupported modes', () => {
   assert.equal(decodeOrderCursor('not-base64'), null);
-  assert.equal(decodeOrderCursor(encodeRawCursor({ mode: 'other', updatedAt: 'time', id: 'RO-1' })), null);
-  assert.equal(decodeOrderCursor(encodeRawCursor({ mode: 'full', updatedAt: '', id: 'RO-1' })), null);
-  assert.equal(decodeOrderCursor(encodeRawCursor({ mode: 'delta', updatedAt: 'time', id: 7 })), null);
+  assert.equal(decodeOrderCursor(encodeRawCursor({ mode: 'other', scope: 'current', updatedAt: 'time', id: 'RO-1' })), null);
+  assert.equal(decodeOrderCursor(encodeRawCursor({ mode: 'full', scope: 'other', updatedAt: 'time', id: 'RO-1' })), null);
+  assert.equal(decodeOrderCursor(encodeRawCursor({ mode: 'full', updatedAt: 'time', id: 'RO-1' })), null);
+  assert.equal(decodeOrderCursor(encodeRawCursor({ mode: 'full', scope: 'current', updatedAt: '', id: 'RO-1' })), null);
+  assert.equal(decodeOrderCursor(encodeRawCursor({ mode: 'delta', scope: 'history', updatedAt: 'time', id: 7 })), null);
 });
 
 test('capabilities require both a company switch and role permission', async () => {

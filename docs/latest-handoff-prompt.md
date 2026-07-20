@@ -485,6 +485,15 @@ cd E:\codex\chengxu\android-client
 - TDD RED 先分别失败于共享模块不存在和精确状态函数未导出；GREEN 后聚焦 11/11，通过游标、能力、幂等和状态测试。网页/Functions 全量 Node 测试现为 73/73，0 失败、0 跳过。
 - 本任务没有访问远端 D1、没有部署 Pages。下一步执行 Task 4：兼容的 current/history 分页、增量 tombstone 与详情读取 API。
 
+#### 阶段 1 Task 4：兼容分页、增量 tombstone 与详情读取 API（已完成）
+
+- `GET /api/orders` 无 `scope` 时继续执行原 SQL、原排序并只返回 `{ orders }`，网页/Windows 既有回执字段不变；`scope=current|history` 才启用面向 Android 的扩展响应与分页。
+- 扩展列表支持 `limit` 1..100、`full` 降序游标和 `delta` 升序游标；游标同时绑定 `mode` 与 `scope`，非法载荷、跨 current/history 复用、同时提供 cursor/updatedAfter 以及非法更新时间均在查询工单前返回 400。
+- delta 查询读取企业内全部变化，再把仍属于目标范围的记录返回到 `orders`，把离开范围或已作废记录的 ID 返回到 `removedOrderIds`，覆盖跨页增量同步且避免 current/history 缓存残留重复记录。
+- 新增公司隔离的 `GET /api/orders/:id` 详情读取。scoped/detail 响应包含 `version`、安全回执元数据、`serverTime` 和角色/企业能力交集，但不暴露 COS `settlementReceiptKey`；其他企业或已作废记录统一为 404。
+- TDD RED 先失败于详情路由缺失；最终复核又用 4 个失败断言定位并修复了游标未绑定 scope 的问题。游标与读取 API 聚焦测试 13/13、网页/Functions 全量 Node 测试 81/81 通过，Vite 生产构建成功。
+- 本任务未访问远端 D1、未部署 Pages、未启动 Android 模拟器。下一步执行 Task 5：Android 扩展读取网络契约与容错映射。
+
 ## 工作纪律
 
 每次重要改动后必须：

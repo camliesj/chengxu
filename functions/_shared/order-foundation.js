@@ -16,6 +16,7 @@ export const BUSINESS_CAPABILITIES = [
 
 const SAFE_DEFAULT_CAPABILITIES = new Set(['VIEW_ORDERS']);
 const CURSOR_MODES = new Set(['full', 'delta']);
+const CURSOR_SCOPES = new Set(['current', 'history']);
 
 export function encodeOrderCursor(value) {
   validateCursor(value);
@@ -96,6 +97,7 @@ export async function completeOperation(env, key, httpStatus, response) {
 
 function validateCursor(value) {
   if (!value || !CURSOR_MODES.has(value.mode)) throw new TypeError('Invalid cursor mode');
+  if (!CURSOR_SCOPES.has(value.scope)) throw new TypeError('Invalid cursor scope');
   if (typeof value.updatedAt !== 'string' || !value.updatedAt.trim()) {
     throw new TypeError('Invalid cursor timestamp');
   }

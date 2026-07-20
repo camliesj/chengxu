@@ -1,6 +1,11 @@
 import { json, requireSession, writeOperationLog } from '../_shared/auth.js';
 import { buildOrderAuditEvent, protectArchiveEdit, settledEditAccessError } from '../_shared/order-audit.js';
+import { decodeOrderCursor, encodeOrderCursor, readCapabilities } from '../_shared/order-foundation.js';
 import { canEmployeeSetOrderStatus } from '../../shared/orderStatusPermissions.js';
+
+const CURRENT_STATUSES = ['在修中', '已完工', '待结算'];
+const DEFAULT_PAGE_LIMIT = 50;
+const MAX_PAGE_LIMIT = 100;
 
 const ORDER_COLUMNS = [
   'id',
@@ -39,7 +44,7 @@ const ORDER_COLUMNS = [
   'void_reason',
 ];
 
-function toOrder(row) {
+export function toOrder(row) {
   return {
     id: row.id,
     companyId: row.company_id || 'tongda',
@@ -75,6 +80,29 @@ function toOrder(row) {
     voided: Number(row.voided) === 1,
     voidedAt: row.voided_at || '',
     voidReason: row.void_reason || '',
+  };
+}
+
+export function toMobileOrder(row) {
+  const legacy = toOrder(row);
+  const {
+    settlementReceiptKey: _receiptKey,
+    settlementReceiptName: _receiptName,
+    settlementReceiptType: _receiptType,
+    settlementReceiptSize: _receiptSize,
+    settlementReceiptUploadedAt: _receiptUploadedAt,
+    ...safe
+  } = legacy;
+  return {
+    ...safe,
+    version: Number(row.version) || 1,
+    updatedAt: row.updated_at || '',
+    receipt: row.settlement_receipt_name ? {
+      name: row.settlement_receipt_name,
+      contentType: row.settlement_receipt_type || '',
+      sizeBytes: Number(row.settlement_receipt_size) || 0,
+      uploadedAt: row.settlement_receipt_uploaded_at || '',
+    } : null,
   };
 }
 
@@ -155,10 +183,133 @@ export async function onRequestGet({ request, env }) {
   const { session, error } = await requireSession(request, env);
   if (error) return error;
 
+  const url = new URL(request.url);
+  const scope = cleanText(url.searchParams.get('scope'));
+  if (!scope) return readLegacyOrders(env, session);
+  if (!['current', 'history'].includes(scope)) {
+    return json({ error: 'INVALID_SCOPE' }, { status: 400 });
+  }
+  return readScopedOrders({ url, env, session, scope });
+}
+
+async function readLegacyOrders(env, session) {
   const result = await env.DB.prepare(
     'SELECT * FROM repair_orders WHERE voided = 0 AND company_id = ? ORDER BY date DESC, time DESC, created_at DESC',
   ).bind(session.company_id || 'tongda').all();
   return json({ orders: result.results.map(toOrder) });
+}
+
+async function readScopedOrders({ url, env, session, scope }) {
+  const cursorText = cleanText(url.searchParams.get('cursor'));
+  const updatedAfterText = cleanText(url.searchParams.get('updatedAfter'));
+  if (cursorText && updatedAfterText) {
+    return json({ error: 'AMBIGUOUS_PAGINATION' }, { status: 400 });
+  }
+
+  const cursor = cursorText ? decodeOrderCursor(cursorText) : null;
+  if (cursorText && !cursor) return json({ error: 'INVALID_CURSOR' }, { status: 400 });
+  if (cursor && cursor.scope !== scope) {
+    return json({ error: 'INVALID_CURSOR_SCOPE' }, { status: 400 });
+  }
+  const updatedAfter = updatedAfterText ? normalizeUpdatedAfter(updatedAfterText) : null;
+  if (updatedAfterText && !updatedAfter) {
+    return json({ error: 'INVALID_UPDATED_AFTER' }, { status: 400 });
+  }
+
+  const limit = pageLimit(url.searchParams.get('limit'));
+  const mode = updatedAfter ? 'delta' : (cursor?.mode || 'full');
+  const page = mode === 'delta'
+    ? await readDeltaPage({ env, session, scope, cursor, updatedAfter, limit })
+    : await readFullPage({ env, session, scope, cursor, limit });
+  const visibleRows = [];
+  const removedOrderIds = [];
+  for (const row of page.rows) {
+    if (belongsToScope(row, scope)) visibleRows.push(row);
+    else if (mode === 'delta') removedOrderIds.push(row.id);
+  }
+  return json({
+    orders: visibleRows.map(toMobileOrder),
+    nextCursor: page.nextCursor,
+    removedOrderIds: [...new Set(removedOrderIds)],
+    serverTime: new Date().toISOString(),
+    capabilities: await readCapabilities(env, session),
+  });
+}
+
+async function readFullPage({ env, session, scope, cursor, limit }) {
+  const conditions = ['company_id = ?', 'voided = 0'];
+  const values = [session.company_id || 'tongda'];
+  if (scope === 'current') {
+    conditions.push('status IN (?, ?, ?)');
+    values.push(...CURRENT_STATUSES);
+  } else {
+    conditions.push('status = ?');
+    values.push('已结算');
+  }
+  if (cursor) {
+    conditions.push('(updated_at < ? OR (updated_at = ? AND id < ?))');
+    values.push(cursor.updatedAt, cursor.updatedAt, cursor.id);
+  }
+  values.push(limit + 1);
+  const result = await env.DB.prepare(`
+    SELECT * FROM repair_orders
+    WHERE ${conditions.join(' AND ')}
+    ORDER BY updated_at DESC, id DESC
+    LIMIT ?
+  `).bind(...values).all();
+  return pageResult(result.results || [], limit, 'full', scope);
+}
+
+async function readDeltaPage({ env, session, scope, cursor, updatedAfter, limit }) {
+  const values = [session.company_id || 'tongda'];
+  let changeCondition;
+  if (cursor) {
+    changeCondition = '(updated_at > ? OR (updated_at = ? AND id > ?))';
+    values.push(cursor.updatedAt, cursor.updatedAt, cursor.id);
+  } else {
+    changeCondition = 'updated_at > ?';
+    values.push(updatedAfter);
+  }
+  values.push(limit + 1);
+  const result = await env.DB.prepare(`
+    SELECT * FROM repair_orders
+    WHERE company_id = ? AND ${changeCondition}
+    ORDER BY updated_at ASC, id ASC
+    LIMIT ?
+  `).bind(...values).all();
+  return pageResult(result.results || [], limit, 'delta', scope);
+}
+
+function pageResult(results, limit, mode, scope) {
+  const rows = results.slice(0, limit);
+  const last = rows.at(-1);
+  return {
+    rows,
+    nextCursor: results.length > limit && last
+      ? encodeOrderCursor({ mode, scope, updatedAt: last.updated_at, id: last.id })
+      : null,
+  };
+}
+
+function belongsToScope(row, scope) {
+  if (Number(row.voided) === 1) return false;
+  return scope === 'current' ? CURRENT_STATUSES.includes(row.status) : row.status === '已结算';
+}
+
+function pageLimit(value) {
+  const parsed = Number.parseInt(String(value || DEFAULT_PAGE_LIMIT), 10);
+  if (!Number.isFinite(parsed)) return DEFAULT_PAGE_LIMIT;
+  return Math.min(MAX_PAGE_LIMIT, Math.max(1, parsed));
+}
+
+function normalizeUpdatedAfter(value) {
+  const text = cleanText(value);
+  const input = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/u.test(text)
+    ? `${text.replace(' ', 'T')}Z`
+    : text;
+  const date = new Date(input);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toISOString().slice(0, 19).replace('T', ' ');
 }
 
 export async function onRequestPost({ request, env }) {

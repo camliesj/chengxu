@@ -431,7 +431,7 @@ git push origin codex/android-mobile-ui-atlas
 - Consumes: `readCapabilities`、`encodeOrderCursor`、`decodeOrderCursor`、`requireSession`、`toOrder`。
 - Produces: legacy `{ orders }`；extended `{ orders, nextCursor, serverTime, capabilities }`；detail `{ order, serverTime, capabilities }`。
 
-- [ ] **Step 1: 写读取 API RED 测试**
+- [x] **Step 1: 写读取 API RED 测试**
 
 使用记录 SQL 与 bind 参数的 Fake D1，覆盖：
 
@@ -444,13 +444,13 @@ git push origin codex/android-mobile-ui-atlas
 7. 已离开请求 scope 或已作废的增量记录进入 `removedOrderIds`，使客户端删除旧缓存；
 8. 响应包含 `version`，但不暴露 `settlement_receipt_key`。
 
-- [ ] **Step 2: 运行 RED**
+- [x] **Step 2: 运行 RED**
 
 Run: `node --test test/ordersReadApi.test.mjs`
 
 Expected: FAIL because extended scope handling and detail route are absent。
 
-- [ ] **Step 3: 抽出并导出安全映射**
+- [x] **Step 3: 抽出并导出安全映射**
 
 保留现有 `toOrder` 的全部字段和命名作为 legacy 映射，并把它改为命名导出。另增加只供新 Android 读取端点使用的安全映射：
 
@@ -481,7 +481,7 @@ export function toMobileOrder(row) {
 
 legacy 无参数分支继续调用 `toOrder`，因此网页/Windows 仍得到既有回执字段；新 scoped/detail 分支只调用 `toMobileOrder`，不暴露 COS 对象键。
 
-- [ ] **Step 4: 实现扩展列表且保留 legacy 分支**
+- [x] **Step 4: 实现扩展列表且保留 legacy 分支**
 
 ```js
 export async function onRequestGet({ request, env }) {
@@ -499,7 +499,7 @@ export async function onRequestGet({ request, env }) {
 
 增量映射时，仍属于请求 scope 且未作废的行进入 `orders`；已经离开该 scope 或 `voided=1` 的行只把 ID 放入 `removedOrderIds`。`updatedAfter` 仅接受可解析的 ISO/SQLite 时间字符串，否则返回 `400 INVALID_UPDATED_AFTER`；同时传 cursor 与 `updatedAfter` 返回 `400 AMBIGUOUS_PAGINATION`。完整响应也固定包含空数组 `removedOrderIds: []`，避免 Android 分支解析。
 
-- [ ] **Step 5: 实现公司隔离详情**
+- [x] **Step 5: 实现公司隔离详情**
 
 `functions/api/orders/[id]/index.js`：
 
@@ -523,7 +523,7 @@ export async function onRequestGet({ request, env, params }) {
 }
 ```
 
-- [ ] **Step 6: 运行聚焦、全量测试和生产构建**
+- [x] **Step 6: 运行聚焦、全量测试和生产构建**
 
 Run:
 
@@ -535,7 +535,7 @@ npm.cmd run build
 
 Expected: API 聚焦测试、全量 Node 测试和 Vite 生产构建全部通过。
 
-- [ ] **Step 7: 更新交接、提交并推送**
+- [x] **Step 7: 更新交接、提交并推送**
 
 ```powershell
 git add functions/api/orders.js functions/api/orders/[id]/index.js test/ordersReadApi.test.mjs docs/latest-handoff-prompt.md
