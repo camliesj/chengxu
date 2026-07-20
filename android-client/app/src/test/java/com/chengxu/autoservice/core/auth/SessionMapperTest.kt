@@ -21,7 +21,7 @@ class SessionMapperTest {
 
         assertEquals(UserRole.EMPLOYEE, session.role)
         assertTrue(session.permissions.allows(AppPermission.CREATE_ORDER))
-        assertTrue(session.permissions.allows(AppPermission.VOID_ORDER))
+        assertFalse(session.permissions.allows(AppPermission.VOID_ORDER))
         assertFalse(session.permissions.allows(AppPermission.SETTLE_ORDER))
     }
 

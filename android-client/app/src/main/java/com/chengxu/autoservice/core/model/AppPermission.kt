@@ -9,4 +9,7 @@ enum class AppPermission {
     REVERSE_SETTLEMENT,
     VOID_ORDER,
     MAINTAIN_RECEIPT,
+    VIEW_RECORDS,
+    MANAGE_RECORDS,
+    EXPORT_DATA,
 }

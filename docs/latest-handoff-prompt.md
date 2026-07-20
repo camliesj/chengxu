@@ -446,7 +446,7 @@ cd E:\codex\chengxu\android-client
 - 本轮没有启动模拟器、没有执行连接式 Compose/Room 测试，也没有生成原生截图；列表密度、筛选滚动、输入法、详情返回、离线缓存和生产数据由用户安装该 APK 后在真实手机验收。
 - 代码、文档与 APK 发布提交为 `1814cff`，已推送到 `origin/codex/android-mobile-ui-atlas`；发布后首次核对本地与远程完整哈希均为 `1814cff43f29028acf525028815528e53c5904b6`，实施计划四个 Task 全部完成。
 
-### 下一里程碑：Android 完整业务能力（主规格已批准，阶段 1 计划待执行方式确认）
+### 下一里程碑：Android 完整业务能力（阶段 1 Inline Execution 执行中）
 
 - 用户确认采用方案 A：Android 最终覆盖员工与管理员完整移动业务能力，按纵向业务切片分八阶段上线，不把所有高风险写入集中到一个版本。
 - 继续复用现有 Cloudflare Functions、D1、腾讯云 COS、操作日志和网页端业务规则，不建设第二套移动后端。所有业务写入必须在线完成；离线只允许读取公司隔离缓存和编辑本地加密草稿，不建立离线写队列，也不恢复网络后自动提交。
@@ -458,7 +458,16 @@ cd E:\codex\chengxu\android-client
 - 用户已批准完整主设计规格 `docs/superpowers/specs/2026-07-20-android-complete-business-capability-design.md`。阶段 1 任务级计划已生成：`docs/superpowers/plans/2026-07-20-android-stage-1-production-data-foundation.md`，严格限定为领域/权限/状态机、D1 版本与幂等基础、兼容读取 API、Android 扩展读取、通用 AES-GCM、Room v2、生产兼容接线和最终 APK 八个任务，不提前接入写入 UI。
 - 阶段 1 计划包含生产 D1 备份、只应用 migration 0010、Pages Functions 部署和未认证 401 冒烟；每个任务独立 RED/GREEN、更新本文件、提交并推送，最后从 clean 状态完成 Node/Vite、Android JVM、Android 测试源码编译、Lint、APK 哈希和 v2 签名验证。
 - 用户已选择 Inline Execution；当前会话使用 `executing-plans` 分批执行，不创建子代理或 worktree。执行前复核补齐增量同步删除语义：`updatedAfter`/delta cursor 查询公司全部变更，离开 current/history scope 或已作废的行通过 `removedOrderIds` tombstone 清理旧缓存，避免状态迁移后客户端残留重复工单。
+- Task 1 首次 RED 被构建基线提前阻断：计划误用了外部 Gradle 8.10.2，而项目 AGP 8.13.2 和 `gradle-wrapper.properties` 明确要求 Gradle 8.13。已用仓库 `gradlew.bat --version` 验证本机缓存的 Gradle 8.13 可用，计划中的 Android 命令统一改用 wrapper；这不是依赖升级，后续重新运行真正的 RED。
 - 后续仍按要求默认不启动 Android 模拟器，保留 JVM 单元测试、Android 测试代码编译、Lint、APK 构建和真机交接。
+
+#### 阶段 1 Task 1：Android 完整领域、状态机与权限契约（已完成）
+
+- 新增纯 Kotlin `OrderSummary`、`OrderDetail`、`OrderDraft`、`SettlementDraft`、`ReceiptMetadata`、`OrderPage`、`OrderCommandResult` 和 `BusinessCapability`；金额继续只使用 `Long` 分值，`OrderPage` 已包含增量同步所需的 `removedOrderIds`。
+- 新增 `OrderStatus` wire 映射和 `allowedOrderTransition`：员工只允许 `在修中 -> 已完工 -> 待结算` 相邻向前，管理员额外允许普通状态相邻回退；普通状态机永远不能产生“已结算”。
+- `AppPermission` 新增 `VIEW_RECORDS`、`MANAGE_RECORDS`、`EXPORT_DATA`。员工角色默认可查看档案但不能管理或导出；非管理员即使收到旧服务端 `voidOrder`/`export` key 也不会获得作废或导出能力，管理员仍拥有全部权限。
+- TDD RED 先精确失败于新领域类型、状态机函数和权限枚举不存在；角色越权复核又先以 2 个断言失败证明旧 key 能提权，收紧映射后聚焦测试和 Android JVM 全量均 `BUILD SUCCESSFUL`。
+- Android JVM XML 客观统计为 21 个 suite、97/97 测试、0 失败、0 错误、0 跳过。本任务未启动模拟器，下一步执行 Task 2：D1 版本、幂等记录与能力开关迁移。
 
 ## 工作纪律
 
