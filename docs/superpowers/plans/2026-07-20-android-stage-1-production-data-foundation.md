@@ -739,17 +739,17 @@ git push origin codex/android-mobile-ui-atlas
 - Consumes: Task 1 models and Task 6 `StringCipher`。
 - Produces: `MIGRATION_1_2`、`OrderDao` 摘要兼容接口、`FoundationDao`、`EncryptedOrderStore`。
 
-- [ ] **Step 1: 写 Room v2 RED 测试源码**
+- [x] **Step 1: 写 Room v2 RED 测试源码**
 
 迁移测试先建立 v1 `orders` 行，执行 `MIGRATION_1_2` 后断言：数据进入 `order_summaries`、`version=1`、`updatedAt=''`、`scope='CURRENT'`。DAO 测试覆盖公司隔离、current/history 隔离、详情 upsert、草稿加密载荷、游标 upsert、清理单公司和 `clearAll`。
 
-- [ ] **Step 2: 编译 RED**
+- [x] **Step 2: 编译 RED**
 
 Run: `.\gradlew.bat :app:compileDebugAndroidTestKotlin`
 
 Expected: FAIL with missing v2 entities, DAO and migration。
 
-- [ ] **Step 3: 定义 v2 实体和 DAO**
+- [x] **Step 3: 定义 v2 实体和 DAO**
 
 摘要表使用复合主键：
 
@@ -870,11 +870,11 @@ interface FoundationDao {
 }
 ```
 
-- [ ] **Step 4: 实现显式 MIGRATION_1_2**
+- [x] **Step 4: 实现显式 MIGRATION_1_2**
 
 迁移按以下顺序：新建 `order_summaries`；从 `orders` 复制并填充默认字段；删除旧表；创建索引；创建详情、草稿、游标、车辆和保险表。`AutoserviceDatabase.create()` 必须 `.addMigrations(MIGRATION_1_2)`，禁止 destructive migration fallback。
 
-- [ ] **Step 5: 实现加密映射边界**
+- [x] **Step 5: 实现加密映射边界**
 
 ```kotlin
 class EncryptedOrderStore(
@@ -890,7 +890,7 @@ class EncryptedOrderStore(
 
 映射必须在 DAO 外完成；解密失败返回 `null` 并删除损坏的对应行，不把异常或明文写入日志。`RoomOrderCache` 改用 `OrderSummaryEntity`，但继续向现有 UI 提供 `RepairOrder`。
 
-- [ ] **Step 6: 生成 Schema v2 并编译 Android 测试**
+- [x] **Step 6: 生成 Schema v2 并编译 Android 测试**
 
 Run:
 
@@ -900,7 +900,7 @@ Run:
 
 Expected: 生成 Schema v2，Room 验证通过，所有 Android 测试源码成功编译。不得声称连接式 migration/DAO 测试已经执行。
 
-- [ ] **Step 7: 运行 JVM、Lint 和 APK 构建回归**
+- [x] **Step 7: 运行 JVM、Lint 和 APK 构建回归**
 
 Run:
 
@@ -910,7 +910,7 @@ Run:
 
 Expected: JVM 全量通过，Lint 0 error，Debug APK 构建成功，现有只读仓库编译兼容。
 
-- [ ] **Step 8: 更新交接、提交并推送**
+- [x] **Step 8: 更新交接、提交并推送**
 
 ```powershell
 git add android-client/app/src/main/java/com/chengxu/autoservice/core/orders/cache android-client/app/src/androidTest/java/com/chengxu/autoservice/core/orders/cache android-client/app/schemas docs/latest-handoff-prompt.md

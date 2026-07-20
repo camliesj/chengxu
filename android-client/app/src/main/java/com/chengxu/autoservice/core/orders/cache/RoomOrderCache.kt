@@ -9,7 +9,7 @@ class RoomOrderCache(
     private val orderDao: OrderDao,
 ) : OrderCache {
     override fun observe(companyId: String): Flow<List<RepairOrder>> =
-        orderDao.observeByCompany(companyId).map { rows -> rows.map(OrderEntity::toDomain) }
+        orderDao.observeByCompany(companyId).map { rows -> rows.map(OrderSummaryEntity::toDomain) }
 
     override suspend fun replace(companyId: String, orders: List<RepairOrder>) {
         orderDao.replaceCompany(
@@ -18,14 +18,14 @@ class RoomOrderCache(
         )
     }
 
-    override suspend fun clear() {
-        orderDao.clearAll()
-    }
+    override suspend fun clear() = orderDao.clearAll()
 }
 
-private fun RepairOrder.toEntity(trustedCompanyId: String) = OrderEntity(
+private fun RepairOrder.toEntity(trustedCompanyId: String) = OrderSummaryEntity(
     companyId = trustedCompanyId,
     orderId = id,
+    scope = if (status == "已结算") "HISTORY" else "CURRENT",
+    version = 1,
     date = date,
     dateSortKey = dateSortKey,
     time = time,
@@ -38,9 +38,10 @@ private fun RepairOrder.toEntity(trustedCompanyId: String) = OrderEntity(
     record = record,
     insuranceExpiry = insuranceExpiry,
     delivery = delivery,
+    updatedAt = "",
 )
 
-private fun OrderEntity.toDomain() = RepairOrder(
+private fun OrderSummaryEntity.toDomain() = RepairOrder(
     id = orderId,
     companyId = companyId,
     date = date,

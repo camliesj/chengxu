@@ -511,6 +511,16 @@ cd E:\codex\chengxu\android-client
 - 新增 AndroidKeyStore 测试源码，覆盖相同手机号两次加密使用不同 IV 且均可往返、空字符串往返、非法 Base64 抛受控异常；每项使用唯一 alias 并在 finally 删除。按用户要求只编译测试代码，没有启动模拟器、没有声称连接式执行。
 - 最终 Android JVM 为 22 个 suite、109/109 测试通过，`:app:compileDebugAndroidTestKotlin` 与 `:app:lintDebug` 均 `BUILD SUCCESSFUL`，Lint 0 error（11 条非阻断提示）。下一步执行 Task 7：Room v2 摘要、详情、草稿、游标与档案基础表。
 
+#### 阶段 1 Task 7：Room v2 摘要、详情、草稿、游标与档案基础表（已完成）
+
+- Room 数据库升级为 version 2，新增 `order_summaries`、`order_details`、`order_drafts`、`sync_cursors`、`customer_vehicles`、`insurance_policies` 六张表；生成并纳入 Room schema v2。摘要表 17 字段并包含 company/scope/date/time 索引，详情表 36 字段且不含回执对象 key 或 URL。
+- 新增显式 `MIGRATION_1_2`：创建摘要表、把 v1 `orders` 行完整复制并填充 `scope=CURRENT/version=1/updatedAt=''`、删除旧表、创建索引和五张基础表；生产 `AutoserviceDatabase.create()` 使用 `.addMigrations(MIGRATION_1_2)`，没有 destructive fallback。
+- `OrderDao` 继续提供企业全部工单的兼容观察/替换接口，同时新增 company+scope 隔离查询；`RoomOrderCache` 继续向现有 UI 返回 `RepairOrder`，legacy 刷新按“已结算=HISTORY、其余=CURRENT”落摘要，不改变当前只读 UI 数据面。
+- 新增 `FoundationDao`，覆盖详情、加密草稿、同步游标、车辆和保险档案的 upsert/查询，以及单企业和全库清理。车辆、保险和草稿表只落 `encryptedPayload`；详情仅把手机号/VIN 加密，回执只保存安全元数据。
+- 新增 `EncryptedOrderStore`，加解密全部位于 DAO 外；详情解密失败时不记录明文或异常，删除对应损坏行并返回 null，协程取消仍原样传播。Android 测试源码覆盖迁移保留、企业/scope 隔离、详情/草稿加密、游标覆盖和清理边界。
+- TDD RED 精确失败于 v2 类型、DAO 与迁移不存在；KSP 生成 schema v2 且 `:app:compileDebugAndroidTestKotlin` 成功，但按要求没有启动模拟器、没有声称连接式 migration/DAO 测试执行。JVM 22 个 suite、109/109 通过，Lint 0 error，Debug APK 构建成功（19,540,634 bytes）。v1 `RecordingOrderDao` 测试替身仅做接口兼容更新。
+- 下一步执行 Task 8：生产兼容接线、远端 D1 备份/迁移、Pages 部署、完整验证与阶段 APK 交付。
+
 ## 工作纪律
 
 每次重要改动后必须：

@@ -57,14 +57,34 @@ class OrderDaoTest {
     }
 
     @Test
+    fun scopeQueriesKeepCurrentAndHistoryIsolated() = runTest {
+        dao.insertAll(
+            listOf(
+                entity("A-1", "tongda", "2026-07-18", "08:00", scope = "CURRENT"),
+                entity("A-2", "tongda", "2026-07-18", "09:00", scope = "HISTORY"),
+                entity("B-1", "xinqiheng", "2026-07-18", "10:00", scope = "CURRENT"),
+            ),
+        )
+
+        assertEquals(
+            listOf("A-1"),
+            dao.observeByCompanyAndScope("tongda", "CURRENT").first().map { it.orderId },
+        )
+        assertEquals(
+            listOf("A-2"),
+            dao.observeByCompanyAndScope("tongda", "HISTORY").first().map { it.orderId },
+        )
+    }
+
+    @Test
     fun clearAllRemovesEveryCompany() = runTest {
         dao.replaceCompany("tongda", listOf(entity("A-1", "tongda", "2026-07-16", "08:00")))
         dao.replaceCompany("xinqiheng", listOf(entity("B-1", "xinqiheng", "2026-07-17", "09:00")))
 
         dao.clearAll()
 
-        assertEquals(emptyList<OrderEntity>(), dao.observeByCompany("tongda").first())
-        assertEquals(emptyList<OrderEntity>(), dao.observeByCompany("xinqiheng").first())
+        assertEquals(emptyList<OrderSummaryEntity>(), dao.observeByCompany("tongda").first())
+        assertEquals(emptyList<OrderSummaryEntity>(), dao.observeByCompany("xinqiheng").first())
     }
 
     private fun entity(
@@ -72,9 +92,12 @@ class OrderDaoTest {
         companyId: String,
         dateSortKey: String,
         time: String,
-    ) = OrderEntity(
+        scope: String = "CURRENT",
+    ) = OrderSummaryEntity(
         companyId = companyId,
         orderId = orderId,
+        scope = scope,
+        version = 1,
         date = dateSortKey,
         dateSortKey = dateSortKey,
         time = time,
@@ -87,5 +110,6 @@ class OrderDaoTest {
         record = "更换机油和机滤",
         insuranceExpiry = "2026-08-01",
         delivery = "2026-07-18 18:00",
+        updatedAt = "",
     )
 }

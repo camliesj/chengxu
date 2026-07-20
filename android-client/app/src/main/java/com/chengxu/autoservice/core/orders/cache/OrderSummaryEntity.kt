@@ -4,13 +4,15 @@ import androidx.room.Entity
 import androidx.room.Index
 
 @Entity(
-    tableName = "orders",
+    tableName = "order_summaries",
     primaryKeys = ["companyId", "orderId"],
-    indices = [Index(value = ["companyId", "dateSortKey", "time"])],
+    indices = [Index(value = ["companyId", "scope", "dateSortKey", "time"])],
 )
-data class OrderEntity(
+data class OrderSummaryEntity(
     val companyId: String,
     val orderId: String,
+    val scope: String,
+    val version: Long,
     val date: String,
     val dateSortKey: String,
     val time: String,
@@ -23,4 +25,5 @@ data class OrderEntity(
     val record: String,
     val insuranceExpiry: String,
     val delivery: String,
+    val updatedAt: String,
 )

@@ -4,7 +4,7 @@ import com.chengxu.autoservice.core.model.UserRole
 import com.chengxu.autoservice.core.network.ConnectionState
 import com.chengxu.autoservice.core.network.NetworkMonitor
 import com.chengxu.autoservice.core.orders.cache.OrderDao
-import com.chengxu.autoservice.core.orders.cache.OrderEntity
+import com.chengxu.autoservice.core.orders.cache.OrderSummaryEntity
 import com.chengxu.autoservice.core.orders.cache.RoomOrderCache
 import com.chengxu.autoservice.core.session.AppSession
 import com.chengxu.autoservice.core.session.PermissionSnapshot
@@ -332,12 +332,18 @@ class CachedOrdersRepositoryTest {
     }
 
     private class RecordingOrderDao : OrderDao {
-        var inserted: List<OrderEntity> = emptyList()
+        var inserted: List<OrderSummaryEntity> = emptyList()
 
-        override fun observeByCompany(companyId: String): Flow<List<OrderEntity>> =
+        override fun observeByCompany(companyId: String): Flow<List<OrderSummaryEntity>> =
             flowOf(inserted.filter { it.companyId == companyId })
 
-        override suspend fun insertAll(orders: List<OrderEntity>) {
+        override fun observeByCompanyAndScope(
+            companyId: String,
+            scope: String,
+        ): Flow<List<OrderSummaryEntity>> =
+            flowOf(inserted.filter { it.companyId == companyId && it.scope == scope })
+
+        override suspend fun insertAll(orders: List<OrderSummaryEntity>) {
             inserted = inserted + orders
         }
 
