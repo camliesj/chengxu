@@ -408,7 +408,15 @@ cd E:\codex\chengxu\android-client
 - 从“工单”和工作台最近工单均可进入同一详情页面，并保留各根标签独立返回栈；当前工单在刷新后消失时显示失效状态，不继续展示旧对象。
 - 本里程碑严格只读，不实现新增、编辑、状态推进、结算、作废、服务端搜索或离线写入。正式设计规格见 `docs/superpowers/specs/2026-07-20-android-read-only-orders-center-design.md`。
 - 用户已确认书面规格；任务级实施计划见 `docs/superpowers/plans/2026-07-20-android-read-only-orders-center.md`，依次覆盖展示映射/ViewModel、真实列表、详情与 Navigation 3 装配、最终 APK 四个 TDD 任务。
-- 沿用用户此前选择的内联执行方式，不创建子代理或 worktree；下一步直接执行 Task 1。继续不启动 Android 模拟器，保留 JVM 测试、Android 测试代码编译、Lint、APK 构建与真机交接。
+- 沿用用户此前选择的内联执行方式，不创建子代理或 worktree。继续不启动 Android 模拟器，保留 JVM 测试、Android 测试代码编译、Lint、APK 构建与真机交接。
+
+#### 只读工单中心 Task 1：展示映射、筛选与会话级状态（已完成）
+
+- 新增 `OrderDisplayModel`、固定五项 `OrderStatusFilter`、状态色调与 `OrdersUiState`；映射会修剪服务端字段，为缺失值提供安全文案，保留未知状态原文，并按现有规则格式化金额。
+- 展示模型额外保留独立 `record` 字段，这是详情页逐字段展示维修记录所必需；搜索严格只覆盖工单号、车牌、客户、车型和维修记录，不向服务端发请求，筛选与搜索取交集且不改变仓库原始顺序。
+- 新增会话级 `OrdersViewModel`，组合现有 `OrdersRepository.snapshot` 与本地查询/筛选状态；加载、刷新、陈旧提示、重试标记、真空列表和无匹配均由统一状态表达，刷新不会清空查询或筛选，仓库移除工单后 `allOrders` 会同步失效。
+- TDD RED 分别精确失败于映射 API 和 `OrdersViewModel` 不存在；补入最小实现后，聚焦映射/ViewModel 测试通过。完整 `:app:testDebugUnitTest` 为 19 个 suite、90/90 测试、0 失败、0 错误并 `BUILD SUCCESSFUL`。
+- 下一步执行 Task 2：先编写真实缓存工单列表的 Compose 源码契约并确认 RED，再实现搜索、固定筛选、工单卡片以及加载/刷新/陈旧/离线/空列表/无匹配界面；仍仅编译 Android 测试代码，不启动模拟器。
 
 ## 工作纪律
 

@@ -36,7 +36,7 @@
 - Consumes: `OrdersRepository.snapshot: StateFlow<OrdersSnapshot>` and `OrdersRepository.refresh()`.
 - Produces: `OrderStatusFilter`, `OrderStatusTone`, `OrderDisplayModel`, `OrdersUiState`, `mapOrder`, `filterOrders`, and `OrdersViewModel`.
 
-- [ ] **Step 1: Write failing mapping tests**
+- [x] **Step 1: Write failing mapping tests**
 
 Create tests that construct real `RepairOrder` values and assert these exact contracts:
 
@@ -69,7 +69,7 @@ fun searchAndStatusFilterIntersectWithoutChangingOrder() {
 
 Also cover matches by ID, plate, car, record, case-insensitive Latin text, blank query, every fixed status, and unknown status visible only in `ALL`.
 
-- [ ] **Step 2: Run mapping tests and verify RED**
+- [x] **Step 2: Run mapping tests and verify RED**
 
 Run from `android-client/`:
 
@@ -79,7 +79,7 @@ Run from `android-client/`:
 
 Expected: compilation fails because the `ui.orders` presentation types and functions do not exist.
 
-- [ ] **Step 3: Implement the presentation models**
+- [x] **Step 3: Implement the presentation models**
 
 Create these exact public-to-module contracts:
 
@@ -103,6 +103,7 @@ data class OrderDisplayModel(
     val status: String,
     val statusTone: OrderStatusTone,
     val serviceSummary: String,
+    val record: String,
     val date: String,
     val time: String,
     val dateTimeLabel: String,
@@ -129,11 +130,11 @@ data class OrdersUiState(
 
 Implement `mapOrder(order: RepairOrder)` with the approved money, status, summary, and `未填写` fallbacks. Implement `filterOrders(rows, query, filter)` by trimming/lowercasing the query with `Locale.ROOT`, checking all five approved fields, intersecting the fixed status, and retaining input order.
 
-- [ ] **Step 4: Run mapping tests and verify GREEN**
+- [x] **Step 4: Run mapping tests and verify GREEN**
 
 Run the focused mapping command again. Expected: all `OrdersMappingTest` cases pass with Gradle exit code 0.
 
-- [ ] **Step 5: Write failing OrdersViewModel tests**
+- [x] **Step 5: Write failing OrdersViewModel tests**
 
 Use a `MutableStateFlow<OrdersSnapshot>` fake repository and `UnconfinedTestDispatcher`. Cover:
 
@@ -173,7 +174,7 @@ fun refreshDelegatesExactlyOnce() = runTest {
 
 Also assert `LoadingCache`, `Stale`, true empty list, no-match state via active filters, clear filters, and that `allOrders` no longer contains an ID removed by a later snapshot.
 
-- [ ] **Step 6: Run ViewModel tests and verify RED**
+- [x] **Step 6: Run ViewModel tests and verify RED**
 
 ```powershell
 .\gradlew.bat :app:testDebugUnitTest --tests "*OrdersViewModelTest"
@@ -181,7 +182,7 @@ Also assert `LoadingCache`, `Stale`, true empty list, no-match state via active 
 
 Expected: compilation fails because `OrdersViewModel` does not exist.
 
-- [ ] **Step 7: Implement OrdersViewModel**
+- [x] **Step 7: Implement OrdersViewModel**
 
 Use two private flows and one combined eagerly-started state:
 
@@ -220,7 +221,7 @@ class OrdersViewModel(
 }
 ```
 
-- [ ] **Step 8: Run focused and full JVM tests**
+- [x] **Step 8: Run focused and full JVM tests**
 
 ```powershell
 .\gradlew.bat :app:testDebugUnitTest --tests "*OrdersMappingTest" --tests "*OrdersViewModelTest"
@@ -229,12 +230,12 @@ class OrdersViewModel(
 
 Expected: focused tests and the complete JVM suite both exit successfully with zero failures.
 
-- [ ] **Step 9: Update handoff, commit, and push Task 1**
+- [x] **Step 9: Update handoff, commit, and push Task 1**
 
 Record RED/GREEN evidence in `docs/latest-handoff-prompt.md`, then commit `OrdersModels.kt`, `OrdersMapping.kt`, `OrdersViewModel.kt`, both test files, and the handoff update:
 
 ```powershell
-git add android-client/app/src/main/java/com/chengxu/autoservice/ui/orders android-client/app/src/test/java/com/chengxu/autoservice/ui/orders docs/latest-handoff-prompt.md
+git add android-client/app/src/main/java/com/chengxu/autoservice/ui/orders android-client/app/src/test/java/com/chengxu/autoservice/ui/orders docs/latest-handoff-prompt.md docs/superpowers/plans/2026-07-20-android-read-only-orders-center.md
 git commit -m "feat(android): add orders presentation state"
 git push origin codex/android-mobile-ui-atlas
 ```
