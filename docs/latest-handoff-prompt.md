@@ -382,6 +382,15 @@ cd E:\codex\chengxu\android-client
 - TDD RED 已客观失败于 `loginLayoutSpec` 不存在；补入最小实现后，聚焦 `LoginLayoutPolicyTest` 2/2 通过并 `BUILD SUCCESSFUL`。
 - 下一步执行 Task 2：先让 360×800 Compose 布局契约因缺少新语义标签而编译失败，再实现紧凑企业卡、IME 检测和首屏无滚动登录布局。
 
+#### 紧凑登录页 Task 2：360×800 契约与自适应 Compose 布局（已完成）
+
+- Compose 契约已改为在 360×800dp 根布局中直接断言 200dp Hero、两张 56dp 企业卡和至少 48dp 主按钮可见，完全移除 `performScrollTo()`；按约定只编译 Android 测试源码，未启动模拟器、未声称该设备测试已执行。
+- `CompanySelectionCard` 新增默认关闭的 `compact` 模式，登录页显式使用 56dp 紧凑卡并隐藏完整工商登记名称；其他调用方继续保持原 72dp 最小高度、颜色、边框、Hugeicons、选择和禁用语义。
+- 登录 Hero 常规态缩至 200dp，保留冰蓝背景、品牌眉题、两行标题和 104dp 现有车辆资产；表单仅覆盖 16dp，删除重复“欢迎回来”和 Hero 副标题，表单内边距收敛至 16dp，安全说明改为水平单行。
+- Compose 通过 `WindowInsets.ime.getBottom(LocalDensity.current)` 判断输入法可见性，IME 打开时切换为 96dp 上下文 Hero 并隐藏车辆；账号、密码、企业、错误和提交状态不因布局切换而重建。
+- TDD RED 已精确失败于新增 `HERO`、`PRIMARY_ACTION` 标签不存在；实现后聚焦布局策略 2/2 通过且 Android 测试 Kotlin 编译成功。期间构建暴露 Compose 1.11.3 的 `getBottom` 是 `WindowInsets` 成员而非顶层扩展，已用本地 AAR 字节码确认根因并仅移除错误导入；同一 GREEN 命令随后 `BUILD SUCCESSFUL`。
+- 下一步执行 Task 3：从 clean 状态跑完整 JVM/Android 测试源码/Lint/APK 验证，更新真机清单并发布新的可安装 APK。
+
 ## 工作纪律
 
 每次重要改动后必须：

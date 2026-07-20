@@ -210,10 +210,11 @@ fun CompanySelectionCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     supportingText: String? = null,
+    compact: Boolean = false,
 ) {
     Surface(
         modifier = modifier
-            .heightIn(min = 72.dp)
+            .heightIn(min = if (compact) 56.dp else 72.dp)
             .alpha(if (enabled) 1f else 0.48f)
             .selectable(
                 selected = selected,
@@ -227,7 +228,14 @@ fun CompanySelectionCard(
         border = BorderStroke(1.dp, if (selected) AutoserviceColors.Action else AutoserviceColors.Line),
     ) {
         Row(
-            modifier = Modifier.padding(AutoserviceSpacing.Md),
+            modifier = if (compact) {
+                Modifier.padding(
+                    horizontal = AutoserviceSpacing.Md,
+                    vertical = AutoserviceSpacing.Sm,
+                )
+            } else {
+                Modifier.padding(AutoserviceSpacing.Md)
+            },
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(AutoserviceSpacing.Sm),
         ) {

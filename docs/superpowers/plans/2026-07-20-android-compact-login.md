@@ -32,7 +32,7 @@
 - Consumes: a Boolean `imeVisible` obtained later from Compose `WindowInsets.ime`.
 - Produces: `internal fun loginLayoutSpec(imeVisible: Boolean): LoginLayoutSpec` with `heroHeight`, `panelOverlap`, `showVehicle`, and `showMarketingTitle` fields.
 
-- [ ] **Step 1: Write the failing JVM test**
+- [x] **Step 1: Write the failing JVM test**
 
 ```kotlin
 package com.chengxu.autoservice.ui.auth
@@ -66,7 +66,7 @@ class LoginLayoutPolicyTest {
 }
 ```
 
-- [ ] **Step 2: Run the focused test and verify RED**
+- [x] **Step 2: Run the focused test and verify RED**
 
 Run from `android-client/`:
 
@@ -76,7 +76,7 @@ Run from `android-client/`:
 
 Expected: compilation fails because `loginLayoutSpec` and `LoginLayoutSpec` do not exist.
 
-- [ ] **Step 3: Add the minimal production policy**
+- [x] **Step 3: Add the minimal production policy**
 
 ```kotlin
 package com.chengxu.autoservice.ui.auth
@@ -109,11 +109,11 @@ internal fun loginLayoutSpec(imeVisible: Boolean): LoginLayoutSpec =
     }
 ```
 
-- [ ] **Step 4: Run the focused test and verify GREEN**
+- [x] **Step 4: Run the focused test and verify GREEN**
 
 Run the same focused Gradle command. Expected: `LoginLayoutPolicyTest` reports 2 tests with 0 failures and Gradle exits successfully.
 
-- [ ] **Step 5: Commit and push the policy milestone**
+- [x] **Step 5: Commit and push the policy milestone**
 
 ```powershell
 git add android-client/app/src/main/java/com/chengxu/autoservice/ui/auth/LoginLayoutPolicy.kt android-client/app/src/test/java/com/chengxu/autoservice/ui/auth/LoginLayoutPolicyTest.kt docs/latest-handoff-prompt.md
@@ -134,7 +134,7 @@ git push origin codex/android-mobile-ui-atlas
 - Consumes: `loginLayoutSpec(imeVisible: Boolean)`, `WindowInsets.ime`, existing `LoginUiState`, and existing callbacks.
 - Produces: `CompanySelectionCard(..., compact: Boolean = false)`, plus stable `LoginTestTags.HERO`, `FORM_PANEL`, `PRIMARY_ACTION`, and `SECURITY_NOTE` semantics.
 
-- [ ] **Step 1: Write the failing Compose contract**
+- [x] **Step 1: Write the failing Compose contract**
 
 Remove the `performScrollTo` import. Add `assertHeightIsEqualTo` and `requiredSize` imports. Replace the 360dp test body with:
 
@@ -166,7 +166,7 @@ fun loginShowsThePrimaryActionWithoutScrollingAt360By800Dp() {
 }
 ```
 
-- [ ] **Step 2: Compile Android test source and verify RED**
+- [x] **Step 2: Compile Android test source and verify RED**
 
 Run:
 
@@ -176,7 +176,7 @@ Run:
 
 Expected: compilation fails because the new login test tags do not exist. This is the available RED gate without launching an emulator.
 
-- [ ] **Step 3: Add opt-in compact company cards**
+- [x] **Step 3: Add opt-in compact company cards**
 
 Change the shared signature and sizing without changing the default:
 
@@ -243,7 +243,7 @@ fun CompanySelectionCard(
 
 Keep all existing selection semantics, borders, colors, icons, press behavior, and disabled alpha unchanged.
 
-- [ ] **Step 4: Consume IME state and rebuild the login composition**
+- [x] **Step 4: Consume IME state and rebuild the login composition**
 
 In `LoginScreen.kt`:
 
@@ -268,7 +268,7 @@ Apply these exact changes:
 - Tag `BrandButton` as `PRIMARY_ACTION`.
 - Replace the vertical security-note column with a centered row tagged `SECURITY_NOTE`, containing the existing 18dp shield, an 8dp spacer, and the existing single-line security text.
 
-- [ ] **Step 5: Compile Android tests and run focused JVM regression**
+- [x] **Step 5: Compile Android tests and run focused JVM regression**
 
 Run:
 
@@ -278,7 +278,7 @@ Run:
 
 Expected: Gradle exits successfully; the 2 layout policy tests pass and Android test Kotlin compiles. Do not claim the Compose test executed.
 
-- [ ] **Step 6: Review the exact UI requirements in source**
+- [x] **Step 6: Review the exact UI requirements in source**
 
 Run:
 
@@ -288,7 +288,7 @@ rg -n "330\.dp|154\.dp|欢迎回来|鄂尔多斯市|performScrollTo|200\.dp|96\.
 
 Expected: no obsolete 330dp/154dp Hero sizes, welcome eyebrow, legal names, or `performScrollTo` remain in the login flow; the new dimensions, compact card use, and IME detection are present.
 
-- [ ] **Step 7: Update handoff, commit, and push the UI milestone**
+- [x] **Step 7: Update handoff, commit, and push the UI milestone**
 
 Record RED/GREEN commands truthfully in `docs/latest-handoff-prompt.md`, then:
 

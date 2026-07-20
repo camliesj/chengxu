@@ -1,8 +1,8 @@
 package com.chengxu.autoservice
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertHeightIsAtLeast
@@ -11,9 +11,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.dp
 import com.chengxu.autoservice.core.auth.AuthApi
 import com.chengxu.autoservice.core.auth.AuthCredentials
@@ -68,24 +66,29 @@ class AutoserviceAppTest {
     }
 
     @Test
-    fun loginKeepsThePrimaryActionReachableAt360Dp() {
+    fun loginShowsThePrimaryActionWithoutScrollingAt360By800Dp() {
         composeRule.setContent {
             AutoserviceTheme {
-                Box(modifier = Modifier.requiredWidth(360.dp)) {
-                    LoginScreen(
-                        state = LoginUiState(),
-                        onCompanySelected = {},
-                        onUsernameChanged = {},
-                        onPasswordChanged = {},
-                        onLogin = {},
-                        modifier = Modifier.requiredWidth(360.dp),
-                    )
-                }
+                LoginScreen(
+                    state = LoginUiState(),
+                    onCompanySelected = {},
+                    onUsernameChanged = {},
+                    onPasswordChanged = {},
+                    onLogin = {},
+                    modifier = Modifier.requiredSize(width = 360.dp, height = 800.dp),
+                )
             }
         }
 
-        composeRule.onRoot().assertWidthIsEqualTo(360.dp)
-        composeRule.onNodeWithText("进入系统").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag(LoginTestTags.ROOT)
+            .assertWidthIsEqualTo(360.dp)
+            .assertHeightIsEqualTo(800.dp)
+        composeRule.onNodeWithTag(LoginTestTags.HERO).assertHeightIsEqualTo(200.dp)
+        composeRule.onNodeWithTag(LoginTestTags.COMPANY_TONGDA).assertHeightIsEqualTo(56.dp)
+        composeRule.onNodeWithTag(LoginTestTags.COMPANY_XINQIHENG).assertHeightIsEqualTo(56.dp)
+        composeRule.onNodeWithTag(LoginTestTags.PRIMARY_ACTION)
+            .assertIsDisplayed()
+            .assertHeightIsAtLeast(48.dp)
     }
 
     @Test
