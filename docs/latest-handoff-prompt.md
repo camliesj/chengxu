@@ -446,7 +446,7 @@ cd E:\codex\chengxu\android-client
 - 本轮没有启动模拟器、没有执行连接式 Compose/Room 测试，也没有生成原生截图；列表密度、筛选滚动、输入法、详情返回、离线缓存和生产数据由用户安装该 APK 后在真实手机验收。
 - 代码、文档与 APK 发布提交为 `1814cff`，已推送到 `origin/codex/android-mobile-ui-atlas`；发布后首次核对本地与远程完整哈希均为 `1814cff43f29028acf525028815528e53c5904b6`，实施计划四个 Task 全部完成。
 
-### 下一里程碑：Android 完整业务能力（总体设计已确认，待书面规格复核）
+### 下一里程碑：Android 完整业务能力（主规格已批准，阶段 1 计划待执行方式确认）
 
 - 用户确认采用方案 A：Android 最终覆盖员工与管理员完整移动业务能力，按纵向业务切片分八阶段上线，不把所有高风险写入集中到一个版本。
 - 继续复用现有 Cloudflare Functions、D1、腾讯云 COS、操作日志和网页端业务规则，不建设第二套移动后端。所有业务写入必须在线完成；离线只允许读取公司隔离缓存和编辑本地加密草稿，不建立离线写队列，也不恢复网络后自动提交。
@@ -455,7 +455,9 @@ cd E:\codex\chengxu\android-client
 - 数据与 API 基线已锁定：拆分 `OrderSummary`、`OrderDetail`、`OrderDraft` 和命令结果；Room 存摘要、详情、加密草稿和同步游标；敏感字段使用 Android Keystore 支持的 AES-GCM 字段级加密；回执二进制和短期授权 URL 不持久化。
 - 服务端增加版本号、`operationId` 幂等记录、乐观并发和语义化写入端点。冲突返回 409 并让用户比较最新数据与草稿，不能静默覆盖；结算通过 COS+D1 补偿保证失败不误标已结算；返结算保留回执与审计；作废保留追溯但不进入日常列表。
 - 八阶段依次为：模型/存储/API 基础，新增工单，编辑/状态推进，档案中心，管理员结算，高风险管理，导出/账户/后台读取同步，正式发布。每阶段独立测试、文档、Git 提交、GitHub 推送和可安装 APK，并可通过能力开关回退到安全只读状态。
-- 完整主设计规格见 `docs/superpowers/specs/2026-07-20-android-complete-business-capability-design.md`。当前没有开始业务代码实现；下一步是用户复核该书面规格，确认后只为阶段 1 生成任务级实施计划，后续阶段分别规划和验收。
+- 用户已批准完整主设计规格 `docs/superpowers/specs/2026-07-20-android-complete-business-capability-design.md`。阶段 1 任务级计划已生成：`docs/superpowers/plans/2026-07-20-android-stage-1-production-data-foundation.md`，严格限定为领域/权限/状态机、D1 版本与幂等基础、兼容读取 API、Android 扩展读取、通用 AES-GCM、Room v2、生产兼容接线和最终 APK 八个任务，不提前接入写入 UI。
+- 阶段 1 计划包含生产 D1 备份、只应用 migration 0010、Pages Functions 部署和未认证 401 冒烟；每个任务独立 RED/GREEN、更新本文件、提交并推送，最后从 clean 状态完成 Node/Vite、Android JVM、Android 测试源码编译、Lint、APK 哈希和 v2 签名验证。
+- 当前没有开始阶段 1 业务代码；下一步按 `writing-plans` 交接选择执行方式。沿用此前用户偏好时选择 Inline Execution，在当前会话使用 `executing-plans` 分批执行并设置检查点；不创建子代理或 worktree。
 - 后续仍按要求默认不启动 Android 模拟器，保留 JVM 单元测试、Android 测试代码编译、Lint、APK 构建和真机交接。
 
 ## 工作纪律
