@@ -669,7 +669,7 @@ git push origin codex/android-mobile-ui-atlas
 - Verifies: restore → login → role-derived workbench → five tabs → profile → cancel logout → confirm logout.
 - Produces: installable API 26+ Debug APK, SHA-256, and an exact real-device test checklist.
 
-- [ ] **Step 1: Complete the Android UI source contracts**
+- [x] **Step 1: Complete the Android UI source contracts**
 
 Ensure Android test sources contain these assertions:
 
@@ -684,7 +684,7 @@ Ensure Android test sources contain these assertions:
 
 Use existing fixtures and fake repositories; do not add network calls or screenshot goldens that require an emulator.
 
-- [ ] **Step 2: Run the clean final Android build**
+- [x] **Step 2: Run the clean final Android build**
 
 Run from a fresh Gradle invocation:
 
@@ -697,7 +697,7 @@ cd E:\codex\chengxu\android-client
 
 Expected: `BUILD SUCCESSFUL`; all JVM tests pass; Android tests compile; Lint reports no blocking issue; `app/build/outputs/apk/debug/app-debug.apk` exists.
 
-- [ ] **Step 3: Copy and hash the installable APK**
+- [x] **Step 3: Copy and hash the installable APK**
 
 Run:
 
@@ -709,7 +709,7 @@ Get-FileHash 'E:\codex\chengxu\dist\releases\android\autoservice-android-debug-0
 
 Expected: destination exists, length is greater than zero, and a 64-character SHA-256 is printed.
 
-- [ ] **Step 4: Update real-device verification documentation**
+- [x] **Step 4: Update real-device verification documentation**
 
 In `docs/android-client.md`, add a “品牌 UI 真机验收” checklist with:
 
@@ -723,7 +723,7 @@ In `docs/android-client.md`, add a “品牌 UI 真机验收” checklist with:
 
 Record the final command result, JVM test count, APK size/hash, and “未启动 Android 模拟器” in `docs/latest-handoff-prompt.md`.
 
-- [ ] **Step 5: Inspect the final diff and repository state**
+- [x] **Step 5: Inspect the final diff and repository state**
 
 Run:
 
@@ -735,7 +735,7 @@ git diff --stat
 
 Expected: no whitespace errors; only the intended Android source, tests, docs, generated vectors/assets, and release APK are changed.
 
-- [ ] **Step 6: Commit, push, and confirm remote parity**
+- [x] **Step 6: Commit, push, and confirm remote parity**
 
 Run:
 

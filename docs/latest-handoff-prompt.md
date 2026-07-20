@@ -250,7 +250,7 @@ cd E:\codex\chengxu\android-client
 - 验证保留 JVM 单元测试、Android 测试代码编译、`lintDebug` 和 Debug APK 构建；不启动模拟器，最终 APK 交由用户在真实手机上完成视觉与触控验收。
 - 用户已复核并批准书面设计。任务级实施计划已完成：`docs/superpowers/plans/2026-07-20-android-compose-brand-ui-migration.md`。
 - 计划分为五个 TDD 任务：品牌设计系统/官方 Hugeicons 转换/图片资产、品牌登录、五栏壳层/阶段页/我的/退出、双角色工作台、最终干净验证与真机 APK。
-- 用户此前已选择当前分支内联执行，不创建子代理或额外 worktree；目前 Task 1–4 已完成，下一步执行 Task 5 最终验证与真机 APK。
+- 用户此前已选择当前分支内联执行，不创建子代理或额外 worktree；Compose 品牌 UI Task 1–5 已全部完成，当前 APK 等待真实手机验收。
 
 ### Compose 品牌 UI Task 1：设计系统、Hugeicons 与图片资产（已完成）
 
@@ -293,7 +293,16 @@ cd E:\codex\chengxu\android-client
 - `MutationDecision.Allowed` 继续交给五栏壳层路由，创建进入“新增”，推进/结算进入“工单”；拒绝动作仍显示 `MutationDecision.Denied.reason` 原文，离线和权限门禁没有旁路。
 - TDD RED：JVM/Android 测试源码先精确失败于缺少 `statusMetrics`；GREEN 后 ViewModel 测试锁定四个标签和值，并增加员工/管理员品牌分区、可点击动作/工单卡、360dp 长企业名及允许创建跳转契约。
 - 2026-07-20 验证：Android JVM 全量 42/42 通过（0 失败、0 错误、0 跳过）；`:app:compileDebugAndroidTestKotlin`、`:app:lintDebug`、`:app:assembleDebug` 均 `BUILD SUCCESSFUL`，Lint 0 错误、11 个非阻塞基线警告。构建产物为 19,077,522 字节，本阶段未启动 Android 模拟器，也未覆盖最终发布副本。
-- 下一步执行 Task 5：补齐最终 UI 源码契约，运行 `clean` 全量构建，复制并校验可安装 APK，更新真机测试文档后提交推送。
+- Task 5 已完成；当前等待用户在真实手机上按 `docs/android-client.md` 完成品牌 UI 验收。
+
+### Compose 品牌 UI Task 5：最终验证、可安装 APK 与真机交接（已完成）
+
+- 最终 Android 测试源码补齐了企业卡、密码可见性、快捷操作、工单卡和中央新增项的 48dp 触控高度契约，并显式锁定五栏顺序；既有双角色、离线拒绝、退出确认与 360dp 长企业名契约全部保留。
+- 2026-07-20 从干净 Gradle 状态执行 `clean :app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:lintDebug :app:assembleDebug`，66 个 task 全部重新执行并 `BUILD SUCCESSFUL`。
+- JVM 全量 42/42 通过（0 失败、0 错误、0 跳过）；Android 测试源码编译成功；Lint 0 错误、11 个非阻塞警告；Debug APK 构建成功。本轮严格未启动 Android 模拟器，也未执行连接式测试。
+- 可安装 API 26+ Debug APK 已复制到 `dist/releases/android/autoservice-android-debug-0.1.0.apk`，大小 19,077,522 字节，SHA-256 `6D1A2990A3727DAD2703C55373B0581860BC7699C07FD225D254FE6F96B6AE2A`；构建源文件与发布副本哈希完全一致，`apksigner verify` 确认 v2 Debug 签名有效。
+- `docs/android-client.md` 已新增“品牌 UI 真机验收”清单，覆盖双企业选择、输入法/校验、真实员工与管理员、五栏导航、离线只读、退出确认、360dp/系统栏/裁切检查。
+- 当前品牌 UI 迁移范围已全部交付；真实工单 API 与 Room 缓存仍按既有设计/计划暂停，待真机视觉与触控反馈确认后再继续。
 
 ## 工作纪律
 

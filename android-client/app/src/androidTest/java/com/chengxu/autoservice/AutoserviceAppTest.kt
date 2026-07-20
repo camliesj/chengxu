@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -56,9 +57,11 @@ class AutoserviceAppTest {
         setApp(storedSession = null)
 
         composeRule.onNodeWithTag(LoginTestTags.COMPANY_TONGDA).assertIsSelected()
+            .assertHeightIsAtLeast(48.dp)
         composeRule.onNodeWithTag(LoginTestTags.COMPANY_XINQIHENG).performClick().assertIsSelected()
+            .assertHeightIsAtLeast(48.dp)
         composeRule.onNodeWithContentDescription("显示密码").performClick()
-        composeRule.onNodeWithContentDescription("隐藏密码").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("隐藏密码").assertIsDisplayed().assertHeightIsAtLeast(48.dp)
     }
 
     @Test

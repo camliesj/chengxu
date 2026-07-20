@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -43,8 +44,8 @@ class WorkbenchScreenTest {
         composeRule.onNodeWithText("今日概览").assertIsDisplayed()
         composeRule.onNodeWithText("快捷操作").assertIsDisplayed()
         composeRule.onNodeWithText("我的待办").assertIsDisplayed()
-        composeRule.onNodeWithText("新增工单").assertHasClickAction()
-        composeRule.onNodeWithText("蒙K·A3816 · 张先生").assertHasClickAction()
+        composeRule.onNodeWithText("新增工单").assertHasClickAction().assertHeightIsAtLeast(48.dp)
+        composeRule.onNodeWithText("蒙K·A3816 · 张先生").assertHasClickAction().assertHeightIsAtLeast(48.dp)
         composeRule.onAllNodesWithText("办理结算").assertCountEquals(0)
     }
 

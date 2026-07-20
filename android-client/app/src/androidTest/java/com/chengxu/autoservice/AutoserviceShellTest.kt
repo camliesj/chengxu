@@ -1,12 +1,14 @@
 package com.chengxu.autoservice
 
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
 import com.chengxu.autoservice.core.designsystem.AutoserviceTheme
 import com.chengxu.autoservice.core.model.AppPermission
 import com.chengxu.autoservice.core.network.ConnectionState
@@ -16,6 +18,7 @@ import com.chengxu.autoservice.ui.stage.StageKind
 import com.chengxu.autoservice.ui.workbench.WorkbenchAction
 import com.chengxu.autoservice.ui.workbench.WorkbenchSection
 import com.chengxu.autoservice.ui.workbench.WorkbenchUiState
+import com.chengxu.autoservice.navigation.RootTab
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -28,8 +31,9 @@ class AutoserviceShellTest {
     fun centerCreateTabIsThirdAndDisabledOffline() {
         launchShell(connection = ConnectionState.Offline)
 
+        assertEquals(listOf("工作台", "工单", "新增", "档案", "我的"), RootTab.entries.map { it.label })
         composeRule.onAllNodesWithTag("root-tab").assertCountEquals(5)
-        composeRule.onNodeWithText("新增").assertIsNotEnabled()
+        composeRule.onNodeWithText("新增").assertIsNotEnabled().assertHeightIsAtLeast(48.dp)
         composeRule.onNodeWithText("网络不可用，当前为只读模式").assertIsDisplayed()
     }
 
