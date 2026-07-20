@@ -652,7 +652,7 @@ git push origin codex/android-mobile-ui-atlas
 - Consumes: 现有 Android Keystore AES/GCM/NoPadding 行为。
 - Produces: `StringCipher`、`AesGcmStringCipher`、`androidKeystoreStringCipher(alias)`；`SessionCipher` 保持兼容代理。
 
-- [ ] **Step 1: 写通用字段加密 RED 测试**
+- [x] **Step 1: 写通用字段加密 RED 测试**
 
 ```kotlin
 @Test fun samePlaintextUsesDifferentIvAndRoundTrips() {
@@ -667,7 +667,7 @@ git push origin codex/android-mobile-ui-atlas
 
 再添加损坏密文抛出受控异常、空字符串可往返测试。测试 finally 删除唯一 alias。
 
-- [ ] **Step 2: 编译 RED 测试代码**
+- [x] **Step 2: 编译 RED 测试代码**
 
 Run:
 
@@ -677,7 +677,7 @@ Run:
 
 Expected: FAIL because `androidKeystoreStringCipher` does not exist。
 
-- [ ] **Step 3: 提取通用加密实现并兼容会话**
+- [x] **Step 3: 提取通用加密实现并兼容会话**
 
 `StringCipher.kt` 定义：
 
@@ -695,7 +695,7 @@ fun androidKeystoreStringCipher(alias: String): StringCipher =
 
 把现有 12-byte IV、128-bit tag、256-bit Android Keystore key 的实现原样迁入通用文件。`SessionCipher` 保留接口，使用私有 adapter 委托给 `StringCipher`，默认 alias 仍是 `autoservice_auth_session`，避免已有登录会话不可解密。订单字段默认 alias 使用 `autoservice_order_fields_v1`。
 
-- [ ] **Step 4: 运行 JVM、Android 测试源码编译和 Lint**
+- [x] **Step 4: 运行 JVM、Android 测试源码编译和 Lint**
 
 Run:
 
@@ -705,7 +705,7 @@ Run:
 
 Expected: JVM 全量通过，Android 测试源码编译成功，Lint 0 error。不要启动模拟器执行 Keystore 测试。
 
-- [ ] **Step 5: 更新交接、提交并推送**
+- [x] **Step 5: 更新交接、提交并推送**
 
 ```powershell
 git add android-client/app/src/main/java/com/chengxu/autoservice/core/security android-client/app/src/androidTest/java/com/chengxu/autoservice/core/security android-client/app/src/main/java/com/chengxu/autoservice/core/auth/SessionCipher.kt android-client/app/src/test/java/com/chengxu/autoservice/core/auth/EncryptedSessionStoreTest.kt docs/latest-handoff-prompt.md

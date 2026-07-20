@@ -503,6 +503,14 @@ cd E:\codex\chengxu\android-client
 - 旧 `HttpUrlConnectionOrdersApi.fetch(token)` 仍请求无参数 `/api/orders` 并保持 `RepairOrder` 宽容映射；新旧实现只共享 internal 字符串、日期和金额基础解析，没有要求 legacy 响应提供 version/updatedAt。
 - TDD RED 精确失败于接口和实现不存在。最终新旧网络聚焦测试 20/20 通过；Android JVM 全量为 22 个 suite、109/109 测试、0 失败、0 错误、0 跳过。本任务未启动模拟器，下一步执行 Task 6：通用 AES-GCM 字段加密边界。
 
+#### 阶段 1 Task 6：通用 AES-GCM 字段加密边界（已完成）
+
+- 新增 `StringCipher`、`AesGcmStringCipher`、`InvalidCiphertextException` 和 `androidKeystoreStringCipher`；订单字段默认 alias 固定为 `autoservice_order_fields_v1`，损坏密文统一抛出不包含密文内容的受控异常。
+- 通用实现原样保留既有 AES/GCM/NoPadding 格式：256-bit AndroidKeyStore AES key、provider 随机生成 12-byte IV、128-bit tag，以及 Base64 编码的 `IV + ciphertext/tag`，没有改变历史密文字节布局。
+- `SessionCipher` 与 `AesGcmSessionCipher` 保持原公开接口，改由私有适配器委托通用实现；`androidKeystoreSessionCipher()` 的默认 alias 仍是 `autoservice_auth_session`，已有登录会话可以继续用同一 key 解密。JVM 互操作测试同时验证旧会话适配器与新通用 cipher 可交叉解密。
+- 新增 AndroidKeyStore 测试源码，覆盖相同手机号两次加密使用不同 IV 且均可往返、空字符串往返、非法 Base64 抛受控异常；每项使用唯一 alias 并在 finally 删除。按用户要求只编译测试代码，没有启动模拟器、没有声称连接式执行。
+- 最终 Android JVM 为 22 个 suite、109/109 测试通过，`:app:compileDebugAndroidTestKotlin` 与 `:app:lintDebug` 均 `BUILD SUCCESSFUL`，Lint 0 error（11 条非阻断提示）。下一步执行 Task 7：Room v2 摘要、详情、草稿、游标与档案基础表。
+
 ## 工作纪律
 
 每次重要改动后必须：

@@ -2,6 +2,7 @@ package com.chengxu.autoservice.core.auth
 
 import com.chengxu.autoservice.core.model.AppPermission
 import com.chengxu.autoservice.core.model.UserRole
+import com.chengxu.autoservice.core.security.AesGcmStringCipher
 import com.chengxu.autoservice.core.session.AppSession
 import com.chengxu.autoservice.core.session.PermissionSnapshot
 import kotlinx.coroutines.test.runTest
@@ -65,16 +66,17 @@ class EncryptedSessionStoreTest {
     }
 
     @Test
-    fun aesCipherUsesFreshIvAndRoundTripsPlaintext() {
-        val cipher = AesGcmSessionCipher(keyProvider = { encryptionKey })
+    fun sessionAdapterAndSharedCipherRemainCiphertextCompatible() {
+        val sessionCipher = AesGcmSessionCipher(keyProvider = { encryptionKey })
+        val sharedCipher = AesGcmStringCipher(keyProvider = { encryptionKey })
 
-        val first = cipher.encrypt("token-123")
-        val second = cipher.encrypt("token-123")
+        val first = sessionCipher.encrypt("token-123")
+        val second = sharedCipher.encrypt("token-123")
 
         assertTrue(Base64.getDecoder().decode(first).size > 12)
         assertFalse(first == second)
-        assertEquals("token-123", cipher.decrypt(first))
-        assertEquals("token-123", cipher.decrypt(second))
+        assertEquals("token-123", sharedCipher.decrypt(first))
+        assertEquals("token-123", sessionCipher.decrypt(second))
     }
 
     private fun employeeSession() = AppSession(
