@@ -26,6 +26,7 @@ import com.chengxu.autoservice.core.network.NetworkMonitor
 import com.chengxu.autoservice.core.session.AppSession
 import com.chengxu.autoservice.core.session.PermissionSnapshot
 import com.chengxu.autoservice.core.designsystem.AutoserviceTheme
+import com.chengxu.autoservice.core.designsystem.BrandDialogTestTags
 import com.chengxu.autoservice.ui.auth.LoginScreen
 import com.chengxu.autoservice.ui.auth.LoginTestTags
 import com.chengxu.autoservice.ui.auth.LoginUiState
@@ -89,6 +90,10 @@ class AutoserviceAppTest {
         composeRule.onNodeWithText("我的").performClick()
         composeRule.onNodeWithText("退出登录").assertIsDisplayed()
         composeRule.onNodeWithText("退出登录").performClick()
+        composeRule.onNodeWithText("确认退出登录").assertIsDisplayed()
+        composeRule.onNodeWithTag(BrandDialogTestTags.CANCEL).performClick()
+        composeRule.onNodeWithText("退出登录").assertIsDisplayed().performClick()
+        composeRule.onNodeWithTag(BrandDialogTestTags.CONFIRM).performClick()
         composeRule.onNodeWithText("进入系统").assertIsDisplayed()
     }
 

@@ -12,6 +12,7 @@ import androidx.navigation3.ui.NavDisplay
 import com.chengxu.autoservice.core.session.AppSession
 import com.chengxu.autoservice.ui.profile.ProfileScreen
 import com.chengxu.autoservice.ui.stage.StageScreen
+import com.chengxu.autoservice.ui.stage.StageKind
 import com.chengxu.autoservice.ui.workbench.WorkbenchAction
 import com.chengxu.autoservice.ui.workbench.WorkbenchScreen
 import com.chengxu.autoservice.ui.workbench.WorkbenchUiState
@@ -24,6 +25,7 @@ fun AppNavDisplay(
     onWorkbenchAction: (WorkbenchAction) -> Unit = {},
     profileSession: AppSession? = null,
     onLogout: () -> Unit = {},
+    isOffline: Boolean = false,
 ) {
     NavDisplay(
         backStack = navigationState.currentStack,
@@ -35,13 +37,13 @@ fun AppNavDisplay(
                     AppRoute.Workbench -> workbenchState?.let {
                         WorkbenchScreen(state = it, onAction = onWorkbenchAction)
                     } ?: WorkbenchShellPlaceholder()
-                    AppRoute.Orders -> StageScreen(title = RootTab.ORDERS.label)
-                    AppRoute.CreateOrder -> StageScreen(title = RootTab.CREATE.label)
-                    AppRoute.Records -> StageScreen(title = RootTab.RECORDS.label)
+                    AppRoute.Orders -> StageScreen(kind = StageKind.ORDERS, offline = isOffline)
+                    AppRoute.CreateOrder -> StageScreen(kind = StageKind.CREATE, offline = isOffline)
+                    AppRoute.Records -> StageScreen(kind = StageKind.RECORDS, offline = isOffline)
                     AppRoute.Profile -> profileSession?.let {
-                        ProfileScreen(session = it, onLogout = onLogout)
-                    } ?: StageScreen(title = RootTab.PROFILE.label)
-                    is AppRoute.OrderDetail -> StageScreen(title = "工单详情")
+                        ProfileScreen(session = it, offline = isOffline, onLogout = onLogout)
+                    } ?: ShellPlaceholder(title = RootTab.PROFILE.label)
+                    is AppRoute.OrderDetail -> ShellPlaceholder(title = "工单详情")
                 }
             }
         },
@@ -50,10 +52,15 @@ fun AppNavDisplay(
 
 @Composable
 private fun WorkbenchShellPlaceholder() {
+    ShellPlaceholder(title = RootTab.WORKBENCH.label)
+}
+
+@Composable
+private fun ShellPlaceholder(title: String) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text = RootTab.WORKBENCH.label, style = MaterialTheme.typography.headlineSmall)
+        Text(text = title, style = MaterialTheme.typography.headlineSmall)
     }
 }

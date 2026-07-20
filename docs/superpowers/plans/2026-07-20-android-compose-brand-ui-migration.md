@@ -417,7 +417,7 @@ git push origin codex/android-mobile-ui-atlas
 - Preserves: five independent `AppNavigationState` stacks and exact offline copy.
 - Routes allowed workbench actions by `AppPermission`: create → `RootTab.CREATE`; advance/settle → `RootTab.ORDERS`.
 
-- [ ] **Step 1: Write failing shell and guarded-logout tests**
+- [x] **Step 1: Write failing shell and guarded-logout tests**
 
 Extend `AutoserviceShellTest`:
 
@@ -438,7 +438,7 @@ fun allFiveBrandTabsNavigateAndCreateRemainsThird() {
 
 Change the authenticated app test so clicking “退出登录” first shows “确认退出登录”; clicking “暂不退出” returns to profile; confirming the second dialog returns to login.
 
-- [ ] **Step 2: Run Android test compilation and verify RED**
+- [x] **Step 2: Run Android test compilation and verify RED**
 
 Run:
 
@@ -449,13 +449,13 @@ cd android-client
 
 Expected: compilation succeeds but the new tests would fail when executed because stage copy and the confirmation dialog are absent; if tags or enum references are introduced in the test, compilation fails until the next steps add them.
 
-- [ ] **Step 3: Implement the branded bottom navigation and offline banner**
+- [x] **Step 3: Implement the branded bottom navigation and offline banner**
 
 Replace Material icon imports with `BrandIconResource`. Keep `NavigationBarItem` semantics for ordinary tabs, and render the central item with a 48dp Action-colored circular icon container. Selected ordinary tabs use Ice container, Ink icon/text, and semibold label; unselected tabs use InkMuted.
 
 Keep `enabled = tab != RootTab.CREATE || !isOffline`. Upgrade `OfflineBanner` to use `BrandIconResource.Offline`, Ice/SurfaceSoft styling, and the exact text “网络不可用，当前为只读模式”.
 
-- [ ] **Step 4: Implement typed stage destinations**
+- [x] **Step 4: Implement typed stage destinations**
 
 Define:
 
@@ -474,7 +474,7 @@ enum class StageKind(
 
 Render the brand empty-state PNG with `ContentScale.Fit`, a `StatusChip`, title/description, and a secondary `BrandButton`. The button displays an honest Snackbar containing the description; it does not simulate a write.
 
-- [ ] **Step 5: Implement profile identity and guarded logout**
+- [x] **Step 5: Implement profile identity and guarded logout**
 
 Profile shows staff name, company, role, “刚刚同步”, and “登录状态已加密保存在本机”. Keep local `showLogoutDialog` state. The first logout click opens `BrandConfirmDialog`; only the confirm callback invokes the existing `onLogout`.
 
@@ -494,7 +494,7 @@ if (showLogoutDialog) {
 
 Attach `logoutFocusRequester` to the profile logout button. `BrandConfirmDialog` uses `Dialog`, a 20dp Surface panel, its own `FocusRequester` on the cancel button, system back dismissal through `onDismissRequest`, and calls `returnFocusRequester.requestFocus()` after cancel/back dismissal.
 
-- [ ] **Step 6: Route allowed workbench actions without fake writes**
+- [x] **Step 6: Route allowed workbench actions without fake writes**
 
 Inside `AutoserviceShell`, wrap the callback sent to `AppNavDisplay`:
 
@@ -511,7 +511,7 @@ val routeWorkbenchAction: (WorkbenchAction) -> Unit = { action ->
 
 Denied actions remain inside `WorkbenchScreen` and show their exact `MutationDecision.Denied.reason`; only allowed actions reach this routing callback.
 
-- [ ] **Step 7: Run focused and regression verification**
+- [x] **Step 7: Run focused and regression verification**
 
 Run:
 
@@ -522,7 +522,7 @@ cd android-client
 
 Expected: navigation JVM tests pass unchanged; Android tests compile; Lint succeeds; no emulator is launched.
 
-- [ ] **Step 8: Update handoff, commit, and push**
+- [x] **Step 8: Update handoff, commit, and push**
 
 Record navigation styling, exact stage boundaries, offline behavior, dialog focus/back behavior, action routing, and verification results. Commit:
 

@@ -14,7 +14,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.window.Dialog
+
+object BrandDialogTestTags {
+    const val CANCEL = "brand-dialog-cancel"
+    const val CONFIRM = "brand-dialog-confirm"
+}
 
 @Composable
 fun BrandConfirmDialog(
@@ -54,12 +60,15 @@ fun BrandConfirmDialog(
                 ) {
                     BrandButton(
                         onClick = dismiss,
-                        modifier = Modifier.weight(1f).focusRequester(cancelFocusRequester),
+                        modifier = Modifier
+                            .weight(1f)
+                            .focusRequester(cancelFocusRequester)
+                            .testTag(BrandDialogTestTags.CANCEL),
                         tone = BrandButtonTone.SECONDARY,
                     ) { Text(cancelLabel) }
                     BrandButton(
                         onClick = onConfirm,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).testTag(BrandDialogTestTags.CONFIRM),
                         tone = BrandButtonTone.DANGER,
                     ) { Text(confirmLabel) }
                 }

@@ -1,7 +1,5 @@
 package com.chengxu.autoservice
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.Text
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertHeightIsAtLeast
@@ -12,6 +10,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.dp
 import com.chengxu.autoservice.core.designsystem.AutoserviceTheme
 import com.chengxu.autoservice.core.designsystem.BrandButton
+import com.chengxu.autoservice.core.designsystem.BrandIconResource
 import com.chengxu.autoservice.core.designsystem.StatusChip
 import com.chengxu.autoservice.ui.shell.OfflineBanner
 import org.junit.Rule
@@ -33,7 +32,7 @@ class DesignSystemTest {
             AutoserviceTheme {
                 StatusChip(
                     text = "Completed",
-                    icon = Icons.Outlined.CheckCircle,
+                    icon = BrandIconResource.Check,
                     iconContentDescription = "Completed status",
                 )
             }

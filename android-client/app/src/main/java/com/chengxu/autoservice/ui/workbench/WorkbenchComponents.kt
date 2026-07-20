@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -16,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import com.chengxu.autoservice.core.designsystem.AutoserviceCard
 import com.chengxu.autoservice.core.designsystem.AutoserviceSpacing
+import com.chengxu.autoservice.core.designsystem.BrandIconResource
 import com.chengxu.autoservice.core.designsystem.MetricCard
 import com.chengxu.autoservice.core.designsystem.StatusChip
 import com.chengxu.autoservice.core.designsystem.StatusTone
@@ -111,7 +110,7 @@ internal fun WorkbenchOrderCard(order: WorkbenchOrder) {
             }
             StatusChip(
                 text = order.statusLabel,
-                icon = Icons.Outlined.Info,
+                icon = BrandIconResource.Warning,
                 tone = order.statusTone,
                 modifier = Modifier.padding(start = AutoserviceSpacing.Sm),
             )

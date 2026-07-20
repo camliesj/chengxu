@@ -250,7 +250,7 @@ cd E:\codex\chengxu\android-client
 - 验证保留 JVM 单元测试、Android 测试代码编译、`lintDebug` 和 Debug APK 构建；不启动模拟器，最终 APK 交由用户在真实手机上完成视觉与触控验收。
 - 用户已复核并批准书面设计。任务级实施计划已完成：`docs/superpowers/plans/2026-07-20-android-compose-brand-ui-migration.md`。
 - 计划分为五个 TDD 任务：品牌设计系统/官方 Hugeicons 转换/图片资产、品牌登录、五栏壳层/阶段页/我的/退出、双角色工作台、最终干净验证与真机 APK。
-- 用户此前已选择当前分支内联执行，不创建子代理或额外 worktree；下一步按计划从 Task 1 开始，尚未修改生产 Android UI。
+- 用户此前已选择当前分支内联执行，不创建子代理或额外 worktree；目前 Task 1–3 已完成，下一步执行 Task 4 双角色品牌工作台。
 
 ### Compose 品牌 UI Task 1：设计系统、Hugeicons 与图片资产（已完成）
 
@@ -271,7 +271,18 @@ cd E:\codex\chengxu\android-client
 - 账号和密码已使用共享 `BrandTextField`；密码尾部支持“显示密码/隐藏密码”可访问动作，IME Done 继续触发现有登录回调。主按钮使用近黑色“进入系统”，提交中显示进度并阻止重复提交。
 - 页面保持 `imePadding` 与纵向滚动，新增 360dp 登录主操作可达测试代码；登录仍完全复用 `LoginViewModel`、真实认证仓库、原错误文案、离线拒绝和成功后清空密码逻辑。
 - TDD RED：Android 测试代码先失败于 `LoginTestTags` 及新企业卡/密码动作合同不存在；实现后 `:app:compileDebugAndroidTestKotlin` 成功。Android JVM 全量 42/42 通过，Lint 0 错误、12 个非阻塞基线警告；本阶段未启动 Android 模拟器。
-- 下一步执行 Task 3：品牌五栏壳层、离线条幅、阶段页、“我的”和退出确认弹窗。
+- Task 3 已完成；下一步执行 Task 4：员工与管理员双角色品牌工作台。
+
+### Compose 品牌 UI Task 3：五栏壳层、阶段页、我的与退出确认（已完成）
+
+- Navigation 3 五栏继续保持“工作台 / 工单 / 新增 / 档案 / 我的”和五个独立返回栈；底栏已替换为本地 Hugeicons，普通选中项使用 Ice/Ink 与半粗标签，中间“新增”为 48dp 近黑圆形主操作。
+- 离线时继续显示精确文案“网络不可用，当前为只读模式”，使用品牌离线图标与冰蓝条幅；第三项“新增”保持禁用，阶段页中的新增按钮也不可用。
+- 新增 `StageKind` 三个真实边界：工单、创建和档案分别显示已批准标题、阶段说明、透明工具图与只读说明按钮；按钮仅展示真实说明 Snackbar，不伪造业务写入结果。
+- “我的”页显示员工姓名、企业、角色、“刚刚同步”和“登录状态已加密保存在本机”；离线状态显示本机同步说明。退出操作先打开 20dp 品牌确认弹窗，取消/系统返回后把焦点还给退出按钮，仅确认才清除会话。
+- 工作台允许动作按既有 `AppPermission` 路由：创建进入“新增”，状态推进与结算进入“工单”；权限拒绝仍由 `MutationGate` 原因留在工作台展示，没有绕过权限或离线门禁。
+- TDD RED：Android 测试源码先失败于 `StageKind` 与退出弹窗测试标签不存在；GREEN 后五栏/阶段与双击退出流程测试源码成功编译。
+- 2026-07-20 全量验证：Android JVM 42/42 通过（0 失败、0 错误、0 跳过），`:app:compileDebugAndroidTestKotlin` 与 `:app:lintDebug` 均 `BUILD SUCCESSFUL`；Lint 0 错误、11 个非阻塞基线警告。本阶段未启动 Android 模拟器，也未提前生成最终 APK。
+- 下一步执行 Task 4：按同一品牌系统升级员工与管理员工作台，继续保持真实会话、权限、离线门禁和当前工作台状态模型。
 
 ## 工作纪律
 
