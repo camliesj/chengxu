@@ -248,7 +248,9 @@ cd E:\codex\chengxu\android-client
 - 品牌 Token 锁定 HTML 原型色值和 16/20dp 圆角体系；Hugeicons 转为本地 VectorDrawable，并复用两张已验证透明 PNG，不混用 Material Icons、自制 SVG 或 Emoji。
 - 实施拟分为五个重要提交：设计系统与资产、登录、壳层/阶段页/我的、双角色工作台、最终验证与 APK。每阶段继续更新本文件、提交并推送。
 - 验证保留 JVM 单元测试、Android 测试代码编译、`lintDebug` 和 Debug APK 构建；不启动模拟器，最终 APK 交由用户在真实手机上完成视觉与触控验收。
-- 下一步由用户复核书面设计；确认后编写任务级 Compose 移植实施计划，尚未开始修改生产 Android UI。
+- 用户已复核并批准书面设计。任务级实施计划已完成：`docs/superpowers/plans/2026-07-20-android-compose-brand-ui-migration.md`。
+- 计划分为五个 TDD 任务：品牌设计系统/官方 Hugeicons 转换/图片资产、品牌登录、五栏壳层/阶段页/我的/退出、双角色工作台、最终干净验证与真机 APK。
+- 用户此前已选择当前分支内联执行，不创建子代理或额外 worktree；下一步按计划从 Task 1 开始，尚未修改生产 Android UI。
 
 ## 工作纪律
 
