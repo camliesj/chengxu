@@ -6,7 +6,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.lifecycle.lifecycleScope
 import com.chengxu.autoservice.core.auth.AuthFailure
+import com.chengxu.autoservice.core.auth.AuthenticatedDataCleaner
 import com.chengxu.autoservice.core.auth.AuthenticationRepository
+import com.chengxu.autoservice.core.auth.CompositeAuthenticatedDataCleaner
 import com.chengxu.autoservice.core.auth.EncryptedSessionStore
 import com.chengxu.autoservice.core.auth.HttpUrlConnectionAuthApi
 import com.chengxu.autoservice.core.auth.SharedPreferencesEncryptedValueStore
@@ -16,20 +18,34 @@ import com.chengxu.autoservice.core.orders.CachedOrdersRepository
 import com.chengxu.autoservice.core.orders.HttpUrlConnectionOrdersApi
 import com.chengxu.autoservice.core.orders.SessionInvalidator
 import com.chengxu.autoservice.core.orders.cache.AutoserviceDatabase
+import com.chengxu.autoservice.core.orders.cache.EncryptedOrderStore
 import com.chengxu.autoservice.core.orders.cache.RoomOrderCache
+import com.chengxu.autoservice.core.security.DEFAULT_ORDER_FIELDS_KEY_ALIAS
+import com.chengxu.autoservice.core.security.androidKeystoreStringCipher
 
 class MainActivity : ComponentActivity() {
+    private lateinit var encryptedOrderStore: EncryptedOrderStore
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val database = AutoserviceDatabase.create(applicationContext)
         val orderCache = RoomOrderCache(database.orderDao())
+        encryptedOrderStore = EncryptedOrderStore(
+            dao = database.foundationDao(),
+            cipher = androidKeystoreStringCipher(DEFAULT_ORDER_FIELDS_KEY_ALIAS),
+        )
         val authenticationRepository = AuthenticationRepository(
             authApi = HttpUrlConnectionAuthApi(BuildConfig.API_ORIGIN),
             sessionStore = EncryptedSessionStore(
                 valueStore = SharedPreferencesEncryptedValueStore(applicationContext),
                 cipher = androidKeystoreSessionCipher(),
             ),
-            authenticatedDataCleaner = orderCache,
+            authenticatedDataCleaner = CompositeAuthenticatedDataCleaner(
+                listOf(
+                    orderCache,
+                    AuthenticatedDataCleaner { database.foundationDao().clearAllFoundation() },
+                ),
+            ),
         )
         val networkMonitor = AndroidConnectivityNetworkMonitor(
             connectivityManager = getSystemService(ConnectivityManager::class.java),

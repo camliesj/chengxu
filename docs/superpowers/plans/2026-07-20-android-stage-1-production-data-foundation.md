@@ -935,7 +935,7 @@ git push origin codex/android-mobile-ui-atlas
 - Consumes: Room v2、扩展读取 API、通用字段加密和现有认证清理生命周期。
 - Produces: 不改变生产 UI 的可安装阶段 1 APK，以及完整测试/哈希/签名证据。
 
-- [ ] **Step 1: 写生产接线 RED 契约**
+- [x] **Step 1: 写生产接线 RED 契约**
 
 测试或源码合同必须断言：数据库创建包含 `MIGRATION_1_2`；订单字段 cipher 使用独立 alias；认证退出/401/跨企业切换清理 summary、detail、draft、cursor、车辆和保险表；现有 `CachedOrdersRepository` 仍只请求 legacy `/api/orders`，不改变用户列表。
 
@@ -952,7 +952,7 @@ git push origin codex/android-mobile-ui-atlas
 }
 ```
 
-- [ ] **Step 2: 运行 RED**
+- [x] **Step 2: 运行 RED**
 
 Run:
 
@@ -962,7 +962,7 @@ Run:
 
 Expected: 新清理/装配契约在生产接线前失败。
 
-- [ ] **Step 3: 完成最小生产接线**
+- [x] **Step 3: 完成最小生产接线**
 
 在 `AuthenticatedDataCleaner.kt` 增加：
 
@@ -978,7 +978,7 @@ class CompositeAuthenticatedDataCleaner(
 
 在 `MainActivity` 创建单例 `androidKeystoreStringCipher("autoservice_order_fields_v1")` 和 `EncryptedOrderStore`，但阶段 1 不把写按钮或新页面接入 UI。认证仓库接收 `CompositeAuthenticatedDataCleaner(listOf(orderCache, AuthenticatedDataCleaner { database.foundationDao().clearAllFoundation() }))`；任何 `CancellationException` 继续原对象传播。
 
-- [ ] **Step 4: 运行 Cloudflare/网页端全量验证**
+- [x] **Step 4: 运行 Cloudflare/网页端全量验证**
 
 Run:
 
@@ -989,7 +989,7 @@ npm.cmd run build
 
 Expected: 所有 Node 测试和 Vite 生产构建通过。
 
-- [ ] **Step 5: 备份并迁移远端 D1，部署 Pages Functions**
+- [x] **Step 5: 备份并迁移远端 D1，部署 Pages Functions**
 
 执行前确认 Wrangler 登录账号和远端待应用列表，只允许出现本阶段 `0010_android_order_foundation.sql`。备份文件放在已被 Git 忽略的 `tmp/d1-backups/`，保留到真机验收完成。
 
@@ -1005,7 +1005,7 @@ curl.exe -s -o NUL -w "%{http_code}" "https://chengxu.pages.dev/api/orders?scope
 
 Expected: Wrangler 账号/项目正确；远端备份成功；只应用 migration 0010；Pages 部署成功；未认证 scoped endpoint 返回 `401`。若待应用列表包含非本阶段 migration，停止部署并先核对远端迁移历史，不继续猜测。
 
-- [ ] **Step 6: 从 clean 状态运行 Android 完整门禁**
+- [x] **Step 6: 从 clean 状态运行 Android 完整门禁**
 
 Run in `android-client`:
 
@@ -1017,7 +1017,7 @@ $env:ANDROID_HOME='E:\codex\APP\.android-build\android-sdk'
 
 Expected: 全部 Gradle tasks `BUILD SUCCESSFUL`；记录 JVM suite/test 数、Lint Fatal/Error/Warning 数；明确 Android 测试只编译未连接执行。
 
-- [ ] **Step 7: 发布、哈希并验证 APK**
+- [x] **Step 7: 发布、哈希并验证 APK**
 
 把 `android-client/app/build/outputs/apk/debug/app-debug.apk` 复制为 `dist/releases/android/autoservice-android-debug-0.1.0.apk`，然后执行：
 
@@ -1028,11 +1028,11 @@ E:\codex\APP\.android-build\android-sdk\build-tools\35.0.0\apksigner.bat verify 
 
 Expected: 发布副本与构建源 SHA-256 一致，`Verified using v2 scheme: true`。
 
-- [ ] **Step 8: 更新真机清单与交接**
+- [x] **Step 8: 更新真机清单与交接**
 
 `docs/android-client.md` 增加阶段 1 真机回归：登录、双公司隔离、当前工单不回归、离线缓存、退出清理、升级已有 v1 数据库后列表仍可读。说明新增写入入口尚未上线。交接文档记录所有验证结果、APK 路径/大小/哈希/签名和未执行项。
 
-- [ ] **Step 9: 最终暂存检查、提交并推送**
+- [x] **Step 9: 最终暂存检查、提交并推送**
 
 ```powershell
 git diff --check

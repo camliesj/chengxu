@@ -12,6 +12,19 @@ import org.junit.Test
 
 class AuthenticationRepositoryTest {
     @Test
+    fun compositeCleanerClearsEachStoreInOrder() = runTest {
+        val events = mutableListOf<String>()
+        CompositeAuthenticatedDataCleaner(
+            listOf(
+                AuthenticatedDataCleaner { events += "summary" },
+                AuthenticatedDataCleaner { events += "foundation" },
+            ),
+        ).clear()
+
+        assertEquals(listOf("summary", "foundation"), events)
+    }
+
+    @Test
     fun successfulLoginPersistsMappedSessionAndPublishesAuthenticatedState() = runTest {
         val store = FakeSessionStore()
         val repository = AuthenticationRepository(

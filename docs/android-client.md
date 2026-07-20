@@ -35,7 +35,7 @@ cd E:\codex\chengxu\android-client
 .\gradlew.bat :app:connectedDebugAndroidTest
 ```
 
-2026-07-20 最新无设备验证从 clean 状态强制重跑 69 个 Gradle task：91 个 JVM 测试全部通过，0 失败、0 错误、0 跳过；Android 测试源码编译、`lintDebug` 与 Debug APK 构建通过，Lint 为 0 Fatal、0 Error、11 个非阻塞 Warning。本轮没有启动模拟器，也没有执行连接式 Android 测试；Room DAO、紧凑登录页 360×800dp、工单列表/详情/独立返回栈契约与其他 Compose 场景的测试代码均已编译但未在设备上运行。
+2026-07-20 最新无设备验证从 clean 状态通过 `--rerun-tasks` 强制执行 69 个 Gradle task：22 个 suite、110/110 个 JVM 测试全部通过，0 失败、0 错误、0 跳过；Android 测试源码编译、`lintDebug` 与 Debug APK 构建通过，Lint 为 0 Fatal、0 Error、11 个非阻塞 Warning。本轮没有启动模拟器，也没有执行连接式 Android 测试；Room v1→v2 migration/DAO、AndroidKeyStore、紧凑登录页 360×800dp、工单列表/详情/独立返回栈契约与其他 Compose 场景的测试代码均已编译但未在设备上运行。
 
 ## 安装调试 APK
 
@@ -47,7 +47,7 @@ adb install -r E:\codex\chengxu\dist\releases\android\autoservice-android-debug-
 
 初次打开显示登录页。认证成功后确认底部固定为“工作台 / 工单 / 新增 / 档案 / 我的”，第三项是“新增”。
 
-当前交付 APK 为 19,475,098 字节，SHA-256：`6E33A6632A2BA35FA2D96F0F7E3D7263F6B7E1E3D881E9C5649B1E1F1938B77B`。发布副本与 clean 构建源文件哈希一致；Android Build Tools `apksigner verify` 已确认 APK 使用 v2 签名且签名有效，签名者为 Android Debug。
+当前交付 APK 为 19,540,634 字节，SHA-256：`E2AB554D5EDBF9BB33D66485890CAEFCDF866BBD0541C933498C3995D611BE52`。发布副本与 clean 构建源文件哈希一致；Android Build Tools `apksigner verify` 已确认 APK 使用 v2 签名且签名有效，签名者为 Android Debug。
 
 ## 品牌 UI 真机验收
 
@@ -96,6 +96,16 @@ adb install -r E:\codex\chengxu\dist\releases\android\autoservice-android-debug-
 16. 打开详情后让下一次同步移除该工单，确认当前页切换为“工单不存在或已失效”，点击“返回工单列表”回到对应根页，不继续展示旧客户数据。
 17. 列表和详情不得出现新增、编辑、删除、状态推进、结算、作废、回执或导出控件；所有卡片、筛选、返回、重试和清除筛选触控高度至少 48dp。
 18. 在约 360dp 宽、系统大字体、横屏和输入法弹出场景检查搜索框、横向滚动筛选条、长工单号/车牌/客户、四个详情分区与底栏；不得横向裁切，筛选条必须可滚动，内容必须可纵向到达。
+
+## 阶段 1 生产数据基础真机回归
+
+1. 覆盖安装当前 APK，使用通达账号登录并确认当前工单列表、详情、搜索、筛选和离线只读行为与上一版一致；本阶段没有新增任何写入按钮或页面。
+2. 再退出并使用鑫齐恒账号登录，确认两家公司的摘要、详情、草稿占位、同步游标和档案基础数据均隔离，不能闪现另一公司的客户、手机号、VIN、车辆或保险信息。
+3. 在线刷新后断网并重启应用，确认仍可读取当前公司的 Room 摘要缓存；网络恢复后 legacy `/api/orders` 正常刷新，列表不因新增扩展 API 而改变。
+4. 退出登录后再次打开应用，确认摘要、详情、草稿、同步游标、车辆和保险基础表均已清理，不显示上个会话的数据；让工单请求返回 401 时重复相同检查。
+5. 在保留 v1 数据库的旧版本上先同步至少一条工单，再覆盖安装本 APK；登录后确认旧工单仍可读取，应用不因 Room v1→v2 显式迁移崩溃或清空既有摘要。
+6. 对包含手机号/VIN 的详情和包含手机号的草稿执行后续开发测试时，确认 Room 只出现加密字段/载荷；回执对象 key、二进制和短期 URL 不得写入本地数据库。
+7. 说明：阶段 1 仅交付生产数据/API/加密/Room 基础，扩展 current/history/detail 读取尚未替换现有 UI 仓库，新增、编辑、状态推进、结算、作废、回执维护和导出入口均尚未上线。
 
 ## 断网验证
 

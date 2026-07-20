@@ -521,6 +521,16 @@ cd E:\codex\chengxu\android-client
 - TDD RED 精确失败于 v2 类型、DAO 与迁移不存在；KSP 生成 schema v2 且 `:app:compileDebugAndroidTestKotlin` 成功，但按要求没有启动模拟器、没有声称连接式 migration/DAO 测试执行。JVM 22 个 suite、109/109 通过，Lint 0 error，Debug APK 构建成功（19,540,634 bytes）。v1 `RecordingOrderDao` 测试替身仅做接口兼容更新。
 - 下一步执行 Task 8：生产兼容接线、远端 D1 备份/迁移、Pages 部署、完整验证与阶段 APK 交付。
 
+#### 阶段 1 Task 8：生产兼容接线、远端门禁与阶段 APK（已完成）
+
+- 新增 `CompositeAuthenticatedDataCleaner` 并以 RED/GREEN 测试确认按 summary→foundation 顺序清理。`MainActivity` 持有独立 `autoservice_order_fields_v1` cipher 与 `EncryptedOrderStore`；退出、会话失效和企业切换沿既有认证生命周期同时清理摘要及详情/草稿/游标/车辆/保险表。阶段 1 没有接入新写入 UI，现有仓库仍调用无参数 legacy `/api/orders`。
+- Cloudflare/网页端 Node 全量 81/81 通过，Vite 生产构建成功。Wrangler 4.107.0 登录账号为“流年似水”（Account ID `dc362dcd98a28242f874adfd3dffb1bd`），远端 `chengxu-db` 应用前确认唯一待迁移文件为 `0010_android_order_foundation.sql`。
+- 迁移前远端 D1 备份保存在 Git 忽略路径 `tmp/d1-backups/pre-android-stage-1.sql`，96,744 bytes，SHA-256 `A58F15C9465B281BC48D20D27236B84FFDCE02BE7D686EE98B2D4A45FCCEFECD`，需保留至真机验收完成。远端 0010 成功执行 8 条命令，随后无待迁移；只读复查确认 `company_capabilities`、`order_operations` 存在，`repair_orders.version` 为 INTEGER、默认值 1。
+- Pages Functions 部署成功，本次部署标识 URL 为 `https://f01c62d3.chengxu.pages.dev`；生产 `https://chengxu.pages.dev/api/orders?scope=current` 未认证返回 401。部署专属预览 URL 对同一路径返回 404，因此未作为 Functions 成功证据，生产域名 401 是最终门禁结果。
+- Android 从 clean 状态带 `--rerun-tasks` 执行 69/69 个 Gradle task 并 `BUILD SUCCESSFUL`：JVM 22 个 suite、110/110 测试、0 失败/错误/跳过；Android 测试源码编译成功；Lint 0 Fatal、0 Error、11 Warning；Debug APK 构建成功。未启动模拟器，Room migration/DAO、AndroidKeyStore 和 Compose 测试均未连接执行。
+- 发布 APK：`dist/releases/android/autoservice-android-debug-0.1.0.apk`，19,540,634 bytes，SHA-256 `E2AB554D5EDBF9BB33D66485890CAEFCDF866BBD0541C933498C3995D611BE52`；与 clean 构建源哈希一致，`apksigner verify --verbose` 通过且 `Verified using v2 scheme: true`，1 个 Debug 签名者。
+- `docs/android-client.md` 已补充阶段 1 真机回归清单：登录、双公司隔离、当前 UI 不回归、离线缓存、退出/401 清理、v1→v2 覆盖升级和敏感字段落库检查。下一阶段可开始新增工单纵向切片；在用户真机验收前不声称连接式 Android 测试通过。
+
 ## 工作纪律
 
 每次重要改动后必须：
