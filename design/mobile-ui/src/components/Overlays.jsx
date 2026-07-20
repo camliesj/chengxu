@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useEffect, useId, useRef } from 'react';
 import { AlertTriangle, ArrowDownToLine, Check, X } from 'lucide-react';
+import { BrandButton } from './BrandButton.jsx';
+import { BrandIcon } from './BrandIcon.jsx';
 
 export function BottomSheet({ title, subtitle, actions, children }) {
   return (
@@ -94,6 +96,60 @@ export function UploadHint() {
     <div className="inline-alert" role="alert">
       <ArrowDownToLine size={16} strokeWidth={2} aria-hidden="true" />
       <span>上传未成功前不可完成结算</span>
+    </div>
+  );
+}
+
+export function BrandConfirmDialog({ title, description, confirmLabel, cancelLabel, onConfirm, onCancel, returnFocusRef }) {
+  const titleId = useId();
+  const cancelRef = useRef(null);
+  const confirmRef = useRef(null);
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const focusFrame = window.requestAnimationFrame(() => cancelRef.current?.focus());
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onCancel();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const first = cancelRef.current;
+      const last = confirmRef.current;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.cancelAnimationFrame(focusFrame);
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+      window.requestAnimationFrame(() => returnFocusRef?.current?.focus());
+    };
+  }, [onCancel, returnFocusRef]);
+
+  return (
+    <div className="brand-overlay" role="presentation">
+      <section className="brand-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+        <span className="brand-confirm-dialog__icon"><BrandIcon name="logout" size={22} decorative /></span>
+        <div className="brand-confirm-dialog__copy">
+          <h2 id={titleId}>{title}</h2>
+          <p>{description}</p>
+        </div>
+        <div className="brand-confirm-dialog__actions">
+          <BrandButton ref={cancelRef} tone="secondary" onClick={onCancel}>{cancelLabel}</BrandButton>
+          <BrandButton ref={confirmRef} tone="danger" onClick={onConfirm}>{confirmLabel}</BrandButton>
+        </div>
+      </section>
     </div>
   );
 }

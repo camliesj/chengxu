@@ -1,10 +1,71 @@
-import React, { useEffect, useReducer } from 'react';
+import React, { useEffect, useReducer, useRef } from 'react';
 import { initialPrototypeState, prototypeReducer } from './prototype-state.js';
 import { LoginCompanyScreen } from './screens/AuthScreens.jsx';
-import { AdminWorkbenchScreen, EmployeeWorkbenchScreen } from './screens/WorkbenchScreens.jsx';
+import { MobileShell } from './components/MobileShell.jsx';
+import { BrandConfirmDialog } from './components/Overlays.jsx';
+import {
+  BrandProfileStage,
+  BrandStageScreen,
+  BrandWorkbenchStage,
+} from './screens/BrandStageScreens.jsx';
+
+const TAB_META = {
+  workbench: ['今日协同', '今日工作', '优先处理到店、在修与交付事项'],
+  orders: ['业务进度', '工单中心', '查看当前维修服务进度'],
+  add: ['业务录入', '新增工单', '创建客户车辆维修服务记录'],
+  records: ['客户资产', '客户档案', '客户、车辆、保险与历史记录'],
+  profile: ['账户与安全', '我的账户', '当前身份、同步状态与安全设置'],
+};
+
+function BrandPrototypeShell({ state, dispatch, offline }) {
+  const logoutRef = useRef(null);
+  const [eyebrow, title, subtitle] = TAB_META[state.activeTab];
+
+  let content;
+  if (state.activeTab === 'workbench') content = <BrandWorkbenchStage />;
+  else if (state.activeTab === 'profile') {
+    content = (
+      <BrandProfileStage
+        state={state}
+        logoutRef={logoutRef}
+        onLogout={() => dispatch({ type: 'OPEN_OVERLAY', overlay: 'logout' })}
+      />
+    );
+  } else content = <BrandStageScreen kind={state.activeTab} offline={offline} />;
+
+  return (
+    <>
+      <MobileShell
+        screenId={`brand-${state.activeTab}`}
+        eyebrow={eyebrow}
+        title={title}
+        subtitle={subtitle}
+        activeTab={state.activeTab}
+        offline={offline}
+        showBottomNav
+        disabledTabs={offline ? ['add'] : []}
+        onTabSelect={(tab) => dispatch({ type: 'SELECT_TAB', tab })}
+      >
+        {content}
+      </MobileShell>
+      {state.overlay === 'logout' ? (
+        <BrandConfirmDialog
+          title="确认退出登录"
+          description="退出后将清空当前原型会话，并返回企业选择与账号登录页面。"
+          cancelLabel="暂不退出"
+          confirmLabel="退出登录"
+          returnFocusRef={logoutRef}
+          onCancel={() => dispatch({ type: 'CLOSE_OVERLAY' })}
+          onConfirm={() => dispatch({ type: 'LOGOUT' })}
+        />
+      ) : null}
+    </>
+  );
+}
 
 export function BrandPrototypeApp() {
   const [state, dispatch] = useReducer(prototypeReducer, initialPrototypeState);
+  const offline = new URLSearchParams(window.location.search).get('offline') === '1';
 
   useEffect(() => {
     if (!state.submitting) return undefined;
@@ -24,5 +85,5 @@ export function BrandPrototypeApp() {
     return <LoginCompanyScreen state={state} dispatch={dispatch} />;
   }
 
-  return state.role === 'admin' ? <AdminWorkbenchScreen /> : <EmployeeWorkbenchScreen />;
+  return <BrandPrototypeShell state={state} dispatch={dispatch} offline={offline} />;
 }

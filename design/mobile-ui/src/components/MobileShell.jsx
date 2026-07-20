@@ -10,6 +10,8 @@ export function MobileShell({
   activeTab,
   offline = false,
   showBottomNav = false,
+  onTabSelect,
+  disabledTabs = [],
   screenId,
   children,
 }) {
@@ -39,7 +41,9 @@ export function MobileShell({
         <div className="mobile-shell__main-wrap" data-mobile-main>
           <section className="mobile-shell__main">{children}</section>
         </div>
-        {showBottomNav ? <BottomNav activeTab={activeTab} /> : null}
+        {showBottomNav ? (
+          <BottomNav activeTab={activeTab} onSelect={onTabSelect} disabledTabs={disabledTabs} />
+        ) : null}
       </section>
     </main>
   );

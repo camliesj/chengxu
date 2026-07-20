@@ -9,11 +9,12 @@ const NAV_ITEMS = [
   { id: 'profile', label: '我的', icon: 'profile' },
 ];
 
-export function BottomNav({ activeTab = 'workbench' }) {
+export function BottomNav({ activeTab = 'workbench', onSelect, disabledTabs = [] }) {
   return (
     <nav className="mobile-bottom-nav" aria-label="主导航" data-mobile-nav>
       {NAV_ITEMS.map(({ id, label, icon, primary }) => {
         const isActive = activeTab === id;
+        const isDisabled = disabledTabs.includes(id);
         return (
           <button
             key={id}
@@ -26,6 +27,8 @@ export function BottomNav({ activeTab = 'workbench' }) {
               .filter(Boolean)
               .join(' ')}
             aria-current={isActive ? 'page' : undefined}
+            disabled={isDisabled}
+            onClick={() => onSelect?.(id)}
           >
             <span className="mobile-bottom-nav__icon-wrap" aria-hidden="true">
               <BrandIcon name={icon} size={primary ? 20 : 18} strokeWidth={2} decorative />
