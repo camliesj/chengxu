@@ -6,8 +6,8 @@ import { BrandConfirmDialog } from './components/Overlays.jsx';
 import {
   BrandProfileStage,
   BrandStageScreen,
-  BrandWorkbenchStage,
 } from './screens/BrandStageScreens.jsx';
+import { BrandWorkbench } from './screens/WorkbenchScreens.jsx';
 
 const TAB_META = {
   workbench: ['今日协同', '今日工作', '优先处理到店、在修与交付事项'],
@@ -19,10 +19,12 @@ const TAB_META = {
 
 function BrandPrototypeShell({ state, dispatch, offline }) {
   const logoutRef = useRef(null);
-  const [eyebrow, title, subtitle] = TAB_META[state.activeTab];
+  const [eyebrow, title, subtitle] = state.activeTab === 'workbench' && state.role === 'admin'
+    ? ['经营与调度', '经营工作台', '关注结算节奏、产值进度与高优先事项']
+    : TAB_META[state.activeTab];
 
   let content;
-  if (state.activeTab === 'workbench') content = <BrandWorkbenchStage />;
+  if (state.activeTab === 'workbench') content = <BrandWorkbench role={state.role} dispatch={dispatch} />;
   else if (state.activeTab === 'profile') {
     content = (
       <BrandProfileStage

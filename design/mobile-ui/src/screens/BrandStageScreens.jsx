@@ -25,37 +25,6 @@ const STAGE_COPY = {
   },
 };
 
-export function BrandWorkbenchStage() {
-  return (
-    <div className="brand-workbench-stage">
-      <section className="brand-workbench-stage__lead">
-        <div>
-          <p>当前门店</p>
-          <h2>通达汽车服务中心</h2>
-        </div>
-        <StatusPill tone="success">已同步</StatusPill>
-      </section>
-      <section className="brand-workbench-stage__grid" aria-label="今日概览">
-        {[
-          ['今日接车', '12'],
-          ['在修车辆', '18'],
-          ['待交付', '04'],
-          ['保险到期', '09'],
-        ].map(([label, value]) => (
-          <article key={label}>
-            <span>{label}</span>
-            <strong>{value}</strong>
-          </article>
-        ))}
-      </section>
-      <section className="brand-workbench-stage__notice">
-        <BrandIcon name="tools" size={22} decorative />
-        <div><strong>工作台深度升级进行中</strong><span>Task 5 将完成员工与管理员双角色内容。</span></div>
-      </section>
-    </div>
-  );
-}
-
 export function BrandStageScreen({ kind, offline = false }) {
   const copy = STAGE_COPY[kind];
   return (

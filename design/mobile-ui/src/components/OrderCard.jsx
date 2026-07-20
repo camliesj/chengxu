@@ -1,10 +1,18 @@
 import React from 'react';
-import { ChevronRight } from 'lucide-react';
+import { BrandIcon } from './BrandIcon.jsx';
+import { InteractiveSurface } from './InteractiveSurface.jsx';
 import { StatusPill } from './StatusPill.jsx';
 
-export function OrderCard({ order, compact = false, onOpenLabel = '查看工单' }) {
+export function OrderCard({ order, compact = false, onOpenLabel = '查看工单', interactive = false, disabled = false, onOpen }) {
+  const Root = interactive ? InteractiveSurface : 'article';
+  const rootProps = interactive ? {
+    'aria-label': `${onOpenLabel} ${order.plate} ${order.customer}`,
+    disabled,
+    onClick: onOpen,
+  } : {};
+
   return (
-    <article className={['order-card', compact ? 'order-card--compact' : ''].filter(Boolean).join(' ')}>
+    <Root {...rootProps} className={['order-card', interactive ? 'order-card--interactive' : '', compact ? 'order-card--compact' : ''].filter(Boolean).join(' ')}>
       <div className="order-card__row order-card__row--top">
         <div className="order-card__identity">
           <h3>{order.plate}</h3>
@@ -27,7 +35,7 @@ export function OrderCard({ order, compact = false, onOpenLabel = '查看工单'
           <p className="order-card__amount">{order.amountLabel}</p>
           <p className="order-card__time">{order.updatedAt}</p>
         </div>
-        <div className="order-card__actions">
+        {!interactive ? <div className="order-card__actions">
           {order.actionLabel ? (
             <button type="button" className="order-card__action order-card__action--primary">
               {order.actionLabel}
@@ -35,10 +43,10 @@ export function OrderCard({ order, compact = false, onOpenLabel = '查看工单'
           ) : null}
           <button type="button" className="order-card__action">
             <span>{onOpenLabel}</span>
-            <ChevronRight size={16} strokeWidth={2} aria-hidden="true" />
+            <BrandIcon name="arrowRight" size={16} strokeWidth={2} decorative />
           </button>
-        </div>
+        </div> : <BrandIcon name="arrowRight" size={18} decorative />}
       </div>
-    </article>
+    </Root>
   );
 }

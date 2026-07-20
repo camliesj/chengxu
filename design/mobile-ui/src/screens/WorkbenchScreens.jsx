@@ -3,12 +3,17 @@ import { ChevronRight } from 'lucide-react';
 import { MetricCard } from '../components/MetricCard.jsx';
 import { MobileShell } from '../components/MobileShell.jsx';
 import { OrderCard } from '../components/OrderCard.jsx';
+import { BrandButton } from '../components/BrandButton.jsx';
+import { InteractiveSurface } from '../components/InteractiveSurface.jsx';
+import { StatusPill } from '../components/StatusPill.jsx';
 import {
   adminWorkbenchMetrics,
   adminWorkbenchOrders,
+  adminQuickActions,
   adminRoleSummary,
   employeeWorkbenchMetrics,
   employeeWorkbenchOrders,
+  employeeQuickActions,
   employeeRoleSummary,
   workbenchStateBand,
 } from '../mock-data.js';
@@ -140,5 +145,94 @@ export function AdminWorkbenchScreen() {
       taskTitle="优先事项"
       orders={adminWorkbenchOrders}
     />
+  );
+}
+
+export function BrandWorkbench({ role = 'employee', dispatch }) {
+  const isAdmin = role === 'admin';
+  const metrics = isAdmin ? adminWorkbenchMetrics : employeeWorkbenchMetrics;
+  const orders = isAdmin ? adminWorkbenchOrders : employeeWorkbenchOrders;
+  const quickActions = isAdmin ? adminQuickActions : employeeQuickActions;
+
+  return (
+    <div className="brand-workbench" data-role={role}>
+      <div className="brand-role-switch" data-prototype-control role="group" aria-label="原型角色">
+        {[
+          ['employee', '员工'],
+          ['admin', '管理员'],
+        ].map(([value, label]) => (
+          <InteractiveSurface
+            key={value}
+            className="brand-role-switch__item"
+            selected={role === value}
+            onClick={() => dispatch({ type: 'SWITCH_ROLE', role: value })}
+          >
+            {label}
+          </InteractiveSurface>
+        ))}
+      </div>
+
+      <section className="brand-workbench__hero">
+        <div>
+          <p>{isAdmin ? '经营与调度' : '维修顾问工作台'}</p>
+          <h2>{isAdmin ? '早上好，李经理' : '早上好，张工'}</h2>
+          <span>通达汽车服务中心</span>
+        </div>
+        <StatusPill tone="success">在线</StatusPill>
+      </section>
+
+      <section className="brand-workbench__band" aria-label="工单状态概览">
+        {workbenchStateBand.map((item, index) => (
+          <InteractiveSurface
+            key={item.label}
+            className="brand-workbench__band-item"
+            onClick={() => dispatch({ type: 'SELECT_TAB', tab: index === 3 ? 'records' : 'orders' })}
+          >
+            <strong>{item.value}</strong><span>{item.label}</span>
+          </InteractiveSurface>
+        ))}
+      </section>
+
+      <section className="brand-workbench__section" aria-labelledby="brand-metrics-title">
+        <div className="brand-workbench__heading"><h3 id="brand-metrics-title">{isAdmin ? '经营概览' : '今日概览'}</h3><span>实时演示数据</span></div>
+        <div className="brand-workbench__metrics">
+          {metrics.map((metric) => (
+            <MetricCard key={metric.label} {...metric} aria-label={`${metric.label} ${metric.value}`} />
+          ))}
+        </div>
+      </section>
+
+      <section className="brand-workbench__section" aria-labelledby="brand-actions-title">
+        <div className="brand-workbench__heading"><h3 id="brand-actions-title">快捷操作</h3></div>
+        <div className="brand-workbench__actions">
+          {quickActions.map((action) => (
+            <BrandButton
+              key={action.label}
+              tone="secondary"
+              icon={action.icon}
+              onClick={() => dispatch({ type: 'SELECT_TAB', tab: action.targetTab })}
+            >
+              {action.label}
+            </BrandButton>
+          ))}
+        </div>
+      </section>
+
+      <section className="brand-workbench__section" aria-labelledby="brand-orders-title">
+        <div className="brand-workbench__heading"><h3 id="brand-orders-title">{isAdmin ? '优先事项' : '我的待办'}</h3><BrandButton tone="quiet" className="brand-workbench__view-all" onClick={() => dispatch({ type: 'SELECT_TAB', tab: 'orders' })}>查看全部</BrandButton></div>
+        <div className="brand-workbench__orders">
+          {orders.map((order) => (
+            <OrderCard
+              key={order.orderNo}
+              order={order}
+              compact
+              interactive
+              onOpenLabel="查看工单"
+              onOpen={() => dispatch({ type: 'SELECT_TAB', tab: 'orders' })}
+            />
+          ))}
+        </div>
+      </section>
+    </div>
   );
 }

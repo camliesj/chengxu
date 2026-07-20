@@ -67,6 +67,18 @@ export const adminWorkbenchMetrics = [
   { label: '保险到期', value: '09', detail: '高优先跟进', tone: 'danger' },
 ];
 
+export const employeeQuickActions = [
+  { label: '接车登记', icon: 'add', targetTab: 'add' },
+  { label: '维修推进', icon: 'tools', targetTab: 'orders' },
+  { label: '保险提醒', icon: 'shield', targetTab: 'records' },
+];
+
+export const adminQuickActions = [
+  { label: '办理结算', icon: 'wallet', targetTab: 'orders' },
+  { label: '经营复盘', icon: 'records', targetTab: 'records' },
+  { label: '保险提醒', icon: 'shield', targetTab: 'records' },
+];
+
 export const employeeWorkbenchOrders = [
   {
     orderNo: 'RO202607150021',
