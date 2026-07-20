@@ -54,7 +54,7 @@
 **Interfaces:**
 - Produces: `OrderDao.observeByCompany(String): Flow<List<OrderEntity>>`, `replaceCompany(String, List<OrderEntity>)`, `clearAll()`.
 
-- [ ] **Step 1: Add Room DAO tests before the production types exist**
+- [x] **Step 1: Add Room DAO tests before the production types exist**
 
 Create an instrumentation test that opens an in-memory database and proves: rows are sorted by `dateSortKey/time`, replacing company A preserves company B, and `clearAll()` removes both. Use `runTest`, `Room.inMemoryDatabaseBuilder`, `flow.first()`, and distinct IDs `A-1`, `A-2`, `B-1`.
 
@@ -70,13 +70,13 @@ fun replaceIsAtomicAndCompanyScoped() = runTest {
 }
 ```
 
-- [ ] **Step 2: Compile the Android test and verify RED**
+- [x] **Step 2: Compile the Android test and verify RED**
 
 Run: `cd android-client; .\gradlew.bat :app:compileDebugAndroidTestKotlin`
 
 Expected: FAIL because `AutoserviceDatabase`, `OrderDao`, and `OrderEntity` are unresolved.
 
-- [ ] **Step 3: Add verified Room/KSP dependencies**
+- [x] **Step 3: Add verified Room/KSP dependencies**
 
 Add versions `room = "2.8.4"`, `ksp = "2.3.9"`; add Room runtime/compiler/testing libraries; add `com.google.devtools.ksp` and `androidx.room` plugin aliases. Apply both plugins, use `ksp(libs.androidx.room.compiler)`, `androidTestImplementation(libs.androidx.room.testing)`, and configure:
 
@@ -86,7 +86,7 @@ room {
 }
 ```
 
-- [ ] **Step 4: Implement the schema and DAO**
+- [x] **Step 4: Implement the schema and DAO**
 
 Use a compound primary key and stable sortable values:
 
@@ -139,13 +139,13 @@ interface OrderDao {
 
 Define `@Database(entities = [OrderEntity::class], version = 1, exportSchema = true)` and a `create(context)` factory using database name `autoservice.db`; do not use destructive migration fallback.
 
-- [ ] **Step 5: Compile production and Android tests**
+- [x] **Step 5: Compile production and Android tests**
 
 Run: `cd android-client; .\gradlew.bat :app:compileDebugKotlin :app:compileDebugAndroidTestKotlin`
 
 Expected: BUILD SUCCESSFUL and Room schema version 1 exported.
 
-- [ ] **Step 6: Update handoff, commit, and push**
+- [x] **Step 6: Update handoff, commit, and push**
 
 Record Room/KSP versions, schema v1, compiled DAO tests, and the “not run without emulator” status. Commit message: `feat(android): add company scoped orders cache`. Push the current branch.
 

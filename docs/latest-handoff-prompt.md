@@ -177,7 +177,17 @@ cd E:\codex\chengxu\android-client
 - 工作台最近工单、员工指标和管理员指标全部改由真实工单计算，不保留演示数字；本阶段不实现工单写入、状态推进或结算。
 - Room 仪器测试代码需要保留并编译；按用户决定不启动模拟器，功能完成后构建 APK 交由真实手机测试。
 - 任务级实施计划已完成：`docs/superpowers/plans/2026-07-17-android-orders-cache.md`。计划锁定 Room 2.8.4、KSP2 2.3.9，分为持久层、远端 API、认证清理、缓存仓库、真实指标、生产装配和最终 APK 七个 TDD 任务。
-- 下一步由用户选择计划执行方式，再逐任务实施；每个任务都必须更新本交接文档、提交并推送。
+- 用户已要求继续功能实现，并沿用当前分支内联执行；Room 缓存 Task 1 已完成，下一步执行 Task 2 认证工单 API 与容错映射。每个任务继续更新本交接文档、提交并推送。
+
+### 真实工单与 Room 缓存 Task 1：公司隔离持久层（已完成）
+
+- Android 工程已锁定 `androidx.room` 2.8.4 与 KSP2 2.3.9，应用 Room/KSP Gradle 插件，并配置版本化 Schema 导出目录；仪器测试同时使用 Room Testing 与协程测试库。
+- 新增 `OrderEntity`，以 `companyId + orderId` 为复合主键，只保存工单展示和指标需要的日期、时间、车辆、客户、状态、金额、维修记录、保险到期与预计交车字段，不保存 Token 或会话密钥。
+- 新增 `OrderDao`：按公司 Flow 查询并按 `dateSortKey / time / orderId` 稳定倒序；`replaceCompany` 在 Room 事务内只替换目标公司；`clearAll` 清除全部公司客户数据。
+- 新增 `AutoserviceDatabase` Schema v1，数据库名为 `autoservice.db`，启用 Schema 导出且没有破坏性迁移回退；已生成并纳入版本控制的 `app/schemas/com.chengxu.autoservice.core.orders.cache.AutoserviceDatabase/1.json`。
+- TDD RED：Android 测试源码先精确失败于 Room、`AutoserviceDatabase`、`OrderDao` 和 `OrderEntity` 不存在；GREEN 后 `OrderDaoTest` 源码可编译，覆盖稳定排序、公司隔离替换和全量清除。按用户决定未启动模拟器，因此本轮没有执行 Room 仪器测试。
+- 2026-07-20 回归：Android JVM 全量 42/42 通过（0 失败、0 错误、0 跳过），`:app:compileDebugAndroidTestKotlin` 成功，生产 Room/KSP 代码与 Schema v1 均生成成功。
+- 下一步执行 Task 2：实现携带当前内存会话 Bearer Token 的 `GET /api/orders`、容错 JSON 映射、401/网络/服务器/畸形响应与协程取消契约。
 
 ### 优先插入：Android 品牌化 UI 升级（设计已确认）
 
