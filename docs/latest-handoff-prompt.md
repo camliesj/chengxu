@@ -444,6 +444,7 @@ cd E:\codex\chengxu\android-client
 - `docs/android-client.md` 已增加真实列表顺序/状态、五字段搜索、固定筛选、未知状态、清除筛选、离线详情、陈旧重试、双入口独立返回栈、详情失效、无写入口、360dp/大字体/输入法/横向筛选和 48dp 控件真机清单。
 - 最终 API 26+ Debug APK 已复制到 `E:\codex\chengxu\dist\releases\android\autoservice-android-debug-0.1.0.apk`，大小 19,475,098 字节，SHA-256 `6E33A6632A2BA35FA2D96F0F7E3D7263F6B7E1E3D881E9C5649B1E1F1938B77B`；发布副本与 clean 构建源哈希一致，`apksigner verify` 确认 v2 签名有效，签名者为 Android Debug。
 - 本轮没有启动模拟器、没有执行连接式 Compose/Room 测试，也没有生成原生截图；列表密度、筛选滚动、输入法、详情返回、离线缓存和生产数据由用户安装该 APK 后在真实手机验收。
+- 代码、文档与 APK 发布提交为 `1814cff`，已推送到 `origin/codex/android-mobile-ui-atlas`；发布后首次核对本地与远程完整哈希均为 `1814cff43f29028acf525028815528e53c5904b6`，实施计划四个 Task 全部完成。
 
 ## 工作纪律
 

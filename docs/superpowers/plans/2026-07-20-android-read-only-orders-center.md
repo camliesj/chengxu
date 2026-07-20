@@ -512,6 +512,6 @@ git commit -m "build(android): release read-only orders APK"
 git push origin codex/android-mobile-ui-atlas
 ```
 
-- [ ] **Step 6: Confirm repository state**
+- [x] **Step 6: Confirm repository state**
 
 Run `git status --short --branch`, `git rev-parse HEAD`, and `git rev-parse origin/codex/android-mobile-ui-atlas`. Expected: clean worktree and identical local/remote hashes.
