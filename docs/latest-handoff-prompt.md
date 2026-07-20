@@ -263,6 +263,16 @@ cd E:\codex\chengxu\android-client
 - `:app:compileDebugAndroidTestKotlin` 与 `:app:lintDebug` 均 `BUILD SUCCESSFUL`；Lint 0 错误，新增图片在 Task 2/3 消费前仅报告预期的未使用资源警告。本阶段未启动 Android 模拟器。
 - 下一步执行 Task 2：品牌恢复中与登录体验；继续复用现有 `LoginViewModel` 和真实认证仓库，不改变认证业务逻辑。
 
+### Compose 品牌 UI Task 2：品牌恢复中与登录体验（已完成）
+
+- `AuthenticationState.Restoring` 已升级为品牌恢复页：雾灰画布、冰蓝车辆图标容器、近黑色进度指示和“正在安全恢复登录状态”，恢复完成前不渲染姓名、企业或上一会话内容。
+- 登录页已按获批 HTML 真值移植：浅冰蓝 Hero、“让每一次服务更从容”标题、716×500 透明车辆主视觉，以及向上叠放的 20dp 白色登录面板。
+- 原下拉企业选择已替换为两张真实选择卡，显示通达/鑫齐恒企业名和公司全称；选中态同时使用容器、边框、勾选图标与 RadioButton 语义，提交中真实禁用。
+- 账号和密码已使用共享 `BrandTextField`；密码尾部支持“显示密码/隐藏密码”可访问动作，IME Done 继续触发现有登录回调。主按钮使用近黑色“进入系统”，提交中显示进度并阻止重复提交。
+- 页面保持 `imePadding` 与纵向滚动，新增 360dp 登录主操作可达测试代码；登录仍完全复用 `LoginViewModel`、真实认证仓库、原错误文案、离线拒绝和成功后清空密码逻辑。
+- TDD RED：Android 测试代码先失败于 `LoginTestTags` 及新企业卡/密码动作合同不存在；实现后 `:app:compileDebugAndroidTestKotlin` 成功。Android JVM 全量 42/42 通过，Lint 0 错误、12 个非阻塞基线警告；本阶段未启动 Android 模拟器。
+- 下一步执行 Task 3：品牌五栏壳层、离线条幅、阶段页、“我的”和退出确认弹窗。
+
 ## 工作纪律
 
 每次重要改动后必须：

@@ -1,8 +1,16 @@
 package com.chengxu.autoservice
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -11,6 +19,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
@@ -20,6 +29,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.chengxu.autoservice.core.auth.AuthenticationRepository
 import com.chengxu.autoservice.core.auth.AuthenticationState
 import com.chengxu.autoservice.core.designsystem.AutoserviceTheme
+import com.chengxu.autoservice.core.designsystem.AutoserviceColors
+import com.chengxu.autoservice.core.designsystem.AutoservicePanelShape
+import com.chengxu.autoservice.core.designsystem.AutoserviceSpacing
+import com.chengxu.autoservice.core.designsystem.BrandIcon
+import com.chengxu.autoservice.core.designsystem.BrandIconResource
 import com.chengxu.autoservice.core.network.NetworkMonitor
 import com.chengxu.autoservice.ui.auth.LoginScreen
 import com.chengxu.autoservice.ui.auth.LoginViewModel
@@ -42,12 +56,7 @@ fun AutoserviceApp(
 
     AutoserviceTheme {
         when (val state = authenticationState) {
-            AuthenticationState.Restoring -> Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) {
-                CircularProgressIndicator()
-            }
+            AuthenticationState.Restoring -> BrandRestoringScreen()
 
             is AuthenticationState.Unauthenticated -> LoginRoot(
                 authenticationRepository = authenticationRepository,
@@ -60,6 +69,43 @@ fun AutoserviceApp(
                 networkMonitor = networkMonitor,
                 workbenchRepository = workbenchRepository,
                 authenticationState = state,
+            )
+        }
+    }
+}
+
+@Composable
+private fun BrandRestoringScreen() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(AutoserviceColors.Canvas),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(AutoserviceSpacing.Md),
+        ) {
+            Surface(
+                shape = AutoservicePanelShape,
+                color = AutoserviceColors.Ice,
+                contentColor = AutoserviceColors.Ink,
+            ) {
+                BrandIcon(
+                    resource = BrandIconResource.Car,
+                    contentDescription = null,
+                    modifier = Modifier.padding(AutoserviceSpacing.Lg).size(32.dp),
+                )
+            }
+            CircularProgressIndicator(
+                modifier = Modifier.size(24.dp),
+                color = AutoserviceColors.Action,
+                strokeWidth = 2.dp,
+            )
+            Text(
+                text = "正在安全恢复登录状态",
+                style = MaterialTheme.typography.bodyMedium,
+                color = AutoserviceColors.InkMuted,
             )
         }
     }

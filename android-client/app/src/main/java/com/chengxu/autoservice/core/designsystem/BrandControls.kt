@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -208,6 +209,7 @@ fun CompanySelectionCard(
     enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    supportingText: String? = null,
 ) {
     Surface(
         modifier = modifier
@@ -234,11 +236,19 @@ fun CompanySelectionCard(
                 contentDescription = null,
                 tint = if (selected) AutoserviceColors.Action else AutoserviceColors.InkMuted,
             )
-            Text(
-                text = companyName,
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.labelLarge,
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = companyName,
+                    style = MaterialTheme.typography.labelLarge,
+                )
+                supportingText?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AutoserviceColors.InkMuted,
+                    )
+                }
+            }
             if (selected) {
                 BrandIcon(
                     resource = BrandIconResource.Check,

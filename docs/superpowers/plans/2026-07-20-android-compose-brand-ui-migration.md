@@ -307,7 +307,7 @@ git push origin codex/android-mobile-ui-atlas
 - Preserves: `LoginScreen(state, onCompanySelected, onUsernameChanged, onPasswordChanged, onLogin, modifier)`.
 - Produces: private `BrandRestoringScreen()` used only for `AuthenticationState.Restoring`.
 
-- [ ] **Step 1: Write failing Compose tests for the new login contract**
+- [x] **Step 1: Write failing Compose tests for the new login contract**
 
 Extend `AutoserviceAppTest` with tests that assert both companies are visible without opening a dropdown, selected semantics move to 鑫齐恒 after click, password visibility changes from “显示密码” to “隐藏密码”, and submitting/error behavior remains owned by the existing ViewModel.
 
@@ -326,7 +326,7 @@ fun loginShowsTwoSelectableCompanyCardsAndPasswordVisibility() {
 
 Add a test that wraps the app in `Modifier.requiredWidth(360.dp)` through a test-only `LoginScreen` render and asserts the root width is 360dp and the login button is displayed after scrolling.
 
-- [ ] **Step 2: Run the tests and verify RED**
+- [x] **Step 2: Run the tests and verify RED**
 
 Run:
 
@@ -337,11 +337,11 @@ cd android-client
 
 Expected: compilation fails because the new company tags/selected contract and password actions do not exist.
 
-- [ ] **Step 3: Implement the brand restoring screen**
+- [x] **Step 3: Implement the brand restoring screen**
 
 Replace the bare progress box with a Canvas-colored full-screen composition containing the Ice brand mark surface, `CircularProgressIndicator(color = AutoserviceColors.Action)`, and “正在安全恢复登录状态”. Do not read or render session identity while state is `Restoring`.
 
-- [ ] **Step 4: Replace the dropdown login with the approved composition**
+- [x] **Step 4: Replace the dropdown login with the approved composition**
 
 Build `LoginScreen` as a vertically scrollable, IME-padded column with:
 
@@ -376,7 +376,7 @@ BrandTextField(
 
 Keep the exact ViewModel callbacks and error text. Do not call the repository from the Composable.
 
-- [ ] **Step 5: Run focused and regression verification**
+- [x] **Step 5: Run focused and regression verification**
 
 Run:
 
@@ -387,7 +387,7 @@ cd android-client
 
 Expected: LoginViewModel tests pass unchanged; Android tests compile; Lint and the combined build are successful.
 
-- [ ] **Step 6: Update handoff, commit, and push**
+- [x] **Step 6: Update handoff, commit, and push**
 
 Record the new hero, company cards, IME behavior, visibility toggle, preserved login states, test results, and that no emulator was launched. Commit:
 
