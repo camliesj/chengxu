@@ -59,3 +59,15 @@ test('workbench shortcuts route through the existing five-tab shell', async ({ p
   await page.getByRole('button', { name: '保险提醒' }).click();
   await expect(page.getByRole('heading', { name: '客户档案', exact: true })).toBeVisible();
 });
+
+test('administrator identity stays consistent and the workbench header stays compact', async ({ page }) => {
+  await login(page);
+  await page.getByRole('button', { name: '管理员', exact: true }).click();
+
+  const subtitle = page.locator('.mobile-shell__subtitle');
+  const subtitleBox = await subtitle.boundingBox();
+  expect(subtitleBox?.height).toBeLessThanOrEqual(20);
+
+  await page.getByRole('button', { name: '我的', exact: true }).click();
+  await expect(page.getByRole('heading', { name: '李经理', exact: true })).toBeVisible();
+});

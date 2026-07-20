@@ -36,6 +36,16 @@
 | `offline-readonly` | 离线只读 | 通用 | [查看](../design/mobile-ui/output/offline-readonly.png) |
 | `states-gallery` | 系统状态合集 | 通用 | [查看](../design/mobile-ui/output/states-gallery.png) |
 
+## 品牌交互原型
+
+- 本地入口：`http://127.0.0.1:4175/?prototype=brand`
+- 登录后可切换员工/管理员，使用“工作台 / 工单 / 新增 / 档案 / 我的”五栏导航，并验证离线只读与退出确认。
+- 图标统一使用官方 Hugeicons；车辆 Hero 与维修工具为空间匹配的透明 PNG 素材，清单位于 `design/mobile-ui/src/assets/brand/asset-manifest.js`。
+- 状态合集覆盖默认、悬停、按下、聚焦、禁用和选中；最终截图与同屏对比板位于 `design/mobile-ui/output/`。
+- 阻塞式视觉复核见 [`design/mobile-ui/design-qa.md`](../design/mobile-ui/design-qa.md)，当前 `final result: passed`。
+- 2026-07-20 最终验证：网页单元测试 64/64、移动 UI Playwright 108/108、确定性截图 34/34；独立原型构建与仓库生产构建均成功。
+- HTML 原型不调用生产 API、不持久化凭据；真实工单 API 与 Room 缓存仍暂停，下一设计检查点是单独规划 Compose 移植。
+
 ## 使用命令
 
 ```powershell
@@ -56,7 +66,7 @@ npm.cmd run design:mobile:capture
 - 边框：`#D7DEEA`
 - 圆角：`8px`
 - 基准画布：`390 × 844`
-- 图标：Lucide 线性图标，状态同时使用图标和文字，不只依赖颜色
+- 图标：品牌原型使用 Hugeicons Stroke Rounded，旧图集页面保留既有 Lucide；状态同时使用图标和文字，不只依赖颜色
 
 ## 权限边界
 

@@ -231,6 +231,14 @@ cd E:\codex\chengxu\android-client
 - TDD 记录：`brand-workbench.spec.mjs` 先失败于双角色工作台尚未接入，第二轮先失败于快捷入口没有页面状态变化；完成实现后聚焦测试 3/3 通过。2026-07-20 全量网页单元测试 64/64、移动 UI Playwright 93/93 通过，生产构建成功。未启动 Android 模拟器。
 - 下一步执行 HTML 品牌原型 Task 6：补充最终状态截图与响应式检查，把参考图和原型截图放在同一视觉对比输入中完成 Design QA，修复 P0/P1/P2 后更新 `docs/mobile-ui-atlas.md` 并交付本地预览。
 
+### HTML 品牌原型 Task 6：自动截图、视觉 QA 与原型交付（已完成）
+
+- 新增 `brand-accessibility.spec.mjs`，覆盖 48px 触控目标、键盘可见焦点、`aria-pressed` / `aria-current` 非颜色语义、离线禁用不响应、退出弹层焦点循环与返回，以及 360×800、390×844、412×915 三档无横向溢出。
+- 截图流程新增状态化品牌原型：登录、员工/管理员工作台、个人页、离线态、退出弹层，以及 hover / pressed / focus / disabled 四张状态证据；同时保留登录、双工作台、Profile、离线、确认弹层、底部 Sheet 和状态合集等既有图集输出。
+- 已将两张参考图与 390×844 原型截图放在同一输入中复核，并生成 `qa-login-comparison.png`、`qa-workbench-comparison.png`、`qa-overlay-comparison.png` 三张同屏板。首轮 P2（40px 查看全部、管理员副标题换行、跨页姓名不一致）均已修复；`design/mobile-ui/design-qa.md` 最终结果为 `passed`。
+- 浏览器主流程“登录 → 管理员 → 五栏导航 → 我的 → 取消退出 → 确认退出”通过，控制台错误与页面异常均为 0；未启动 Android 模拟器。
+- 2026-07-20 最终验证：网页单元测试 64/64、移动 UI Playwright 108/108、确定性截图 34/34；`dist/mobile-ui-prototype` 独立原型构建与仓库生产构建均成功。Task 6 提交推送后，下一阶段先以当前 HTML 真值单独规划 Compose 品牌 UI 移植；真实工单 API 与 Room 缓存继续暂停。
+
 ## 工作纪律
 
 每次重要改动后必须：

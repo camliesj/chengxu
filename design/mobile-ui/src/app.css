@@ -2731,6 +2731,10 @@ button:disabled {
   background: linear-gradient(180deg, var(--brand-ice), var(--brand-surface));
 }
 
+.atlas-root[data-screen-id='brand-workbench'] .mobile-shell__subtitle {
+  max-width: none;
+}
+
 .mobile-bottom-nav {
   padding-top: 8px;
   background: rgb(255 255 255 / 94%);
@@ -2930,7 +2934,7 @@ button:disabled {
 
 .brand-workbench__view-all {
   min-width: 76px;
-  min-height: 40px;
+  min-height: 48px;
   padding-inline: 10px;
   font-size: 11px;
 }

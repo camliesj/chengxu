@@ -48,7 +48,7 @@ export function BrandProfileStage({ state, onLogout, logoutRef }) {
     <div className="brand-profile-stage">
       <section className="brand-profile-stage__identity">
         <span><BrandIcon name="user" size={24} decorative /></span>
-        <div><h2>张工</h2><p>{state.role === 'admin' ? '管理员' : '维修顾问'} · 通达汽车服务中心</p></div>
+        <div><h2>{state.role === 'admin' ? '李经理' : '张工'}</h2><p>{state.role === 'admin' ? '管理员' : '维修顾问'} · 通达汽车服务中心</p></div>
         <StatusPill tone="primary">{state.role === 'admin' ? '管理员' : '员工'}</StatusPill>
       </section>
       <section className="brand-profile-stage__list" aria-label="账户信息">
