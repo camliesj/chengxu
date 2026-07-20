@@ -247,17 +247,17 @@ Record API outcome mapping and test evidence. Commit message: `feat(android): ad
 - Produces: `fun interface AuthenticatedDataCleaner { suspend fun clear() }`.
 - Changes: `AuthenticationRepository` requires a cleaner and invokes it before publishing unauthenticated state.
 
-- [ ] **Step 1: Add failing lifecycle cleanup tests**
+- [x] **Step 1: Add failing lifecycle cleanup tests**
 
 Add a recording fake and separate tests proving `restore()` with no valid session, `logout()`, and `invalidate(SessionExpired)` each call `clear()` exactly once before the public session becomes null. Add a cancellation test proving cleaner cancellation escapes and authentication state is not falsely advanced.
 
-- [ ] **Step 2: Run focused tests and verify RED**
+- [x] **Step 2: Run focused tests and verify RED**
 
 Run: `cd android-client; .\gradlew.bat :app:testDebugUnitTest --tests "*.AuthenticationRepositoryTest"`
 
 Expected: FAIL because the repository does not accept or invoke an authenticated-data cleaner.
 
-- [ ] **Step 3: Implement the explicit cleanup boundary**
+- [x] **Step 3: Implement the explicit cleanup boundary**
 
 ```kotlin
 fun interface AuthenticatedDataCleaner {
@@ -267,7 +267,7 @@ fun interface AuthenticatedDataCleaner {
 
 Require it in the repository constructor. Call `clear()` when restore returns null, during logout, and during invalidation, before publishing `Unauthenticated`. Do not catch `CancellationException`. Keep login persistence behavior unchanged.
 
-- [ ] **Step 4: Update all repository test fixtures and run regression**
+- [x] **Step 4: Update all repository test fixtures and run regression**
 
 Use `AuthenticatedDataCleaner { }` only in tests that are unrelated to cleanup; production wiring must pass the Room-backed implementation explicitly.
 
@@ -275,7 +275,7 @@ Run: `cd android-client; .\gradlew.bat :app:testDebugUnitTest`
 
 Expected: BUILD SUCCESSFUL and authentication regression remains green.
 
-- [ ] **Step 5: Update handoff, commit, and push**
+- [x] **Step 5: Update handoff, commit, and push**
 
 Record the cleanup lifecycle contract. Commit message: `feat(android): clear customer data with auth lifecycle`. Push the current branch.
 

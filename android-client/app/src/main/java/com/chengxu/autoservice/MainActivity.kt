@@ -5,23 +5,29 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.lifecycle.lifecycleScope
+import com.chengxu.autoservice.core.auth.AuthenticatedDataCleaner
 import com.chengxu.autoservice.core.auth.AuthenticationRepository
 import com.chengxu.autoservice.core.auth.EncryptedSessionStore
 import com.chengxu.autoservice.core.auth.HttpUrlConnectionAuthApi
 import com.chengxu.autoservice.core.auth.SharedPreferencesEncryptedValueStore
 import com.chengxu.autoservice.core.auth.androidKeystoreSessionCipher
 import com.chengxu.autoservice.core.network.AndroidConnectivityNetworkMonitor
+import com.chengxu.autoservice.core.orders.cache.AutoserviceDatabase
 import com.chengxu.autoservice.ui.workbench.DemoWorkbenchRepository
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val database = AutoserviceDatabase.create(applicationContext)
         val authenticationRepository = AuthenticationRepository(
             authApi = HttpUrlConnectionAuthApi(BuildConfig.API_ORIGIN),
             sessionStore = EncryptedSessionStore(
                 valueStore = SharedPreferencesEncryptedValueStore(applicationContext),
                 cipher = androidKeystoreSessionCipher(),
             ),
+            authenticatedDataCleaner = AuthenticatedDataCleaner {
+                database.orderDao().clearAll()
+            },
         )
         val networkMonitor = AndroidConnectivityNetworkMonitor(
             connectivityManager = getSystemService(ConnectivityManager::class.java),

@@ -4,6 +4,7 @@ import com.chengxu.autoservice.core.auth.AuthApi
 import com.chengxu.autoservice.core.auth.AuthCredentials
 import com.chengxu.autoservice.core.auth.AuthFailure
 import com.chengxu.autoservice.core.auth.AuthResult
+import com.chengxu.autoservice.core.auth.AuthenticatedDataCleaner
 import com.chengxu.autoservice.core.auth.AuthenticationRepository
 import com.chengxu.autoservice.core.auth.SessionStore
 import com.chengxu.autoservice.core.network.ConnectionState
@@ -103,7 +104,11 @@ class LoginViewModelTest {
     }
 
     private fun viewModel(api: AuthApi, connection: ConnectionState) = LoginViewModel(
-        authenticationRepository = AuthenticationRepository(api, EmptySessionStore()),
+        authenticationRepository = AuthenticationRepository(
+            api,
+            EmptySessionStore(),
+            AuthenticatedDataCleaner { },
+        ),
         networkMonitor = FakeNetworkMonitor(connection),
     )
 

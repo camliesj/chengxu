@@ -322,6 +322,14 @@ cd E:\codex\chengxu\android-client
 - TDD RED 已确认生产类型缺失时聚焦测试失败；GREEN 后 `HttpUrlConnectionOrdersApiTest` 8/8 通过。2026-07-20 全量验证为 JVM 50/50（0 失败、0 错误、0 跳过），`:app:compileDebugAndroidTestKotlin` 与 `:app:lintDebug` 均 `BUILD SUCCESSFUL`，本阶段未启动 Android 模拟器。
 - 下一步执行真实工单与 Room 缓存 Task 3：由认证生命周期统一清理客户数据缓存，覆盖无有效恢复、退出、会话失效与取消传播。
 
+### 真实工单与 Room 缓存 Task 3：认证生命周期客户数据清理（已完成）
+
+- 新增窄边界 `AuthenticatedDataCleaner`，`AuthenticationRepository` 现在必须显式接收清理器；无有效会话恢复、退出登录和会话失效都会执行一次客户数据清理。
+- 清理严格发生在公开 `session` 置空和发布 `Unauthenticated` 之前；清理器抛出的 `CancellationException` 保持原对象向上传播，认证状态不会被错误推进。
+- 生产装配已创建 `AutoserviceDatabase`，并把 `OrderDao.clearAll()` 作为 Room 后备清理器显式注入；无 Token、账号或密码写入工单数据库。
+- TDD RED 已确认清理接口和构造参数缺失；GREEN 后新增无效恢复、退出、失效和取消传播 4 个生命周期测试。2026-07-20 全量 JVM 54/54（0 失败、0 错误、0 跳过），`:app:compileDebugAndroidTestKotlin` 与 `:app:lintDebug` 均 `BUILD SUCCESSFUL`，未启动 Android 模拟器。
+- 下一步执行 Task 4：实现公司隔离、缓存优先、离线不请求、刷新去重、401 清缓存后失效会话的 `CachedOrdersRepository`。
+
 ## 工作纪律
 
 每次重要改动后必须：

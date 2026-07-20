@@ -16,6 +16,7 @@ sealed interface AuthenticationState {
 class AuthenticationRepository(
     private val authApi: AuthApi,
     private val sessionStore: SessionStore,
+    private val authenticatedDataCleaner: AuthenticatedDataCleaner,
 ) : SessionRepository {
     private val mutableState = MutableStateFlow<AuthenticationState>(AuthenticationState.Restoring)
     private val mutableSession = MutableStateFlow<AppSession?>(null)
@@ -27,6 +28,8 @@ class AuthenticationRepository(
         mutableState.value = AuthenticationState.Restoring
         val restored = sessionStore.read()
         if (restored == null) {
+            authenticatedDataCleaner.clear()
+            mutableSession.value = null
             mutableState.value = AuthenticationState.Unauthenticated()
         } else {
             publishAuthenticated(restored)
@@ -54,12 +57,14 @@ class AuthenticationRepository(
 
     suspend fun logout() {
         sessionStore.clear()
+        authenticatedDataCleaner.clear()
         mutableSession.value = null
         mutableState.value = AuthenticationState.Unauthenticated()
     }
 
     suspend fun invalidate(failure: AuthFailure) {
         sessionStore.clear()
+        authenticatedDataCleaner.clear()
         mutableSession.value = null
         mutableState.value = AuthenticationState.Unauthenticated(
             if (failure == AuthFailure.SessionExpired) "登录已过期，请重新登录" else "登录状态无效，请重新登录",

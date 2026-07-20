@@ -17,6 +17,7 @@ class AuthenticationRepositoryTest {
         val repository = AuthenticationRepository(
             authApi = FakeAuthApi(AuthResult.Success(remoteSession())),
             sessionStore = store,
+            authenticatedDataCleaner = AuthenticatedDataCleaner { },
         )
 
         repository.login(AuthCredentials("tongda", "worker", "secret12"))
@@ -40,6 +41,7 @@ class AuthenticationRepositoryTest {
 
                 override suspend fun clear() = Unit
             },
+            authenticatedDataCleaner = AuthenticatedDataCleaner { },
         )
 
         repository.login(AuthCredentials("tongda", "worker", "secret12"))
@@ -63,6 +65,7 @@ class AuthenticationRepositoryTest {
 
                 override suspend fun clear() = Unit
             },
+            authenticatedDataCleaner = AuthenticatedDataCleaner { },
         )
         var thrown: CancellationException? = null
 
@@ -81,6 +84,7 @@ class AuthenticationRepositoryTest {
         val repository = AuthenticationRepository(
             authApi = FakeAuthApi(AuthResult.Failure(AuthFailure.NetworkUnavailable)),
             sessionStore = store,
+            authenticatedDataCleaner = AuthenticatedDataCleaner { },
         )
 
         repository.invalidate(AuthFailure.SessionExpired)
@@ -99,6 +103,7 @@ class AuthenticationRepositoryTest {
         val repository = AuthenticationRepository(
             authApi = FakeAuthApi(AuthResult.Failure(AuthFailure.NetworkUnavailable)),
             sessionStore = store,
+            authenticatedDataCleaner = AuthenticatedDataCleaner { },
         )
 
         repository.logout()
@@ -106,6 +111,94 @@ class AuthenticationRepositoryTest {
         assertNull(store.value)
         assertNull(repository.session.value)
         assertTrue(repository.state.value is AuthenticationState.Unauthenticated)
+    }
+
+    @Test
+    fun restoreWithoutValidSessionClearsCustomerDataBeforePublishingUnauthenticated() = runTest {
+        var repository: AuthenticationRepository? = null
+        val observations = mutableListOf<Pair<AuthenticationState, AppSession?>>()
+        val cleaner = RecordingAuthenticatedDataCleaner {
+            val currentRepository = requireNotNull(repository)
+            observations += currentRepository.state.value to currentRepository.session.value
+        }
+        repository = AuthenticationRepository(
+            authApi = FakeAuthApi(AuthResult.Failure(AuthFailure.NetworkUnavailable)),
+            sessionStore = FakeSessionStore(),
+            authenticatedDataCleaner = cleaner,
+        )
+
+        repository.restore()
+
+        assertEquals(1, cleaner.clearCount)
+        assertEquals(AuthenticationState.Restoring, observations.single().first)
+        assertNull(observations.single().second)
+        assertTrue(repository.state.value is AuthenticationState.Unauthenticated)
+    }
+
+    @Test
+    fun logoutClearsCustomerDataOnceBeforePublishingNullSession() = runTest {
+        var repository: AuthenticationRepository? = null
+        val observedSessions = mutableListOf<AppSession?>()
+        val cleaner = RecordingAuthenticatedDataCleaner {
+            observedSessions += requireNotNull(repository).session.value
+        }
+        repository = AuthenticationRepository(
+            authApi = FakeAuthApi(AuthResult.Failure(AuthFailure.NetworkUnavailable)),
+            sessionStore = FakeSessionStore(remoteSession().toAppSession()),
+            authenticatedDataCleaner = cleaner,
+        )
+        repository.restore()
+
+        repository.logout()
+
+        assertEquals(1, cleaner.clearCount)
+        assertEquals("worker", observedSessions.single()?.username)
+        assertNull(repository.session.value)
+        assertTrue(repository.state.value is AuthenticationState.Unauthenticated)
+    }
+
+    @Test
+    fun invalidationClearsCustomerDataOnceBeforePublishingNullSession() = runTest {
+        var repository: AuthenticationRepository? = null
+        val observedStates = mutableListOf<AuthenticationState>()
+        val cleaner = RecordingAuthenticatedDataCleaner {
+            observedStates += requireNotNull(repository).state.value
+        }
+        repository = AuthenticationRepository(
+            authApi = FakeAuthApi(AuthResult.Failure(AuthFailure.NetworkUnavailable)),
+            sessionStore = FakeSessionStore(remoteSession().toAppSession()),
+            authenticatedDataCleaner = cleaner,
+        )
+        repository.restore()
+
+        repository.invalidate(AuthFailure.SessionExpired)
+
+        assertEquals(1, cleaner.clearCount)
+        assertTrue(observedStates.single() is AuthenticationState.Authenticated)
+        assertNull(repository.session.value)
+        assertTrue(repository.state.value is AuthenticationState.Unauthenticated)
+    }
+
+    @Test
+    fun cleanerCancellationPropagatesWithoutAdvancingAuthenticationState() = runTest {
+        val cancellation = CancellationException("cancelled")
+        val repository = AuthenticationRepository(
+            authApi = FakeAuthApi(AuthResult.Failure(AuthFailure.NetworkUnavailable)),
+            sessionStore = FakeSessionStore(remoteSession().toAppSession()),
+            authenticatedDataCleaner = AuthenticatedDataCleaner { throw cancellation },
+        )
+        repository.restore()
+        var thrown: CancellationException? = null
+
+        try {
+            repository.logout()
+        } catch (failure: CancellationException) {
+            thrown = failure
+        }
+
+        assertSame(cancellation, thrown)
+        assertEquals("worker", repository.session.value?.username)
+        assertTrue(repository.state.value is AuthenticationState.Authenticated)
     }
 
     private fun remoteSession() = RemoteSession(
@@ -132,6 +225,17 @@ class AuthenticationRepositoryTest {
 
         override suspend fun clear() {
             value = null
+        }
+    }
+
+    private class RecordingAuthenticatedDataCleaner(
+        private val onClear: suspend () -> Unit,
+    ) : AuthenticatedDataCleaner {
+        var clearCount = 0
+
+        override suspend fun clear() {
+            clearCount += 1
+            onClear()
         }
     }
 }
