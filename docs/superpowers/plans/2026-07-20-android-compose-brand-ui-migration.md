@@ -87,7 +87,7 @@
 - Produces: `BrandIconResource` plus `BrandIcon(resource, contentDescription, modifier, tint)`.
 - Produces: `BrandConfirmDialog(title, description, cancelLabel, confirmLabel, returnFocusRequester, onCancel, onConfirm)`.
 
-- [ ] **Step 1: Replace the theme contract tests with the approved brand contract**
+- [x] **Step 1: Replace the theme contract tests with the approved brand contract**
 
 Update `AutoserviceThemeTest.kt` so the canonical-value test contains these exact assertions and the Material color-role allowlist uses the same eleven colors:
 
@@ -117,7 +117,7 @@ fun brandRadiiMatchTheApprovedPrototype() {
 
 Add a `DesignSystemTest` case that renders `BrandButton(enabled = false)` and asserts the node is disabled and at least 48dp high.
 
-- [ ] **Step 2: Add the failing vector-export contract**
+- [x] **Step 2: Add the failing vector-export contract**
 
 Create `scripts/export-hugeicons-to-vector.test.mjs`:
 
@@ -138,7 +138,7 @@ test('exports the approved Hugeicons set as tintable 24dp vectors', () => {
 });
 ```
 
-- [ ] **Step 3: Run the focused tests and verify RED**
+- [x] **Step 3: Run the focused tests and verify RED**
 
 Run:
 
@@ -150,7 +150,7 @@ cd android-client
 
 Expected: Node fails because the exporter does not exist; Gradle fails because `Canvas`, `AutoserviceRadii`, and the new brand values do not exist.
 
-- [ ] **Step 4: Implement the canonical tokens and Material mapping**
+- [x] **Step 4: Implement the canonical tokens and Material mapping**
 
 Replace the token boundary with these names and values, then update every Material color role to use only them:
 
@@ -184,7 +184,7 @@ object AutoserviceMotion {
 
 Set `AutoserviceShapes.extraSmall/small/medium` to 16dp and `large/extraLarge` to 20dp. Keep zero letter spacing and define explicit headline, title, body, and label sizes rather than inheriting platform defaults.
 
-- [ ] **Step 5: Implement the shared component boundaries**
+- [x] **Step 5: Implement the shared component boundaries**
 
 Create the public APIs below. Use `MutableInteractionSource.collectIsPressedAsState()`, `animateFloatAsState`, `minimumInteractiveComponentSize()`, and Material semantics; do not expose arbitrary color parameters.
 
@@ -229,7 +229,7 @@ fun CompanySelectionCard(
 
 Upgrade `AutoserviceCard`, `MetricCard`, and `StatusChip` to the 16dp brand card surface. Keep `MetricTone` and `StatusTone` as the only semantic color inputs.
 
-- [ ] **Step 6: Implement the reproducible Hugeicons exporter and render the resources**
+- [x] **Step 6: Implement the reproducible Hugeicons exporter and render the resources**
 
 `export-hugeicons-to-vector.mjs` must import the 24 names already used by `icon-map.js`, expose an `ICON_SPECS` array, convert official `path` nodes directly, convert the one `circle` node to two arc commands, escape XML, and write `brand_icon_<snake_case>.xml` files.
 
@@ -270,7 +270,7 @@ Copy-Item 'design\mobile-ui\public\brand-assets\empty-service-tools.png' 'androi
 
 Create `BrandIconResource` with all 24 `R.drawable.brand_icon_*` IDs and render them only through `painterResource` in `BrandIcon`. Record `@hugeicons/core-free-icons` 4.2.2 and MIT license in `android-client/THIRD_PARTY_NOTICES.md`.
 
-- [ ] **Step 7: Run GREEN verification**
+- [x] **Step 7: Run GREEN verification**
 
 Run:
 
@@ -282,7 +282,7 @@ cd android-client
 
 Expected: Node test passes; theme JVM tests pass; Android test sources and Lint complete with `BUILD SUCCESSFUL`.
 
-- [ ] **Step 8: Update handoff, commit, and push**
+- [x] **Step 8: Update handoff, commit, and push**
 
 Record token values, component APIs, exact vector count, PNG dimensions/alpha preservation, license notice, and verification results. Commit:
 

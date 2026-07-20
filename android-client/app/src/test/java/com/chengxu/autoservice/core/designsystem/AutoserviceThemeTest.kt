@@ -2,50 +2,52 @@ package com.chengxu.autoservice.core.designsystem
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.dp
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AutoserviceThemeTest {
     @Test
-    fun materialShapesUseTheUniformAutoserviceRadius() {
-        assertEquals(AutoserviceShape, AutoserviceShapes.extraSmall)
-        assertEquals(AutoserviceShape, AutoserviceShapes.small)
-        assertEquals(AutoserviceShape, AutoserviceShapes.medium)
-        assertEquals(AutoserviceShape, AutoserviceShapes.large)
-        assertEquals(AutoserviceShape, AutoserviceShapes.extraLarge)
+    fun materialShapesUseTheApprovedBrandRadii() {
+        val cardShape = RoundedCornerShape(AutoserviceRadii.Card)
+        val panelShape = RoundedCornerShape(AutoserviceRadii.Panel)
+        assertEquals(cardShape, AutoserviceShapes.extraSmall)
+        assertEquals(cardShape, AutoserviceShapes.small)
+        assertEquals(cardShape, AutoserviceShapes.medium)
+        assertEquals(panelShape, AutoserviceShapes.large)
+        assertEquals(panelShape, AutoserviceShapes.extraLarge)
     }
 
     @Test
-    fun canonicalColorsMatchTheApprovedArgbValues() {
-        assertEquals(0xFFF5F7FA.toInt(), AutoserviceColors.Background.toArgb())
+    fun canonicalColorsMatchTheApprovedBrandArgbValues() {
+        assertEquals(0xFFF4F6F8.toInt(), AutoserviceColors.Canvas.toArgb())
         assertEquals(0xFFFFFFFF.toInt(), AutoserviceColors.Surface.toArgb())
-        assertEquals(0xFF1677FF.toInt(), AutoserviceColors.Primary.toArgb())
-        assertEquals(0xFF172033.toInt(), AutoserviceColors.TextPrimary.toArgb())
-        assertEquals(0xFF667085.toInt(), AutoserviceColors.TextSecondary.toArgb())
-        assertEquals(0xFF98A2B3.toInt(), AutoserviceColors.TextMuted.toArgb())
-        assertEquals(0xFFE4EAF2.toInt(), AutoserviceColors.Border.toArgb())
-        assertEquals(0xFF12A05C.toInt(), AutoserviceColors.Success.toArgb())
-        assertEquals(0xFFFF8A00.toInt(), AutoserviceColors.Warning.toArgb())
-        assertEquals(0xFFFF3B30.toInt(), AutoserviceColors.Danger.toArgb())
+        assertEquals(0xFFF0F3F7.toInt(), AutoserviceColors.SurfaceSoft.toArgb())
+        assertEquals(0xFFEAF1FB.toInt(), AutoserviceColors.Ice.toArgb())
+        assertEquals(0xFF101214.toInt(), AutoserviceColors.Ink.toArgb())
+        assertEquals(0xFF697079.toInt(), AutoserviceColors.InkMuted.toArgb())
+        assertEquals(0xFFE3E7EC.toInt(), AutoserviceColors.Line.toArgb())
+        assertEquals(0xFF111315.toInt(), AutoserviceColors.Action.toArgb())
+        assertEquals(0xFFFFFFFF.toInt(), AutoserviceColors.ActionOn.toArgb())
+        assertEquals(0xFF25805F.toInt(), AutoserviceColors.Success.toArgb())
+        assertEquals(0xFFA96816.toInt(), AutoserviceColors.Warning.toArgb())
+        assertEquals(0xFFB84A45.toInt(), AutoserviceColors.Danger.toArgb())
+    }
+
+    @Test
+    fun brandRadiiAndMotionMatchTheApprovedPrototype() {
+        assertEquals(20.dp, AutoserviceRadii.Panel)
+        assertEquals(16.dp, AutoserviceRadii.Card)
+        assertEquals(16.dp, AutoserviceRadii.Control)
+        assertEquals(120, AutoserviceMotion.FastMillis)
+        assertEquals(180, AutoserviceMotion.BaseMillis)
     }
 
     @Test
     fun componentTonesAndOfflineBannerUseOnlyApprovedColors() {
-        val approvedColors = setOf(
-            AutoserviceColors.Background,
-            AutoserviceColors.Surface,
-            AutoserviceColors.Primary,
-            AutoserviceColors.TextPrimary,
-            AutoserviceColors.TextSecondary,
-            AutoserviceColors.TextMuted,
-            AutoserviceColors.Border,
-            AutoserviceColors.Success,
-            AutoserviceColors.Warning,
-            AutoserviceColors.Danger,
-        )
-
-        assertEquals(AutoserviceColors.Background, AutoserviceColors.OfflineBannerBackground)
+        assertEquals(AutoserviceColors.Ice, AutoserviceColors.OfflineBannerBackground)
         assertTrue(StatusTone.entries.map(StatusTone::color).all { it in approvedColors })
         assertTrue(MetricTone.entries.map(MetricTone::color).all { it in approvedColors })
     }
@@ -103,22 +105,25 @@ class AutoserviceThemeTest {
             "onTertiaryFixed" to colors.onTertiaryFixed,
             "onTertiaryFixedVariant" to colors.onTertiaryFixedVariant,
         )
-        val approvedColors = setOf(
-            AutoserviceColors.Background,
-            AutoserviceColors.Surface,
-            AutoserviceColors.Primary,
-            AutoserviceColors.TextPrimary,
-            AutoserviceColors.TextSecondary,
-            AutoserviceColors.TextMuted,
-            AutoserviceColors.Border,
-            AutoserviceColors.Success,
-            AutoserviceColors.Warning,
-            AutoserviceColors.Danger,
-        )
         val unapprovedRoles = roles.filterValues { it !in approvedColors }
 
         assertTrue("Unapproved Material colors: ${unapprovedRoles.toArgbReport()}", unapprovedRoles.isEmpty())
     }
+
+    private val approvedColors = setOf(
+        AutoserviceColors.Canvas,
+        AutoserviceColors.Surface,
+        AutoserviceColors.SurfaceSoft,
+        AutoserviceColors.Ice,
+        AutoserviceColors.Ink,
+        AutoserviceColors.InkMuted,
+        AutoserviceColors.Line,
+        AutoserviceColors.Action,
+        AutoserviceColors.ActionOn,
+        AutoserviceColors.Success,
+        AutoserviceColors.Warning,
+        AutoserviceColors.Danger,
+    )
 
     private fun Map<String, Color>.toArgbReport(): Map<String, String> =
         mapValues { (_, color) -> "#%08X".format(color.toArgb()) }

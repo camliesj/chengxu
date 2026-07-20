@@ -252,6 +252,17 @@ cd E:\codex\chengxu\android-client
 - 计划分为五个 TDD 任务：品牌设计系统/官方 Hugeicons 转换/图片资产、品牌登录、五栏壳层/阶段页/我的/退出、双角色工作台、最终干净验证与真机 APK。
 - 用户此前已选择当前分支内联执行，不创建子代理或额外 worktree；下一步按计划从 Task 1 开始，尚未修改生产 Android UI。
 
+### Compose 品牌 UI Task 1：设计系统、Hugeicons 与图片资产（已完成）
+
+- Android 品牌 Token 已锁定 HTML 原型：Canvas `#F4F6F8`、Surface `#FFFFFF`、Surface Soft `#F0F3F7`、Ice `#EAF1FB`、Ink `#101214`、Ink Muted `#697079`、Line `#E3E7EC`、Action `#111315`、Success `#25805F`、Warning `#A96816`、Danger `#B84A45`。
+- Material 3 全部颜色槽继续只映射到批准色板；页面/弹层使用 20dp，卡片和控件使用 16dp，动效基准为 120/180ms，中文系统字体保持零额外字距。
+- 新增 `BrandButton`、`BrandTextField`、`CompanySelectionCard`、`BrandIcon` 和 `BrandConfirmDialog` 共享边界；按钮具备至少 48dp 触控高度、按下缩放、加载、禁用与四种受控语义色调，不公开任意颜色入口。
+- 新增可重复执行的 `scripts/export-hugeicons-to-vector.mjs`；从官方 `@hugeicons/core-free-icons@4.2.2` 路径数据生成 24 个本地 24dp VectorDrawable，Node 合同测试 1/1 通过。来源、版本与 MIT 许可已记录在 `android-client/THIRD_PARTY_NOTICES.md`。
+- 已原样复制品牌图片到 Android `drawable-nodpi`：车辆图 716×500、工具图 440×330；与 HTML 源文件 SHA-256 一致，四角 Alpha 均为 0，并已完成视觉检查。
+- TDD RED：Node 测试先失败于导出器不存在；主题 JVM 测试先失败于品牌 Token 与圆角/动效合同不存在。GREEN 后 Android 全量 JVM 测试 42/42 通过（0 失败、0 错误、0 跳过）。
+- `:app:compileDebugAndroidTestKotlin` 与 `:app:lintDebug` 均 `BUILD SUCCESSFUL`；Lint 0 错误，新增图片在 Task 2/3 消费前仅报告预期的未使用资源警告。本阶段未启动 Android 模拟器。
+- 下一步执行 Task 2：品牌恢复中与登录体验；继续复用现有 `LoginViewModel` 和真实认证仓库，不改变认证业务逻辑。
+
 ## 工作纪律
 
 每次重要改动后必须：

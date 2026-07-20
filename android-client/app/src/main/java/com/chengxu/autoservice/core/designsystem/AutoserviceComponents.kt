@@ -27,8 +27,8 @@ enum class MetricTone {
 
     val color
         get() = when (this) {
-            DEFAULT -> AutoserviceColors.TextPrimary
-            PRIMARY -> AutoserviceColors.Primary
+            DEFAULT -> AutoserviceColors.Ink
+            PRIMARY -> AutoserviceColors.Action
             SUCCESS -> AutoserviceColors.Success
             WARNING -> AutoserviceColors.Warning
             DANGER -> AutoserviceColors.Danger
@@ -44,7 +44,7 @@ enum class StatusTone {
 
     val color
         get() = when (this) {
-            PRIMARY -> AutoserviceColors.Primary
+            PRIMARY -> AutoserviceColors.Action
             SUCCESS -> AutoserviceColors.Success
             WARNING -> AutoserviceColors.Warning
             DANGER -> AutoserviceColors.Danger
@@ -60,8 +60,8 @@ fun AutoserviceCard(
         modifier = modifier,
         shape = AutoserviceShape,
         color = AutoserviceColors.Surface,
-        contentColor = AutoserviceColors.TextPrimary,
-        border = BorderStroke(1.dp, AutoserviceColors.Border),
+        contentColor = AutoserviceColors.Ink,
+        border = BorderStroke(1.dp, AutoserviceColors.Line),
     ) {
         Column(modifier = Modifier.padding(AutoserviceSpacing.Lg), content = content)
     }
@@ -78,7 +78,7 @@ fun MetricCard(
     AutoserviceCard(modifier = modifier) {
         Text(
             text = label,
-            color = AutoserviceColors.TextSecondary,
+            color = AutoserviceColors.InkMuted,
             style = MaterialTheme.typography.bodyMedium,
         )
         Text(
@@ -91,7 +91,7 @@ fun MetricCard(
             Text(
                 text = it,
                 modifier = Modifier.padding(top = AutoserviceSpacing.Xs),
-                color = AutoserviceColors.TextMuted,
+                color = AutoserviceColors.InkMuted,
                 style = MaterialTheme.typography.bodySmall,
             )
         }

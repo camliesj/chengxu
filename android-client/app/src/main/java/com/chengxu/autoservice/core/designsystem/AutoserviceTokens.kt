@@ -5,17 +5,27 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 object AutoserviceColors {
-    val Background = Color(0xFFF5F7FA)
+    val Canvas = Color(0xFFF4F6F8)
     val Surface = Color(0xFFFFFFFF)
-    val Primary = Color(0xFF1677FF)
-    val TextPrimary = Color(0xFF172033)
-    val TextSecondary = Color(0xFF667085)
-    val TextMuted = Color(0xFF98A2B3)
-    val Border = Color(0xFFE4EAF2)
-    val Success = Color(0xFF12A05C)
-    val Warning = Color(0xFFFF8A00)
-    val Danger = Color(0xFFFF3B30)
-    val OfflineBannerBackground = Background
+    val SurfaceSoft = Color(0xFFF0F3F7)
+    val Ice = Color(0xFFEAF1FB)
+    val Ink = Color(0xFF101214)
+    val InkMuted = Color(0xFF697079)
+    val Line = Color(0xFFE3E7EC)
+    val Action = Color(0xFF111315)
+    val ActionOn = Surface
+    val Success = Color(0xFF25805F)
+    val Warning = Color(0xFFA96816)
+    val Danger = Color(0xFFB84A45)
+
+    // Compatibility aliases keep existing screens compiling while each page is migrated.
+    val Background = Canvas
+    val Primary = Action
+    val TextPrimary = Ink
+    val TextSecondary = InkMuted
+    val TextMuted = InkMuted
+    val Border = Line
+    val OfflineBannerBackground = Ice
 }
 
 object AutoserviceSpacing {
@@ -26,4 +36,17 @@ object AutoserviceSpacing {
     val Xl = 24.dp
 }
 
-val AutoserviceShape = RoundedCornerShape(8.dp)
+object AutoserviceRadii {
+    val Panel = 20.dp
+    val Card = 16.dp
+    val Control = 16.dp
+}
+
+object AutoserviceMotion {
+    const val FastMillis = 120
+    const val BaseMillis = 180
+}
+
+val AutoserviceShape = RoundedCornerShape(AutoserviceRadii.Card)
+val AutoservicePanelShape = RoundedCornerShape(AutoserviceRadii.Panel)
+val AutoserviceControlShape = RoundedCornerShape(AutoserviceRadii.Control)
