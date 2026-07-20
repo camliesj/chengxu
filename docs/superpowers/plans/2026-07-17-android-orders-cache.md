@@ -164,7 +164,7 @@ Record Room/KSP versions, schema v1, compiled DAO tests, and the “not run with
 - Produces: `OrdersApi.fetch(token: String): OrdersResult`.
 - Produces: `RepairOrder` with `amountCents: Long` and raw plus sortable date fields.
 
-- [ ] **Step 1: Write remote contract tests**
+- [x] **Step 1: Write remote contract tests**
 
 Cover a successful envelope, Bearer header, `401`, `503`, `IOException`, malformed JSON, malformed optional fields, and cancellation propagation. The success fixture must include an unknown field and an amount of `500.25`, expected as `50_025` cents.
 
@@ -179,13 +179,13 @@ fun successMapsOrdersAndSendsBearerToken() = runTest {
 }
 ```
 
-- [ ] **Step 2: Run the focused test and verify RED**
+- [x] **Step 2: Run the focused test and verify RED**
 
 Run: `cd android-client; .\gradlew.bat :app:testDebugUnitTest --tests "*.HttpUrlConnectionOrdersApiTest"`
 
 Expected: FAIL because the orders API types do not exist.
 
-- [ ] **Step 3: Implement domain and result types**
+- [x] **Step 3: Implement domain and result types**
 
 ```kotlin
 data class RepairOrder(
@@ -217,11 +217,11 @@ enum class OrdersFailure { Unauthorized, NetworkUnavailable, ServerError, Malfor
 
 Implement date normalization so `yyyy-MM-dd` is retained, `MM-dd` receives the injected/current year, and invalid text yields an empty sort key. Parse numeric or string amounts into cents with `BigDecimal`, half-up to two decimals; invalid or negative amounts become zero.
 
-- [ ] **Step 4: Implement GET transport and mapping**
+- [x] **Step 4: Implement GET transport and mapping**
 
 `OrdersHttpTransport.get(url, authorization)` must run on `Dispatchers.IO`, set 10-second connect/read timeouts, send `Accept: application/json` and `Authorization: Bearer …`, and always disconnect. Map `200`, `401`, other status codes, `IOException`, and malformed `200` distinctly. Catch and rethrow `CancellationException` before any general failure mapping.
 
-- [ ] **Step 5: Run focused and full JVM tests**
+- [x] **Step 5: Run focused and full JVM tests**
 
 Run: `cd android-client; .\gradlew.bat :app:testDebugUnitTest --tests "*.HttpUrlConnectionOrdersApiTest"`
 
@@ -229,7 +229,7 @@ Run: `cd android-client; .\gradlew.bat :app:testDebugUnitTest`
 
 Expected: BUILD SUCCESSFUL; all remote mapping cases pass.
 
-- [ ] **Step 6: Update handoff, commit, and push**
+- [x] **Step 6: Update handoff, commit, and push**
 
 Record API outcome mapping and test evidence. Commit message: `feat(android): add authenticated orders api`. Push the current branch.
 

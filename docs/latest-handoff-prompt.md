@@ -314,6 +314,14 @@ cd E:\codex\chengxu\android-client
 - `docs/android-client.md` 已新增“品牌 UI 真机验收”清单，覆盖双企业选择、输入法/校验、真实员工与管理员、五栏导航、离线只读、退出确认、360dp/系统栏/裁切检查。
 - 当前品牌 UI 迁移范围已全部交付；真实工单 API 与 Room 缓存仍按既有设计/计划暂停，待真机视觉与触控反馈确认后再继续。
 
+### 真实工单与 Room 缓存 Task 2：认证工单 API 与容错映射（已完成）
+
+- 新增 `RepairOrder`、`OrdersApi`、`OrdersResult` 与 `OrdersFailure`，金额统一以分存储；完整日期保留为 `yyyy-MM-dd`，`MM-dd` 注入当前年份，非法日期使用空排序键。
+- 新增 `HttpUrlConnectionOrdersApi` 与可注入的 `OrdersHttpTransport`：调用 `GET /api/orders`，发送 `Accept: application/json` 与 `Authorization: Bearer <token>`，连接和读取超时均为 10 秒，并保证断开连接。
+- 远端结果明确区分成功、401 会话失效、网络不可用、服务端错误和异常响应；JSON 未知字段会忽略，可选字段类型异常会回退为空，非法或负数金额回退为 0；协程取消保持原对象向上传播。
+- TDD RED 已确认生产类型缺失时聚焦测试失败；GREEN 后 `HttpUrlConnectionOrdersApiTest` 8/8 通过。2026-07-20 全量验证为 JVM 50/50（0 失败、0 错误、0 跳过），`:app:compileDebugAndroidTestKotlin` 与 `:app:lintDebug` 均 `BUILD SUCCESSFUL`，本阶段未启动 Android 模拟器。
+- 下一步执行真实工单与 Room 缓存 Task 3：由认证生命周期统一清理客户数据缓存，覆盖无有效恢复、退出、会话失效与取消传播。
+
 ## 工作纪律
 
 每次重要改动后必须：
