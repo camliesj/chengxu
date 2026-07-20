@@ -469,6 +469,14 @@ cd E:\codex\chengxu\android-client
 - TDD RED 先精确失败于新领域类型、状态机函数和权限枚举不存在；角色越权复核又先以 2 个断言失败证明旧 key 能提权，收紧映射后聚焦测试和 Android JVM 全量均 `BUILD SUCCESSFUL`。
 - Android JVM XML 客观统计为 21 个 suite、97/97 测试、0 失败、0 错误、0 跳过。本任务未启动模拟器，下一步执行 Task 2：D1 版本、幂等记录与能力开关迁移。
 
+#### 阶段 1 Task 2：D1 版本、幂等记录与能力开关迁移（已完成）
+
+- 新增 `migrations/0010_android_order_foundation.sql`：为 `repair_orders` 增加默认值为 1 的 `version`，新增以 `company_id + actor + action + operation_id` 为主键的 `order_operations` 幂等表，以及公司隔离的 `company_capabilities` 表。
+- 新增 company/updated、company/status/voided/updated 和 operation target 索引；迁移只为现有企业默认开启 `VIEW_ORDERS`，没有默认开启创建、编辑、结算或其他写能力。
+- TDD RED 的 2 个 migration 合同测试先精确失败于 SQL 文件不存在；实现后 2/2 通过。Wrangler 4.107.0 本地只发现并成功应用 migration 0010，共 8 条命令执行成功；额外查询确认两个表、两个读取索引和 `repair_orders.version INTEGER NOT NULL DEFAULT 1` 实际存在。
+- 网页/Functions 全量 Node 测试 66/66 通过，0 失败、0 跳过。本任务没有访问或修改远端 D1；远端备份、migration 0010 应用和 Pages 部署仍留在 Task 8 的生产门禁。
+- 下一步执行 Task 3：Cloudflare 状态、能力、游标与幂等基础函数。
+
 ## 工作纪律
 
 每次重要改动后必须：

@@ -230,7 +230,7 @@ git push origin codex/android-mobile-ui-atlas
 - Consumes: 现有 `repair_orders.company_id`、`updated_at` 和 D1 migration 目录。
 - Produces: `repair_orders.version`、`order_operations`、`company_capabilities` 及增量读取索引。
 
-- [ ] **Step 1: 写迁移合同 RED 测试**
+- [x] **Step 1: 写迁移合同 RED 测试**
 
 ```js
 import test from 'node:test';
@@ -248,13 +248,13 @@ test('order foundation migration adds optimistic concurrency and idempotency', (
 });
 ```
 
-- [ ] **Step 2: 运行 RED**
+- [x] **Step 2: 运行 RED**
 
 Run: `node --test test/orderFoundationMigration.test.mjs`
 
 Expected: FAIL with `ENOENT` for `0010_android_order_foundation.sql`。
 
-- [ ] **Step 3: 添加可重复部署的迁移**
+- [x] **Step 3: 添加可重复部署的迁移**
 
 ```sql
 ALTER TABLE repair_orders ADD COLUMN version INTEGER NOT NULL DEFAULT 1;
@@ -295,7 +295,7 @@ SELECT DISTINCT company_id, 'VIEW_ORDERS', 1 FROM repair_orders;
 
 不要给写入能力设置默认开启；后续阶段在对应功能上线时显式开启。
 
-- [ ] **Step 4: 验证迁移合同和本地 D1 应用**
+- [x] **Step 4: 验证迁移合同和本地 D1 应用**
 
 Run:
 
@@ -306,13 +306,13 @@ npx.cmd wrangler d1 migrations apply chengxu-db --local
 
 Expected: Node 测试 PASS；Wrangler 报告 `0010_android_order_foundation.sql` 成功应用。若本机已有旧本地 D1 状态，先记录输出，不删除生产或远端数据。
 
-- [ ] **Step 5: 运行网页/Functions 全量测试**
+- [x] **Step 5: 运行网页/Functions 全量测试**
 
 Run: `npm.cmd test`
 
 Expected: 所有既有 Node 测试和新迁移测试通过。
 
-- [ ] **Step 6: 更新交接、提交并推送**
+- [x] **Step 6: 更新交接、提交并推送**
 
 ```powershell
 git add migrations/0010_android_order_foundation.sql test/orderFoundationMigration.test.mjs docs/latest-handoff-prompt.md
