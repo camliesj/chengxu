@@ -376,6 +376,12 @@ cd E:\codex\chengxu\android-client
 - 用户已确认书面规格；任务级实施计划见 `docs/superpowers/plans/2026-07-20-android-compact-login.md`。计划分为可执行布局策略、360×800 紧凑 Compose 布局、完整验证与 APK 三个 TDD 任务。
 - 用户沿用此前选择的内联执行方式；下一步直接执行 Task 1，不创建子代理或 worktree。代码阶段仍不启动 Android 模拟器，保留 JVM 测试、Android 测试代码编译、Lint、APK 构建和真机交接。
 
+#### 紧凑登录页 Task 1：可执行布局策略（已完成）
+
+- 新增纯 Kotlin/Compose 尺寸策略 `loginLayoutSpec(imeVisible)`：常规态固定 200dp Hero、显示营销标题与车辆；IME 可见时切换为 96dp 上下文 Hero，并隐藏营销标题与车辆；两种状态的面板覆盖量均为 16dp。
+- TDD RED 已客观失败于 `loginLayoutSpec` 不存在；补入最小实现后，聚焦 `LoginLayoutPolicyTest` 2/2 通过并 `BUILD SUCCESSFUL`。
+- 下一步执行 Task 2：先让 360×800 Compose 布局契约因缺少新语义标签而编译失败，再实现紧凑企业卡、IME 检测和首屏无滚动登录布局。
+
 ## 工作纪律
 
 每次重要改动后必须：
