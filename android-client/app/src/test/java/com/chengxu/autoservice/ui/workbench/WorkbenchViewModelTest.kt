@@ -45,6 +45,11 @@ class WorkbenchViewModelTest {
         val state = viewModel.uiState.first { !it.loading }
 
         assertEquals("今日工作", state.title)
+        assertEquals(
+            listOf("新建", "在修", "待结算", "保险到期"),
+            state.statusMetrics.map { it.label },
+        )
+        assertEquals(listOf("06", "18", "05", "09"), state.statusMetrics.map { it.value })
         assertFalse(state.quickActions.any { it.permission == AppPermission.SETTLE_ORDER })
     }
 

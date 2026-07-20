@@ -4,11 +4,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
@@ -35,6 +37,14 @@ class WorkbenchScreenTest {
 
         composeRule.onNodeWithText("今日工作").assertIsDisplayed()
         composeRule.onNodeWithText("你好，张工").assertIsDisplayed()
+        listOf("新建", "在修", "待结算", "保险到期").forEach {
+            composeRule.onAllNodesWithText(it).onFirst().assertIsDisplayed()
+        }
+        composeRule.onNodeWithText("今日概览").assertIsDisplayed()
+        composeRule.onNodeWithText("快捷操作").assertIsDisplayed()
+        composeRule.onNodeWithText("我的待办").assertIsDisplayed()
+        composeRule.onNodeWithText("新增工单").assertHasClickAction()
+        composeRule.onNodeWithText("蒙K·A3816 · 张先生").assertHasClickAction()
         composeRule.onAllNodesWithText("办理结算").assertCountEquals(0)
     }
 
@@ -43,7 +53,9 @@ class WorkbenchScreenTest {
         setWorkbench(adminState())
 
         composeRule.onNodeWithText("管理员工作台").assertIsDisplayed()
-        composeRule.onNodeWithText("经营摘要").assertIsDisplayed()
+        composeRule.onNodeWithText("经营概览").assertIsDisplayed()
+        composeRule.onNodeWithText("快捷操作").assertIsDisplayed()
+        composeRule.onNodeWithText("优先事项").assertIsDisplayed()
         composeRule.onNodeWithText("办理结算").assertIsDisplayed()
     }
 
@@ -91,6 +103,7 @@ class WorkbenchScreenTest {
         staffName = "张工",
         title = "今日工作",
         subtitle = "优先处理在修推进、费用核对与保险到期提醒。",
+        statusMetrics = brandStatusMetrics,
         metrics = sampleMetrics,
         sections = listOf(WorkbenchSection.TODAY_QUEUE, WorkbenchSection.ORDER_STATUS),
         quickActions = listOf(
@@ -104,6 +117,7 @@ class WorkbenchScreenTest {
         companyName = companyName,
         title = "管理员工作台",
         subtitle = "关注结算节奏、产值进度与高优先事项。",
+        statusMetrics = brandStatusMetrics,
         metrics = sampleMetrics,
         businessMetrics = sampleMetrics,
         sections = listOf(
@@ -118,6 +132,12 @@ class WorkbenchScreenTest {
     )
 
     private companion object {
+        val brandStatusMetrics = listOf(
+            WorkbenchMetric("新建", "06", "待接单", MetricTone.PRIMARY),
+            WorkbenchMetric("在修", "18", "维修看板", MetricTone.SUCCESS),
+            WorkbenchMetric("待结算", "05", "费用核对", MetricTone.WARNING),
+            WorkbenchMetric("保险到期", "09", "联系车主", MetricTone.DANGER),
+        )
         val sampleMetrics = listOf(
             WorkbenchMetric("在修车辆", "18", "负荷平稳", MetricTone.SUCCESS),
             WorkbenchMetric("保险到期", "09", "高优先跟进", MetricTone.DANGER),

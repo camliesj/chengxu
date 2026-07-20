@@ -39,6 +39,7 @@ data class WorkbenchUiState(
     val staffName: String = "",
     val title: String = "",
     val subtitle: String = "",
+    val statusMetrics: List<WorkbenchMetric> = emptyList(),
     val metrics: List<WorkbenchMetric> = emptyList(),
     val businessMetrics: List<WorkbenchMetric> = emptyList(),
     val sections: List<WorkbenchSection> = emptyList(),

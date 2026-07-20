@@ -47,6 +47,7 @@ private fun AppSession.toWorkbenchUiState(
     } else {
         "优先处理在修推进、费用核对与保险到期提醒。"
     },
+    statusMetrics = workbenchStatusMetrics,
     metrics = if (role == UserRole.ADMINISTRATOR) emptyList() else employeeMetrics,
     businessMetrics = if (role == UserRole.ADMINISTRATOR) adminBusinessMetrics else emptyList(),
     sections = if (role == UserRole.ADMINISTRATOR) {
@@ -83,6 +84,13 @@ private val employeeMetrics = listOf(
     WorkbenchMetric("在修车辆", "18", "钣喷 7 / 机修 11", MetricTone.SUCCESS),
     WorkbenchMetric("待交付", "04", "今日需回访 2 台", MetricTone.WARNING),
     WorkbenchMetric("保险到期", "09", "三日内到期", MetricTone.DANGER),
+)
+
+private val workbenchStatusMetrics = listOf(
+    WorkbenchMetric("新建", "06", "待接单", MetricTone.PRIMARY),
+    WorkbenchMetric("在修", "18", "维修看板", MetricTone.SUCCESS),
+    WorkbenchMetric("待结算", "05", "费用核对", MetricTone.WARNING),
+    WorkbenchMetric("保险到期", "09", "联系车主", MetricTone.DANGER),
 )
 
 private val adminBusinessMetrics = listOf(

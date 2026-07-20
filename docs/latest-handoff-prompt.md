@@ -250,7 +250,7 @@ cd E:\codex\chengxu\android-client
 - 验证保留 JVM 单元测试、Android 测试代码编译、`lintDebug` 和 Debug APK 构建；不启动模拟器，最终 APK 交由用户在真实手机上完成视觉与触控验收。
 - 用户已复核并批准书面设计。任务级实施计划已完成：`docs/superpowers/plans/2026-07-20-android-compose-brand-ui-migration.md`。
 - 计划分为五个 TDD 任务：品牌设计系统/官方 Hugeicons 转换/图片资产、品牌登录、五栏壳层/阶段页/我的/退出、双角色工作台、最终干净验证与真机 APK。
-- 用户此前已选择当前分支内联执行，不创建子代理或额外 worktree；目前 Task 1–3 已完成，下一步执行 Task 4 双角色品牌工作台。
+- 用户此前已选择当前分支内联执行，不创建子代理或额外 worktree；目前 Task 1–4 已完成，下一步执行 Task 5 最终验证与真机 APK。
 
 ### Compose 品牌 UI Task 1：设计系统、Hugeicons 与图片资产（已完成）
 
@@ -282,7 +282,18 @@ cd E:\codex\chengxu\android-client
 - 工作台允许动作按既有 `AppPermission` 路由：创建进入“新增”，状态推进与结算进入“工单”；权限拒绝仍由 `MutationGate` 原因留在工作台展示，没有绕过权限或离线门禁。
 - TDD RED：Android 测试源码先失败于 `StageKind` 与退出弹窗测试标签不存在；GREEN 后五栏/阶段与双击退出流程测试源码成功编译。
 - 2026-07-20 全量验证：Android JVM 42/42 通过（0 失败、0 错误、0 跳过），`:app:compileDebugAndroidTestKotlin` 与 `:app:lintDebug` 均 `BUILD SUCCESSFUL`；Lint 0 错误、11 个非阻塞基线警告。本阶段未启动 Android 模拟器，也未提前生成最终 APK。
-- 下一步执行 Task 4：按同一品牌系统升级员工与管理员工作台，继续保持真实会话、权限、离线门禁和当前工作台状态模型。
+- Task 4 已完成；下一步执行 Task 5：干净验证、发布 APK 与真机测试清单。
+
+### Compose 品牌 UI Task 4：员工与管理员双角色工作台（已完成）
+
+- `WorkbenchUiState` 新增角色无关的 `statusMetrics`，生产 ViewModel 为员工和管理员统一提供四项状态带：新建 `06`、在修 `18`、待结算 `05`、保险到期 `09`；没有改变仓库、会话角色或权限映射。
+- 员工与管理员已合并为同一品牌工作台组合：冰蓝 Hero 显示真实姓名、企业、在线/离线状态，四列等宽状态带在 360dp 内保持无横向滚动；角色只通过既有指标和动作数据决定“今日概览/经营概览”及“我的待办/优先事项”。
+- 指标保持两列品牌卡片；快捷操作使用 48dp 以上的次级按钮和按权限映射的本地 Hugeicons（新增/维修/结算），不在 UI 内重新推断角色可见性。
+- 近期工单已升级为整卡可点击语义，显示车牌、客户、维修摘要、状态、工单号、金额和箭头图标；当前仅展示“详情将在后续阶段接入”的诚实 Snackbar，不伪造工单详情或写入。
+- `MutationDecision.Allowed` 继续交给五栏壳层路由，创建进入“新增”，推进/结算进入“工单”；拒绝动作仍显示 `MutationDecision.Denied.reason` 原文，离线和权限门禁没有旁路。
+- TDD RED：JVM/Android 测试源码先精确失败于缺少 `statusMetrics`；GREEN 后 ViewModel 测试锁定四个标签和值，并增加员工/管理员品牌分区、可点击动作/工单卡、360dp 长企业名及允许创建跳转契约。
+- 2026-07-20 验证：Android JVM 全量 42/42 通过（0 失败、0 错误、0 跳过）；`:app:compileDebugAndroidTestKotlin`、`:app:lintDebug`、`:app:assembleDebug` 均 `BUILD SUCCESSFUL`，Lint 0 错误、11 个非阻塞基线警告。构建产物为 19,077,522 字节，本阶段未启动 Android 模拟器，也未覆盖最终发布副本。
+- 下一步执行 Task 5：补齐最终 UI 源码契约，运行 `clean` 全量构建，复制并校验可安装 APK，更新真机测试文档后提交推送。
 
 ## 工作纪律
 

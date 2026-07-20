@@ -550,7 +550,7 @@ git push origin codex/android-mobile-ui-atlas
 - Preserves: `WorkbenchScreen(state, onAction, modifier)` and permission-derived `quickActions`.
 - Produces: shared internal `WorkbenchHero`, `WorkbenchStatusBand`, `WorkbenchMetricGrid`, `WorkbenchQuickActions`, and `WorkbenchOrderCard` Composables.
 
-- [ ] **Step 1: Write failing workbench visual-contract tests**
+- [x] **Step 1: Write failing workbench visual-contract tests**
 
 Extend `WorkbenchScreenTest` to require the four-item status band, brand sections, full-card action semantics, role content, and 360dp safety:
 
@@ -571,7 +571,7 @@ fun employeeBrandWorkbenchShowsStatusBandMetricsActionsAndOrders() {
 
 Add an `AutoserviceShellTest` case that supplies an allowed `新增工单` action, clicks it, and asserts “新增工单即将接入”. Keep the existing denied-reason test unchanged.
 
-- [ ] **Step 2: Run Android test compilation and verify RED**
+- [x] **Step 2: Run Android test compilation and verify RED**
 
 Run:
 
@@ -582,7 +582,7 @@ cd android-client
 
 Expected: compilation fails after tests reference `statusMetrics`, or execution would fail because status-band and new section labels are absent.
 
-- [ ] **Step 3: Add role-neutral status-band data**
+- [x] **Step 3: Add role-neutral status-band data**
 
 Add `statusMetrics` to `WorkbenchUiState` with an empty default. Populate it in `toWorkbenchUiState` with:
 
@@ -597,7 +597,7 @@ private val workbenchStatusMetrics = listOf(
 
 Do not change repository interfaces, authenticated role mapping, action permissions, or recent-order data.
 
-- [ ] **Step 4: Build the shared brand workbench composition**
+- [x] **Step 4: Build the shared brand workbench composition**
 
 Replace role-specific layout branching with one composition driven by the existing state:
 
@@ -616,7 +616,7 @@ fun WorkbenchScreen(
 
 The hero uses Ice background, greeting, company, and a success/offline `StatusChip`. The status band is four equal `weight(1f)` cells with compact typography at 360dp, never a horizontal scroller. Metric cards remain a two-column grid. Quick actions use icons mapped by permission and 48dp secondary buttons. Recent orders use a full-width clickable `AutoserviceCard` with arrow icon, plate/customer, repair summary, status, order number, and amount.
 
-- [ ] **Step 5: Preserve permission and rejection behavior**
+- [x] **Step 5: Preserve permission and rejection behavior**
 
 For each quick action, keep the existing decision gate:
 
@@ -631,7 +631,7 @@ when (val decision = action.decision) {
 
 Map icons only from permission: create → Add, advance → Tools, settle → Wallet. Do not infer action visibility from role inside the UI.
 
-- [ ] **Step 6: Run focused and full Android verification**
+- [x] **Step 6: Run focused and full Android verification**
 
 Run:
 
@@ -642,7 +642,7 @@ cd android-client
 
 Expected: ViewModel JVM tests pass; Android tests compile; Lint and Debug APK build succeed; no simulator starts.
 
-- [ ] **Step 7: Update handoff, commit, and push**
+- [x] **Step 7: Update handoff, commit, and push**
 
 Record employee/admin parity, exact metric values, status band, action routing, 360dp contract, permission invariants, and verification results. Commit:
 

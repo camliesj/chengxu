@@ -8,9 +8,14 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.chengxu.autoservice.core.designsystem.AutoserviceTheme
+import com.chengxu.autoservice.core.model.AppPermission
 import com.chengxu.autoservice.core.network.ConnectionState
+import com.chengxu.autoservice.core.session.MutationDecision
 import com.chengxu.autoservice.ui.shell.AutoserviceShell
 import com.chengxu.autoservice.ui.stage.StageKind
+import com.chengxu.autoservice.ui.workbench.WorkbenchAction
+import com.chengxu.autoservice.ui.workbench.WorkbenchSection
+import com.chengxu.autoservice.ui.workbench.WorkbenchUiState
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -40,6 +45,34 @@ class AutoserviceShellTest {
         composeRule.onNodeWithText("新增工单即将接入").assertIsDisplayed()
         composeRule.onNodeWithText("档案").performClick()
         composeRule.onNodeWithText("客户档案正在整理").assertIsDisplayed()
+    }
+
+    @Test
+    fun allowedCreateWorkbenchActionNavigatesToCreateStage() {
+        composeRule.setContent {
+            AutoserviceTheme {
+                AutoserviceShell(
+                    connection = ConnectionState.Online,
+                    workbenchState = WorkbenchUiState(
+                        loading = false,
+                        companyName = "通达汽车服务中心",
+                        staffName = "张工",
+                        title = "今日工作",
+                        sections = listOf(WorkbenchSection.TODAY_QUEUE),
+                        quickActions = listOf(
+                            WorkbenchAction(
+                                label = "新增工单",
+                                permission = AppPermission.CREATE_ORDER,
+                                decision = MutationDecision.Allowed,
+                            ),
+                        ),
+                    ),
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("新增工单").performClick()
+        composeRule.onNodeWithText("新增工单即将接入").assertIsDisplayed()
     }
 
     private fun launchShell(connection: ConnectionState) {
