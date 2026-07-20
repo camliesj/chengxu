@@ -358,6 +358,15 @@ cd E:\codex\chengxu\android-client
 - 2026-07-20 验证命令 `:app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:lintDebug :app:assembleDebug` 为 `BUILD SUCCESSFUL`；JVM 75/75，Android 测试源码编译、Lint 和 Debug APK 构建均成功，未启动 Android 模拟器。
 - 下一步执行 Task 7：从 clean 状态做最终全量验证，更新 Android 真机清单，发布并哈希可安装 APK，确认本地与远端提交一致。
 
+### 真实工单与 Room 缓存 Task 7：最终验证、APK 与真机交接（已完成）
+
+- 2026-07-20 从 clean 状态执行 `clean :app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:lintDebug :app:assembleDebug --rerun-tasks`，69 个 Gradle task 全部重新执行并 `BUILD SUCCESSFUL`。
+- JVM XML 客观统计为 16 个 suite、75/75 测试、0 失败、0 错误、0 跳过；Android 测试 Kotlin 编译完成。Lint XML 为 0 Fatal、0 Error、11 Warning。
+- 源码扫描确认 `DemoWorkbenchRepository`、固定“今日接车 12”和固定“本月产值 286,400”均无匹配。Room DAO 仪器测试与 Compose UI 场景只完成源码编译，因本轮未启动模拟器而未运行，不能声称设备测试通过。
+- 可安装 API 26+ Debug APK：`E:\codex\chengxu\dist\releases\android\autoservice-android-debug-0.1.0.apk`；19,425,946 字节；SHA-256 `E0287D74755796C3E1CED1E5EED306E2EA38F8F780798C11E7A467255D125268`。发布副本与构建源哈希一致，`apksigner verify` 确认 v2 签名有效。
+- `docs/android-client.md` 已加入真实工单/缓存真机清单，覆盖缓存优先重启、在线刷新、飞行模式缓存、空缓存离线、网络恢复、双公司/换账号隔离、退出清理、401 回登录、真实指标与无写入能力。
+- 真实工单 API + Room 缓存只读里程碑代码已全部完成；剩余工作是由用户在真实手机执行上述清单并反馈视觉、网络与生产数据结果。后续产品里程碑可在真机验收后规划工单详情或受权限控制的写入流程。
+
 ## 工作纪律
 
 每次重要改动后必须：

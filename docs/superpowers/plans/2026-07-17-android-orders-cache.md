@@ -517,7 +517,7 @@ Record production assembly and compiled UI scenarios. Commit message: `feat(andr
 - Verifies all preceding tasks as a single production build.
 - Produces a real-device checklist and a hashed installable APK.
 
-- [ ] **Step 1: Run clean verification without an emulator**
+- [x] **Step 1: Run clean verification without an emulator**
 
 Run from `android-client` with the configured JDK/SDK:
 
@@ -527,7 +527,7 @@ Run from `android-client` with the configured JDK/SDK:
 
 Expected: BUILD SUCCESSFUL; JVM tests, Android test compilation, Lint, and APK assembly all pass.
 
-- [ ] **Step 2: Inspect objective reports**
+- [x] **Step 2: Inspect objective reports**
 
 Confirm JVM XML contains zero failures/errors/skips, Android test Kotlin compilation completed, and Lint has no fatal issues. Confirm no source reference remains:
 
@@ -537,19 +537,19 @@ rg -n "DemoWorkbenchRepository|今日接车.*,.*12|本月产值.*,.*286,400" app
 
 Expected: no matches.
 
-- [ ] **Step 3: Publish and hash the APK**
+- [x] **Step 3: Publish and hash the APK**
 
 Copy `android-client/app/build/outputs/apk/debug/app-debug.apk` to `dist/releases/android/autoservice-android-debug-0.1.0.apk`, then run `Get-FileHash -Algorithm SHA256` and record byte size plus hash. The ignored APK is not staged.
 
-- [ ] **Step 4: Update real-device documentation**
+- [x] **Step 4: Update real-device documentation**
 
 Add checks for: cache-first relaunch, online refresh, airplane-mode cached view, empty-cache offline state, network recovery auto-refresh, both companies, logout cache clearing, expired-session return to login, real metrics, and no write affordance introduced by this milestone.
 
-- [ ] **Step 5: Update handoff with final evidence**
+- [x] **Step 5: Update handoff with final evidence**
 
 Record test counts, Gradle task result, Lint result, APK absolute path/size/SHA-256, remaining real-device checks, and the next product milestone. Do not claim Room instrumentation execution; state that its code compiled but was not run because no emulator was started.
 
-- [ ] **Step 6: Commit and push**
+- [x] **Step 6: Commit and push**
 
 Commit only source/docs/schema changes with message `docs(android): verify cached orders release`. Push the current branch and confirm local HEAD equals `origin/codex/android-mobile-ui-atlas`.
 
