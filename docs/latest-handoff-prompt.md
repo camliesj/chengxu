@@ -239,6 +239,17 @@ cd E:\codex\chengxu\android-client
 - 浏览器主流程“登录 → 管理员 → 五栏导航 → 我的 → 取消退出 → 确认退出”通过，控制台错误与页面异常均为 0；未启动 Android 模拟器。
 - 2026-07-20 最终验证：网页单元测试 64/64、移动 UI Playwright 108/108、确定性截图 34/34；`dist/mobile-ui-prototype` 独立原型构建与仓库生产构建均成功。Task 6 提交推送后，下一阶段先以当前 HTML 真值单独规划 Compose 品牌 UI 移植；真实工单 API 与 Room 缓存继续暂停。
 
+### Compose 品牌 UI 移植设计（已确认）
+
+- 用户确认 HTML 品牌原型达到预期，并选择推荐的“组件优先、完整页面纵向迁移”方案；该方案不会缩减演示效果，只把风险拆分到可独立验证的阶段。
+- 正式设计：`docs/superpowers/specs/2026-07-20-android-compose-brand-ui-migration-design.md`。
+- 移植范围包含恢复中、登录与双公司选择、员工/管理员工作台、Navigation 3 五栏壳层、工单/新增/档案阶段页、“我的”、退出弹窗和离线状态。
+- Compose 继续复用真实认证、会话、权限、Navigation 3、离线门禁和工作台状态模型；Android 不加入原型调试角色切换器，也不提前实现工单写入或 Room 缓存。
+- 品牌 Token 锁定 HTML 原型色值和 16/20dp 圆角体系；Hugeicons 转为本地 VectorDrawable，并复用两张已验证透明 PNG，不混用 Material Icons、自制 SVG 或 Emoji。
+- 实施拟分为五个重要提交：设计系统与资产、登录、壳层/阶段页/我的、双角色工作台、最终验证与 APK。每阶段继续更新本文件、提交并推送。
+- 验证保留 JVM 单元测试、Android 测试代码编译、`lintDebug` 和 Debug APK 构建；不启动模拟器，最终 APK 交由用户在真实手机上完成视觉与触控验收。
+- 下一步由用户复核书面设计；确认后编写任务级 Compose 移植实施计划，尚未开始修改生产 Android UI。
+
 ## 工作纪律
 
 每次重要改动后必须：
