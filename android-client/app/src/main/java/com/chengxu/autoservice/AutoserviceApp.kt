@@ -159,6 +159,7 @@ private fun AuthenticatedRoot(
         connection = state.connection,
         workbenchState = state,
         onWorkbenchAction = {},
+        onWorkbenchRefresh = workbenchViewModel::refresh,
         profileSession = authenticationState.session,
         onLogout = { scope.launch { authenticationRepository.logout() } },
     )

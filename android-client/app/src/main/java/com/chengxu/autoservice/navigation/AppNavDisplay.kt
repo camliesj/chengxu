@@ -23,6 +23,7 @@ fun AppNavDisplay(
     modifier: Modifier = Modifier,
     workbenchState: WorkbenchUiState? = null,
     onWorkbenchAction: (WorkbenchAction) -> Unit = {},
+    onWorkbenchRefresh: () -> Unit = {},
     profileSession: AppSession? = null,
     onLogout: () -> Unit = {},
     isOffline: Boolean = false,
@@ -35,7 +36,11 @@ fun AppNavDisplay(
             NavEntry(route) { entry ->
                 when (entry) {
                     AppRoute.Workbench -> workbenchState?.let {
-                        WorkbenchScreen(state = it, onAction = onWorkbenchAction)
+                        WorkbenchScreen(
+                            state = it,
+                            onAction = onWorkbenchAction,
+                            onRefresh = onWorkbenchRefresh,
+                        )
                     } ?: WorkbenchShellPlaceholder()
                     AppRoute.Orders -> StageScreen(kind = StageKind.ORDERS, offline = isOffline)
                     AppRoute.CreateOrder -> StageScreen(kind = StageKind.CREATE, offline = isOffline)

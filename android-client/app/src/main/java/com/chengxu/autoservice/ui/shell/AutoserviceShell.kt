@@ -39,6 +39,7 @@ fun AutoserviceShell(
     navigationState: AppNavigationState = remember { AppNavigationState() },
     workbenchState: WorkbenchUiState? = null,
     onWorkbenchAction: (WorkbenchAction) -> Unit = {},
+    onWorkbenchRefresh: () -> Unit = {},
     profileSession: AppSession? = null,
     onLogout: () -> Unit = {},
 ) {
@@ -65,6 +66,7 @@ fun AutoserviceShell(
             modifier = Modifier.weight(1f),
             workbenchState = workbenchState,
             onWorkbenchAction = routeWorkbenchAction,
+            onWorkbenchRefresh = onWorkbenchRefresh,
             profileSession = profileSession,
             onLogout = onLogout,
             isOffline = isOffline,

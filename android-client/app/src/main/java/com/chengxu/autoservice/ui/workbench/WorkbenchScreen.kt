@@ -18,6 +18,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import com.chengxu.autoservice.core.designsystem.AutoserviceColors
 import com.chengxu.autoservice.core.designsystem.AutoserviceSpacing
+import com.chengxu.autoservice.core.designsystem.BrandButton
+import com.chengxu.autoservice.core.designsystem.BrandButtonTone
 import com.chengxu.autoservice.core.session.MutationDecision
 import kotlinx.coroutines.launch
 
@@ -25,6 +27,7 @@ import kotlinx.coroutines.launch
 fun WorkbenchScreen(
     state: WorkbenchUiState,
     onAction: (WorkbenchAction) -> Unit,
+    onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -37,7 +40,7 @@ fun WorkbenchScreen(
             .fillMaxSize()
             .background(AutoserviceColors.Canvas),
     ) {
-        if (state.loading) {
+        if (state.loading && state.recentOrders.isEmpty()) {
             Text(
                 text = "正在加载工作台",
                 modifier = Modifier.padding(AutoserviceSpacing.Lg),
@@ -78,16 +81,50 @@ fun WorkbenchScreen(
                 WorkbenchSectionTitle(
                     title = if (isAdministrator) "优先事项" else "我的待办",
                 )
+                if (state.refreshing || state.syncMessage != null) {
+                    Column(verticalArrangement = Arrangement.spacedBy(AutoserviceSpacing.Sm)) {
+                        if (state.refreshing) {
+                            Text(
+                                text = "正在同步…",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = AutoserviceColors.InkMuted,
+                            )
+                        }
+                        state.syncMessage?.let { message ->
+                            Text(
+                                text = message,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = AutoserviceColors.Warning,
+                            )
+                        }
+                        if (state.showRetry) {
+                            BrandButton(
+                                onClick = onRefresh,
+                                tone = BrandButtonTone.SECONDARY,
+                            ) {
+                                Text("重新同步")
+                            }
+                        }
+                    }
+                }
                 Column(verticalArrangement = Arrangement.spacedBy(AutoserviceSpacing.Sm)) {
-                    state.recentOrders.forEach { order ->
-                        WorkbenchOrderCard(
-                            order = order,
-                            onClick = {
-                                coroutineScope.launch {
-                                    snackbarHostState.showSnackbar("${order.orderNumber} 详情将在后续阶段接入")
-                                }
-                            },
+                    if (state.recentOrders.isEmpty()) {
+                        Text(
+                            text = "暂无工单数据",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = AutoserviceColors.InkMuted,
                         )
+                    } else {
+                        state.recentOrders.forEach { order ->
+                            WorkbenchOrderCard(
+                                order = order,
+                                onClick = {
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar("${order.orderNumber} 详情将在后续阶段接入")
+                                    }
+                                },
+                            )
+                        }
                     }
                 }
             }

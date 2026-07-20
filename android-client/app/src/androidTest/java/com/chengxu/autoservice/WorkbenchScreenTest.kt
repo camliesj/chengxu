@@ -26,6 +26,7 @@ import com.chengxu.autoservice.ui.workbench.WorkbenchScreen
 import com.chengxu.autoservice.ui.workbench.WorkbenchSection
 import com.chengxu.autoservice.ui.workbench.WorkbenchUiState
 import org.junit.Rule
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class WorkbenchScreenTest {
@@ -87,12 +88,68 @@ class WorkbenchScreenTest {
         composeRule.onNodeWithText("网络不可用，当前为只读模式").assertIsDisplayed()
     }
 
-    private fun setWorkbench(state: WorkbenchUiState, widthDp: Int? = null) {
+    @Test
+    fun emptyStaleStateShowsMessageAndRetry() {
+        setWorkbench(
+            employeeState().copy(
+                recentOrders = emptyList(),
+                syncMessage = "网络异常，当前数据可能不是最新",
+                showRetry = true,
+            ),
+        )
+
+        composeRule.onNodeWithText("网络异常，当前数据可能不是最新").assertIsDisplayed()
+        composeRule.onNodeWithText("暂无工单数据").assertIsDisplayed()
+        composeRule.onNodeWithText("重新同步").assertIsDisplayed()
+    }
+
+    @Test
+    fun cachedStaleStateKeepsOrderCardVisible() {
+        setWorkbench(
+            employeeState().copy(
+                syncMessage = "服务器暂时不可用，当前数据可能不是最新",
+                showRetry = true,
+            ),
+        )
+
+        composeRule.onNodeWithText("服务器暂时不可用，当前数据可能不是最新").assertIsDisplayed()
+        composeRule.onNodeWithText("蒙A·A3816 · 张先生").assertIsDisplayed()
+    }
+
+    @Test
+    fun refreshingStateKeepsOrderCardAndShowsProgressCopy() {
+        setWorkbench(employeeState().copy(refreshing = true))
+
+        composeRule.onNodeWithText("正在同步…").assertIsDisplayed()
+        composeRule.onNodeWithText("蒙A·A3816 · 张先生").assertIsDisplayed()
+    }
+
+    @Test
+    fun retryClickInvokesRefreshExactlyOnce() {
+        var refreshCount = 0
+        setWorkbench(
+            employeeState().copy(
+                syncMessage = "工单数据异常，请稍后重试",
+                showRetry = true,
+            ),
+            onRefresh = { refreshCount += 1 },
+        )
+
+        composeRule.onNodeWithText("重新同步").performClick()
+
+        assertEquals(1, refreshCount)
+    }
+
+    private fun setWorkbench(
+        state: WorkbenchUiState,
+        widthDp: Int? = null,
+        onRefresh: () -> Unit = {},
+    ) {
         composeRule.setContent {
             AutoserviceTheme {
                 val screenModifier = if (widthDp == null) Modifier else Modifier.requiredWidth(widthDp.dp)
                 Box(modifier = screenModifier) {
-                    WorkbenchScreen(state = state, onAction = {})
+                    WorkbenchScreen(state = state, onAction = {}, onRefresh = onRefresh)
                 }
             }
         }

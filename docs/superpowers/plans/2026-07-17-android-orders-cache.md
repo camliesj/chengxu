@@ -464,25 +464,25 @@ Record exact metric definitions and removal of demo numbers. Commit message: `fe
 - Consumes: database/cache/API/repository constructors and `WorkbenchViewModel.refresh()`.
 - Produces: production wiring and visible loading/stale/empty/retry behavior.
 
-- [ ] **Step 1: Add UI tests before changing the screen**
+- [x] **Step 1: Add UI tests before changing the screen**
 
 Add Compose tests for: empty stale state shows the message plus “重新同步”; cached stale state keeps an order card visible; Refreshing keeps cards visible and shows “正在同步”; clicking retry invokes exactly once. Update app fixture constructors for the new repository contract.
 
-- [ ] **Step 2: Compile Android tests and verify RED**
+- [x] **Step 2: Compile Android tests and verify RED**
 
 Run: `cd android-client; .\gradlew.bat :app:compileDebugAndroidTestKotlin`
 
 Expected: FAIL because refresh callback and sync UI do not exist.
 
-- [ ] **Step 3: Propagate the refresh callback**
+- [x] **Step 3: Propagate the refresh callback**
 
 Add `onWorkbenchRefresh: () -> Unit` through `AutoserviceShell` and `AppNavDisplay`; call `WorkbenchScreen(state, onAction, onRefresh)`. In `AuthenticatedRoot`, pass `workbenchViewModel::refresh`.
 
-- [ ] **Step 4: Implement sync and empty presentation**
+- [x] **Step 4: Implement sync and empty presentation**
 
 When rows exist, never replace them with a full-screen progress indicator. Above “近期工单”, show the sync/stale message and an enabled `OutlinedButton("重新同步")` for stale states. When rows are empty and loading is false, show “暂无工单数据”; when stale, keep the error and retry visible. Use only existing spacing, typography, and approved color roles.
 
-- [ ] **Step 5: Replace production demo assembly**
+- [x] **Step 5: Replace production demo assembly**
 
 In `MainActivity`, create in this order: Room database/DAO, one `RoomOrderCache`, `AuthenticationRepository` with that cleaner, network monitor, `HttpUrlConnectionOrdersApi`, and `CachedOrdersRepository` using `lifecycleScope`. Use:
 
@@ -494,13 +494,13 @@ sessionInvalidator = SessionInvalidator {
 
 Pass the production orders repository into `AutoserviceApp`. No demo repository may remain in main source.
 
-- [ ] **Step 6: Compile, test, and lint**
+- [x] **Step 6: Compile, test, and lint**
 
 Run: `cd android-client; .\gradlew.bat :app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:lintDebug`
 
 Expected: BUILD SUCCESSFUL. Do not run connected tests or start an emulator.
 
-- [ ] **Step 7: Update handoff, commit, and push**
+- [x] **Step 7: Update handoff, commit, and push**
 
 Record production assembly and compiled UI scenarios. Commit message: `feat(android): wire cached orders workbench`. Push the current branch.
 

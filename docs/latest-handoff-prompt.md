@@ -349,6 +349,15 @@ cd E:\codex\chengxu\android-client
 - TDD RED 已确认真实指标、同步字段和新构造契约缺失；GREEN 后 Workbench 聚焦测试 14/14。2026-07-20 全量 JVM 75/75（0 失败、0 错误、0 跳过），Android 测试源码编译与 Lint 均 `BUILD SUCCESSFUL`，未启动 Android 模拟器。
 - 下一步执行 Task 6：在 Compose 工作台呈现同步/陈旧/空状态与“重新同步”，贯通刷新回调并补齐 Android UI 测试。
 
+### 真实工单与 Room 缓存 Task 6：同步状态、重试与生产装配（已完成）
+
+- `WorkbenchScreen` 现在展示 `正在同步…`、陈旧数据原因和“重新同步”按钮；空列表在非加载状态显示“暂无工单数据”。只要已有缓存卡片，就不会被全屏加载状态替换。
+- 刷新回调已从 `AuthenticatedRoot` 经 `AutoserviceShell`、`AppNavDisplay` 贯通到 `WorkbenchScreen`，点击“重新同步”调用 `WorkbenchViewModel.refresh()` 一次。
+- Compose 测试源码新增 4 个场景：空缓存陈旧态、带缓存陈旧态、刷新中保留卡片、重试点击一次。TDD RED 精确失败于 `onRefresh` 参数缺失，GREEN 后 Android 测试源码编译成功；按约定未启动模拟器、未运行连接式 UI 测试。
+- 生产装配使用单一 `RoomOrderCache`，依次连接 `AuthenticationRepository`、`AndroidConnectivityNetworkMonitor`、`HttpUrlConnectionOrdersApi` 和 `CachedOrdersRepository`；401 通过 `SessionInvalidator` 回到认证失效流程。
+- 2026-07-20 验证命令 `:app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:lintDebug :app:assembleDebug` 为 `BUILD SUCCESSFUL`；JVM 75/75，Android 测试源码编译、Lint 和 Debug APK 构建均成功，未启动 Android 模拟器。
+- 下一步执行 Task 7：从 clean 状态做最终全量验证，更新 Android 真机清单，发布并哈希可安装 APK，确认本地与远端提交一致。
+
 ## 工作纪律
 
 每次重要改动后必须：
