@@ -273,7 +273,7 @@ private fun LoginHero(layoutSpec: LoginLayoutSpec) {
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .height(104.dp)
+                    .height(layoutSpec.vehicleSlotHeight)
                     .padding(horizontal = 20.dp),
                 contentScale = ContentScale.Fit,
             )

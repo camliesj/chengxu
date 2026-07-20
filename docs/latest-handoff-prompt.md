@@ -386,10 +386,19 @@ cd E:\codex\chengxu\android-client
 
 - Compose 契约已改为在 360×800dp 根布局中直接断言 200dp Hero、两张 56dp 企业卡和至少 48dp 主按钮可见，完全移除 `performScrollTo()`；按约定只编译 Android 测试源码，未启动模拟器、未声称该设备测试已执行。
 - `CompanySelectionCard` 新增默认关闭的 `compact` 模式，登录页显式使用 56dp 紧凑卡并隐藏完整工商登记名称；其他调用方继续保持原 72dp 最小高度、颜色、边框、Hugeicons、选择和禁用语义。
-- 登录 Hero 常规态缩至 200dp，保留冰蓝背景、品牌眉题、两行标题和 104dp 现有车辆资产；表单仅覆盖 16dp，删除重复“欢迎回来”和 Hero 副标题，表单内边距收敛至 16dp，安全说明改为水平单行。
+- 登录 Hero 常规态缩至 200dp，保留冰蓝背景、品牌眉题、两行标题和现有车辆资产；车辆使用适配透明画布的 154dp 图片槽。表单仅覆盖 16dp，删除重复“欢迎回来”和 Hero 副标题，表单内边距收敛至 16dp，安全说明改为水平单行。
 - Compose 通过 `WindowInsets.ime.getBottom(LocalDensity.current)` 判断输入法可见性，IME 打开时切换为 96dp 上下文 Hero 并隐藏车辆；账号、密码、企业、错误和提交状态不因布局切换而重建。
 - TDD RED 已精确失败于新增 `HERO`、`PRIMARY_ACTION` 标签不存在；实现后聚焦布局策略 2/2 通过且 Android 测试 Kotlin 编译成功。期间构建暴露 Compose 1.11.3 的 `getBottom` 是 `WindowInsets` 成员而非顶层扩展，已用本地 AAR 字节码确认根因并仅移除错误导入；同一 GREEN 命令随后 `BUILD SUCCESSFUL`。
 - 下一步执行 Task 3：从 clean 状态跑完整 JVM/Android 测试源码/Lint/APK 验证，更新真机清单并发布新的可安装 APK。
+
+#### 紧凑登录页 Task 3：最终验证、APK 与真机交接（已完成）
+
+- 2026-07-20 从 clean 状态执行 `clean :app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:lintDebug :app:assembleDebug --rerun-tasks`，69 个 Gradle task 全部重新执行并 `BUILD SUCCESSFUL`。
+- JVM XML 客观统计为 17 个 suite、77/77 测试、0 失败、0 错误、0 跳过；Android 测试 Kotlin 编译完成。Lint XML 为 0 Fatal、0 Error、11 Warning。
+- 最终代码复核检查了源车辆 PNG 的 768×512 透明边界：104dp 图片槽会让实际车辆主体过小。已按 TDD 为布局策略增加 `vehicleSlotHeight`，常规态使用 154dp 槽、IME 态使用 0dp；在 200dp Hero 内可见车辆主体约 60dp，并结束于 16dp 面板覆盖区上方。新增断言先精确失败于字段不存在，补入策略后聚焦 2/2 通过。
+- 调整后重新从 clean 状态完整验证；新的 API 26+ Debug APK 已复制到 `E:\codex\chengxu\dist\releases\android\autoservice-android-debug-0.1.0.apk`，大小 19,425,946 字节，SHA-256 `3988F3BD15BB8667C3C590C7982163BA121487888B2AADBCBED8E1F90BDD48A9`；发布副本与 clean 构建源哈希一致，`apksigner verify` 确认 v2 签名有效。
+- `docs/android-client.md` 已补充紧凑登录页真机清单：360×800dp 首屏无滚动主按钮、车辆遮挡、56dp 企业卡、IME 96dp Hero、390×844dp 安全说明、字体缩放、密码显隐、加载/错误和双公司真实登录。
+- 本轮严格未启动 Android 模拟器、未执行连接式 Compose/Room 测试，也没有生成原生界面截图；因此自动化证据覆盖布局策略、源码契约、编译、Lint 与构建，最终视觉和真实输入法行为由用户安装本 APK 后在真机验收。
 
 ## 工作纪律
 

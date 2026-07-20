@@ -259,7 +259,7 @@ Apply these exact changes:
 - Keep the root `imePadding()`, `verticalScroll`, background, and root test tag.
 - Call `LoginHero(layoutSpec)` and tag its root with `LoginTestTags.HERO`.
 - Set the Hero height from `layoutSpec.heroHeight`.
-- In regular mode, show the brand eyebrow, the two-line “让每一次服务\n更从容” using `headlineMedium`, and the existing vehicle at 104dp height; omit the old Hero subtitle.
+- In regular mode, show the brand eyebrow, the two-line “让每一次服务\n更从容” using `headlineMedium`, and the existing vehicle in a 154dp slot; the source PNG contains large transparent top/bottom bounds, so this produces an approximately 60dp visible vehicle and leaves the subject above the 16dp panel overlap. Omit the old Hero subtitle.
 - In IME mode, show the brand eyebrow and one line “登录维修业务移动端” using `titleMedium`; omit the marketing title and vehicle.
 - Offset the form by `-layoutSpec.panelOverlap`, tag it `FORM_PANEL`, and use 16dp horizontal/vertical inner padding with 12dp item spacing.
 - Remove “欢迎回来”; retain “登录维修业务移动端” and change the helper to “选择企业并使用业务账号登录”.
@@ -311,7 +311,7 @@ git push origin codex/android-mobile-ui-atlas
 - Consumes: the completed compact login implementation and all existing Android tests.
 - Produces: a signed API 26+ Debug APK plus an exact real-device login UI checklist and recorded verification evidence.
 
-- [ ] **Step 1: Run the full clean verification suite**
+- [x] **Step 1: Run the full clean verification suite**
 
 Run from `android-client/` with the configured JDK 17 and Android SDK:
 
@@ -321,7 +321,7 @@ Run from `android-client/` with the configured JDK 17 and Android SDK:
 
 Expected: `BUILD SUCCESSFUL`; all JVM tests pass; Android test Kotlin compiles; Lint contains zero Fatal and zero Error findings; Debug APK is created. Report actual warning and test counts from XML rather than assuming them.
 
-- [ ] **Step 2: Update the real-device checklist**
+- [x] **Step 2: Update the real-device checklist**
 
 Add compact-login checks to `docs/android-client.md`:
 
@@ -332,15 +332,15 @@ Add compact-login checks to `docs/android-client.md`:
 - Password visibility, loading disabled state, errors, both companies, and real login remain functional.
 - Default and enlarged system font sizes do not clip controls; emergency scrolling remains available when content truly cannot fit.
 
-- [ ] **Step 3: Copy, hash, and verify the APK**
+- [x] **Step 3: Copy, hash, and verify the APK**
 
 Copy `android-client/app/build/outputs/apk/debug/app-debug.apk` to `dist/releases/android/autoservice-android-debug-0.1.0.apk`, compare both SHA-256 hashes, and run the configured Android SDK `apksigner verify --verbose` command. Expected: source and release hashes match and v2 verification succeeds.
 
-- [ ] **Step 4: Review every design requirement against evidence**
+- [x] **Step 4: Review every design requirement against evidence**
 
 Re-read `docs/superpowers/specs/2026-07-20-android-compact-login-design.md` and confirm each requirement is represented by source, an executable JVM assertion, compiled Compose test code, or an explicit real-device checklist item. Record the limitation that visual comparison and connected UI execution were not performed because no emulator was started.
 
-- [ ] **Step 5: Update handoff, commit, and push the release milestone**
+- [x] **Step 5: Update handoff, commit, and push the release milestone**
 
 Record exact Gradle task count, JVM test count, Lint counts, APK size/hash/signature, and the no-emulator limitation in `docs/latest-handoff-prompt.md`, then:
 
@@ -350,6 +350,6 @@ git commit -m "build(android): release compact login APK"
 git push origin codex/android-mobile-ui-atlas
 ```
 
-- [ ] **Step 6: Confirm repository state**
+- [x] **Step 6: Confirm repository state**
 
 Run `git status --short --branch`, `git rev-parse HEAD`, and `git rev-parse origin/codex/android-mobile-ui-atlas`. Expected: the worktree is clean and both commit hashes are identical.

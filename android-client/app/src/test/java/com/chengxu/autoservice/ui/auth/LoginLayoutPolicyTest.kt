@@ -13,6 +13,7 @@ class LoginLayoutPolicyTest {
 
         assertEquals(200.dp, spec.heroHeight)
         assertEquals(16.dp, spec.panelOverlap)
+        assertEquals(154.dp, spec.vehicleSlotHeight)
         assertTrue(spec.showVehicle)
         assertTrue(spec.showMarketingTitle)
     }
@@ -23,6 +24,7 @@ class LoginLayoutPolicyTest {
 
         assertEquals(96.dp, spec.heroHeight)
         assertEquals(16.dp, spec.panelOverlap)
+        assertEquals(0.dp, spec.vehicleSlotHeight)
         assertFalse(spec.showVehicle)
         assertFalse(spec.showMarketingTitle)
     }
