@@ -35,6 +35,9 @@ data class WorkbenchAction(
 
 data class WorkbenchUiState(
     val loading: Boolean = true,
+    val refreshing: Boolean = false,
+    val syncMessage: String? = null,
+    val showRetry: Boolean = false,
     val companyName: String = "",
     val staffName: String = "",
     val title: String = "",

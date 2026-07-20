@@ -35,10 +35,10 @@ import com.chengxu.autoservice.core.designsystem.AutoserviceSpacing
 import com.chengxu.autoservice.core.designsystem.BrandIcon
 import com.chengxu.autoservice.core.designsystem.BrandIconResource
 import com.chengxu.autoservice.core.network.NetworkMonitor
+import com.chengxu.autoservice.core.orders.OrdersRepository
 import com.chengxu.autoservice.ui.auth.LoginScreen
 import com.chengxu.autoservice.ui.auth.LoginViewModel
 import com.chengxu.autoservice.ui.shell.AutoserviceShell
-import com.chengxu.autoservice.ui.workbench.WorkbenchRepository
 import com.chengxu.autoservice.ui.workbench.WorkbenchViewModel
 import kotlinx.coroutines.launch
 
@@ -46,7 +46,7 @@ import kotlinx.coroutines.launch
 fun AutoserviceApp(
     authenticationRepository: AuthenticationRepository,
     networkMonitor: NetworkMonitor,
-    workbenchRepository: WorkbenchRepository,
+    ordersRepository: OrdersRepository,
 ) {
     val authenticationState by authenticationRepository.state.collectAsStateWithLifecycle()
 
@@ -67,7 +67,7 @@ fun AutoserviceApp(
             is AuthenticationState.Authenticated -> AuthenticatedRoot(
                 authenticationRepository = authenticationRepository,
                 networkMonitor = networkMonitor,
-                workbenchRepository = workbenchRepository,
+                ordersRepository = ordersRepository,
                 authenticationState = state,
             )
         }
@@ -139,7 +139,7 @@ private fun LoginRoot(
 private fun AuthenticatedRoot(
     authenticationRepository: AuthenticationRepository,
     networkMonitor: NetworkMonitor,
-    workbenchRepository: WorkbenchRepository,
+    ordersRepository: OrdersRepository,
     authenticationState: AuthenticationState.Authenticated,
 ) {
     val sessionViewModelStoreOwner = remember(authenticationState.session) {
@@ -150,7 +150,7 @@ private fun AuthenticatedRoot(
     }
     val workbenchViewModel: WorkbenchViewModel = viewModel(
         viewModelStoreOwner = sessionViewModelStoreOwner,
-        factory = workbenchViewModelFactory(authenticationRepository, networkMonitor, workbenchRepository),
+        factory = workbenchViewModelFactory(authenticationRepository, networkMonitor, ordersRepository),
     )
     val state by workbenchViewModel.uiState.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
@@ -185,12 +185,12 @@ private fun loginViewModelFactory(
 private fun workbenchViewModelFactory(
     authenticationRepository: AuthenticationRepository,
     networkMonitor: NetworkMonitor,
-    workbenchRepository: WorkbenchRepository,
+    ordersRepository: OrdersRepository,
 ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(WorkbenchViewModel::class.java)) {
-            return WorkbenchViewModel(authenticationRepository, networkMonitor, workbenchRepository) as T
+            return WorkbenchViewModel(authenticationRepository, networkMonitor, ordersRepository) as T
         }
         throw IllegalArgumentException("Unsupported ViewModel class: ${modelClass.name}")
     }

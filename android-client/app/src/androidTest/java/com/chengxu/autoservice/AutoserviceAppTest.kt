@@ -25,6 +25,9 @@ import com.chengxu.autoservice.core.auth.SessionStore
 import com.chengxu.autoservice.core.model.UserRole
 import com.chengxu.autoservice.core.network.ConnectionState
 import com.chengxu.autoservice.core.network.NetworkMonitor
+import com.chengxu.autoservice.core.orders.OrderSyncState
+import com.chengxu.autoservice.core.orders.OrdersRepository
+import com.chengxu.autoservice.core.orders.OrdersSnapshot
 import com.chengxu.autoservice.core.session.AppSession
 import com.chengxu.autoservice.core.session.PermissionSnapshot
 import com.chengxu.autoservice.core.designsystem.AutoserviceTheme
@@ -32,7 +35,6 @@ import com.chengxu.autoservice.core.designsystem.BrandDialogTestTags
 import com.chengxu.autoservice.ui.auth.LoginScreen
 import com.chengxu.autoservice.ui.auth.LoginTestTags
 import com.chengxu.autoservice.ui.auth.LoginUiState
-import com.chengxu.autoservice.ui.workbench.DemoWorkbenchRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import org.junit.Rule
@@ -111,7 +113,7 @@ class AutoserviceAppTest {
             AutoserviceApp(
                 authenticationRepository = authenticationRepository,
                 networkMonitor = FakeNetworkMonitor(),
-                workbenchRepository = DemoWorkbenchRepository(),
+                ordersRepository = FakeOrdersRepository(),
             )
         }
     }
@@ -139,5 +141,12 @@ class AutoserviceAppTest {
 
     private class FakeNetworkMonitor : NetworkMonitor {
         override val connection: StateFlow<ConnectionState> = MutableStateFlow(ConnectionState.Online)
+    }
+
+    private class FakeOrdersRepository : OrdersRepository {
+        override val snapshot: StateFlow<OrdersSnapshot> =
+            MutableStateFlow(OrdersSnapshot(syncState = OrderSyncState.Ready))
+
+        override suspend fun refresh() = Unit
     }
 }

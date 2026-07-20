@@ -339,6 +339,16 @@ cd E:\codex\chengxu\android-client
 - 生产认证清理器现复用单一 `RoomOrderCache` 实例。Task 4 聚焦测试 10/10 通过；2026-07-20 全量 JVM 64/64（0 失败、0 错误、0 跳过），`:app:compileDebugAndroidTestKotlin` 与 `:app:lintDebug` 均 `BUILD SUCCESSFUL`，未启动 Android 模拟器。
 - 下一步执行 Task 5：用真实工单计算员工/管理员指标和最近工单展示，移除 `DemoWorkbenchRepository` 与固定演示数字。
 
+### 真实工单与 Room 缓存 Task 5：真实工作台指标与展示映射（已完成）
+
+- 新增纯函数 `WorkbenchMetrics.kt`，所有指标使用注入 `Clock` 得到的本地日期计算。员工口径为今日接车、在修中、已完工待交付和 3 日内/已逾期保险；管理员口径为本月工单金额、待结算金额与单数、在修中和 7 日内/已逾期保险。
+- 金额统一从分格式化为人民币符号和千分位，仅在存在非零分值时显示两位小数；非法/负数值安全回退为 `¥0`。日期无效时不计入今日、本月或保险窗口。
+- 最近工单按日期、时间和稳定 ID 倒序；摘要优先维修记录，其次为“车型 · 类型”，最后回退“暂无维修说明”。服务端状态原文保持可见，`在修中/已完工/待结算/已结算` 映射到批准的状态色，未知状态使用中性主色回退。
+- `WorkbenchViewModel` 现直接消费 `OrdersRepository.snapshot`，公开 `loading/refreshing/syncMessage/showRetry` 并提供 `refresh()`；固定员工/管理员指标、`DemoWorkbenchRepository` 和旧 `WorkbenchRepository` 已全部删除。
+- `MainActivity` 已完成真实 Room、认证工单 API、缓存仓库和 401 会话失效器的生产接线；`AutoserviceApp` 与测试夹具改为接收 `OrdersRepository`。
+- TDD RED 已确认真实指标、同步字段和新构造契约缺失；GREEN 后 Workbench 聚焦测试 14/14。2026-07-20 全量 JVM 75/75（0 失败、0 错误、0 跳过），Android 测试源码编译与 Lint 均 `BUILD SUCCESSFUL`，未启动 Android 模拟器。
+- 下一步执行 Task 6：在 Compose 工作台呈现同步/陈旧/空状态与“重新同步”，贯通刷新回调并补齐 Android UI 测试。
+
 ## 工作纪律
 
 每次重要改动后必须：

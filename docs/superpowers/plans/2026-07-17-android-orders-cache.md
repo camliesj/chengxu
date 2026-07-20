@@ -395,7 +395,7 @@ Record cache-first ordering, refresh triggers, de-duplication, and unauthorized 
 - Consumes: `OrdersRepository.snapshot`.
 - Produces: role-specific metrics, mapped cards, `syncMessage`, `refreshing`, `showRetry`, and `WorkbenchViewModel.refresh()`.
 
-- [ ] **Step 1: Write deterministic metric tests**
+- [x] **Step 1: Write deterministic metric tests**
 
 Use fixed date `2026-07-17`. Cover today and `MM-dd` normalization, in-repair/completed/pending status counts, month boundary, pending amount cents, employee 3-day and administrator 7-day insurance windows, expired insurance, invalid dates, descending order, summary fallback, and Chinese money formatting.
 
@@ -408,7 +408,7 @@ fun administratorMetricsUseRealMonthlyAndPendingValues() {
 }
 ```
 
-- [ ] **Step 2: Update ViewModel tests and verify RED**
+- [x] **Step 2: Update ViewModel tests and verify RED**
 
 Replace `DemoWorkbenchRepository` with a fake `OrdersRepository`. Assert LoadingCache maps to `loading`, Stale maps to the exact message and retry flag, real orders replace fixed metrics, and `refresh()` delegates once.
 
@@ -416,7 +416,7 @@ Run: `cd android-client; .\gradlew.bat :app:testDebugUnitTest --tests "*.Workben
 
 Expected: FAIL because real mapping and snapshot state are not wired.
 
-- [ ] **Step 3: Implement metrics and card mapping**
+- [x] **Step 3: Implement metrics and card mapping**
 
 Inject `Clock` into `WorkbenchViewModel`, defaulting to `Clock.systemDefaultZone()`. Move all deterministic computation to `WorkbenchMetrics.kt`. Treat insurance expiry as urgent when `expiry` is from today through the inclusive role window, or is earlier than today. Use `NumberFormat` with exactly two decimals only when cents are non-zero.
 
@@ -430,11 +430,11 @@ val summary = order.record.ifBlank {
 
 Map `在修中` to success, `已完工` to primary, `待结算` to warning, `已结算` to neutral/primary; unknown text remains visible and neutral.
 
-- [ ] **Step 4: Wire snapshot state into ViewModel**
+- [x] **Step 4: Wire snapshot state into ViewModel**
 
 Combine session, network, and `OrdersRepository.snapshot`. Add `fun refresh() { viewModelScope.launch { ordersRepository.refresh() } }`. Remove fixed `employeeMetrics` and `adminBusinessMetrics` constants completely.
 
-- [ ] **Step 5: Run workbench and full JVM tests**
+- [x] **Step 5: Run workbench and full JVM tests**
 
 Run: `cd android-client; .\gradlew.bat :app:testDebugUnitTest --tests "*.Workbench*Test"`
 
@@ -442,7 +442,7 @@ Run: `cd android-client; .\gradlew.bat :app:testDebugUnitTest`
 
 Expected: BUILD SUCCESSFUL; no test references demo workbench data.
 
-- [ ] **Step 6: Update handoff, commit, and push**
+- [x] **Step 6: Update handoff, commit, and push**
 
 Record exact metric definitions and removal of demo numbers. Commit message: `feat(android): derive workbench from real orders`. Push the current branch.
 

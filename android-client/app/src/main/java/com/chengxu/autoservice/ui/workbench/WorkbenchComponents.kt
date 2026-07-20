@@ -301,16 +301,17 @@ private val WorkbenchAction.icon: BrandIconResource
 
 private val WorkbenchOrder.statusIcon: BrandIconResource
     get() = when (statusLabel) {
-        "在修" -> BrandIconResource.Tools
-        "待结算" -> BrandIconResource.Wallet
-        "保险到期" -> BrandIconResource.Warning
+        "在修中" -> BrandIconResource.Tools
+        "待结算", "已结算" -> BrandIconResource.Wallet
+        "已完工" -> BrandIconResource.Orders
         else -> BrandIconResource.Orders
     }
 
 private val WorkbenchOrder.statusTone: StatusTone
     get() = when (statusLabel) {
-        "在修" -> StatusTone.SUCCESS
+        "在修中" -> StatusTone.SUCCESS
         "待结算" -> StatusTone.WARNING
-        "保险到期" -> StatusTone.DANGER
+        "已完工" -> StatusTone.PRIMARY
+        "已结算" -> StatusTone.PRIMARY
         else -> StatusTone.PRIMARY
     }
