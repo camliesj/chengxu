@@ -559,11 +559,11 @@ git push origin codex/android-mobile-ui-atlas
 - Consumes: Task 1 `OrderPage`/`OrderDetail`/`BusinessCapability` 和 Task 4 API envelopes。
 - Produces: `OrderReadApi.fetchPage`、`OrderReadApi.fetchDetail`；旧 `OrdersApi.fetch` 继续返回 `RepairOrder`。
 
-- [ ] **Step 1: 写网络契约 RED 测试**
+- [x] **Step 1: 写网络契约 RED 测试**
 
 测试精确 URL 编码、Bearer Token、current/history/full cursor/delta cursor/updatedAfter、`removedOrderIds`、完整详情映射、未知字段忽略、非法必填字段导致 `MalformedResponse`、可选字段安全默认、401/403/404/5xx、IOException 和取消传播。禁止把手机号/VIN 写到日志断言中。
 
-- [ ] **Step 2: 运行 RED**
+- [x] **Step 2: 运行 RED**
 
 Run:
 
@@ -573,7 +573,7 @@ Run:
 
 Expected: FAIL because `OrderReadApi` and implementation are absent。
 
-- [ ] **Step 3: 定义精确读取接口**
+- [x] **Step 3: 定义精确读取接口**
 
 ```kotlin
 data class OrderPageQuery(
@@ -608,17 +608,17 @@ interface OrderReadApi {
 }
 ```
 
-- [ ] **Step 4: 实现 URL 和 JSON 映射**
+- [x] **Step 4: 实现 URL 和 JSON 映射**
 
 复用现有 `OrdersHttpTransport`，新增 `encodeURIComponent` 等价的 `URLEncoder.encode(value, UTF_8).replace("+", "%20")`。列表 URL 固定参数顺序：`scope=${query.scope.name.lowercase()}`、`limit`、`cursor` 或 `updatedAfter`。详情 ID 必须编码为单一路径段。
 
 JSON 映射要求：`id/companyId/date/status/version/updatedAt` 缺失或类型非法则丢弃该行；`removedOrderIds` 缺失时兼容为空数组，存在时只接受非空字符串并去重；详情缺少任何必需摘要字段则整个详情返回 `MalformedResponse`；金额继续使用整数分优先，兼容旧 decimal 字段。`receipt` 只映射元数据。
 
-- [ ] **Step 5: 保留旧 API 适配器**
+- [x] **Step 5: 保留旧 API 适配器**
 
 `HttpUrlConnectionOrdersApi.fetch(token)` 继续请求无参数 `/api/orders`，不改变现有仓库行为。把共享的 JSON 基础解析移到 internal 函数，避免复制金额、日期和字符串容错规则；旧 `RepairOrder` 从 `OrderSummary` 映射时保持全部现有字段。
 
-- [ ] **Step 6: 运行聚焦和 Android JVM 全量测试**
+- [x] **Step 6: 运行聚焦和 Android JVM 全量测试**
 
 Run:
 
@@ -629,7 +629,7 @@ Run:
 
 Expected: 新旧网络测试和 JVM 全量测试通过。
 
-- [ ] **Step 7: 更新交接、提交并推送**
+- [x] **Step 7: 更新交接、提交并推送**
 
 ```powershell
 git add android-client/app/src/main/java/com/chengxu/autoservice/core/orders android-client/app/src/test/java/com/chengxu/autoservice/core/orders docs/latest-handoff-prompt.md

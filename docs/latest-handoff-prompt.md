@@ -494,6 +494,15 @@ cd E:\codex\chengxu\android-client
 - TDD RED 先失败于详情路由缺失；最终复核又用 4 个失败断言定位并修复了游标未绑定 scope 的问题。游标与读取 API 聚焦测试 13/13、网页/Functions 全量 Node 测试 81/81 通过，Vite 生产构建成功。
 - 本任务未访问远端 D1、未部署 Pages、未启动 Android 模拟器。下一步执行 Task 5：Android 扩展读取网络契约与容错映射。
 
+#### 阶段 1 Task 5：Android 扩展读取网络契约与容错映射（已完成）
+
+- 新增 `OrderPageQuery`、`OrderReadFailure`、泛型 `OrderReadResult` 和 `OrderReadApi`，明确 current/history、full/delta 分页输入，以及 Unauthorized、Forbidden、NotFound、NetworkUnavailable、ServerError、MalformedResponse 六类失败。
+- 新增 `HttpUrlConnectionOrderReadApi` 并复用现有 `OrdersHttpTransport`：列表参数顺序固定为 scope、limit、cursor/updatedAfter；游标、时间和详情 ID 均按 UTF-8 编码，详情 ID 被编码为单一路径段，Bearer Token 行为与旧客户端一致。
+- 新客户端严格要求摘要的 `id/companyId/date/status/version/updatedAt`，无效列表行单独丢弃、无效详情整体返回 MalformedResponse；未知字段忽略，可选字段、缺失 tombstone/能力/游标安全默认，`removedOrderIds` 过滤空值并去重，能力只接受已知枚举。
+- 金额优先读取整数分字段，并兼容服务端既有 decimal 字段；详情完整映射客户、车辆、保险、维修、结算和安全回执元数据，不读取或持久化 COS 对象键。IOException 映射离线，协程取消原样传播，代码中没有手机号/VIN 日志。
+- 旧 `HttpUrlConnectionOrdersApi.fetch(token)` 仍请求无参数 `/api/orders` 并保持 `RepairOrder` 宽容映射；新旧实现只共享 internal 字符串、日期和金额基础解析，没有要求 legacy 响应提供 version/updatedAt。
+- TDD RED 精确失败于接口和实现不存在。最终新旧网络聚焦测试 20/20 通过；Android JVM 全量为 22 个 suite、109/109 测试、0 失败、0 错误、0 跳过。本任务未启动模拟器，下一步执行 Task 6：通用 AES-GCM 字段加密边界。
+
 ## 工作纪律
 
 每次重要改动后必须：
