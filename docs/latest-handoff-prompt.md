@@ -330,6 +330,15 @@ cd E:\codex\chengxu\android-client
 - TDD RED 已确认清理接口和构造参数缺失；GREEN 后新增无效恢复、退出、失效和取消传播 4 个生命周期测试。2026-07-20 全量 JVM 54/54（0 失败、0 错误、0 跳过），`:app:compileDebugAndroidTestKotlin` 与 `:app:lintDebug` 均 `BUILD SUCCESSFUL`，未启动 Android 模拟器。
 - 下一步执行 Task 4：实现公司隔离、缓存优先、离线不请求、刷新去重、401 清缓存后失效会话的 `CachedOrdersRepository`。
 
+### 真实工单与 Room 缓存 Task 4：缓存优先工单仓库（已完成）
+
+- 新增 `OrdersRepository`、`OrdersSnapshot`、`OrderSyncState`、`OrderCache` 与 `SessionInvalidator` 契约，并实现 `CachedOrdersRepository` 和 `RoomOrderCache`。
+- 登录后先订阅当前公司的 Room 数据，再在在线状态携带内存会话 Token 刷新；离线状态不会调用工单 API。成功响应只替换当前公司数据，远端 `companyId` 会被可信会话公司强制覆盖。
+- 刷新失败保留已有卡片并发布精确的 stale 提示；空缓存失败保持可重试状态。`Mutex.tryLock()` 会丢弃重复刷新而不排队；协程取消保持向上传播。
+- 401 顺序固定为先清空公开行和本地缓存，再调用会话失效器；同公司换账号或跨公司直接切换会先清空全部缓存，旧公司的 Flow 不会继续向新身份发布数据。
+- 生产认证清理器现复用单一 `RoomOrderCache` 实例。Task 4 聚焦测试 10/10 通过；2026-07-20 全量 JVM 64/64（0 失败、0 错误、0 跳过），`:app:compileDebugAndroidTestKotlin` 与 `:app:lintDebug` 均 `BUILD SUCCESSFUL`，未启动 Android 模拟器。
+- 下一步执行 Task 5：用真实工单计算员工/管理员指标和最近工单展示，移除 `DemoWorkbenchRepository` 与固定演示数字。
+
 ## 工作纪律
 
 每次重要改动后必须：

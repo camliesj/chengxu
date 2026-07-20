@@ -294,7 +294,7 @@ Record the cleanup lifecycle contract. Commit message: `feat(android): clear cus
 - Consumes: `OrdersApi.fetch`, `SessionRepository.session`, `NetworkMonitor.connection`, `AuthenticatedDataCleaner`.
 - Produces: `OrdersRepository.snapshot: StateFlow<OrdersSnapshot>` and `refresh()`.
 
-- [ ] **Step 1: Write repository behavior tests**
+- [x] **Step 1: Write repository behavior tests**
 
 Use fake session/network/API/cache plus a `TestScope`. Prove these independent cases: cached rows emit before a delayed remote response; offline never calls API; successful refresh replaces only current-company rows; failure retains rows and emits stale message; empty failure exposes retry; `401` clears cache then invalidates session; simultaneous refresh calls result in one API call; direct non-null account/company switch clears cache; cancellation escapes.
 
@@ -309,13 +309,13 @@ fun unauthorizedClearsCacheBeforeInvalidatingSession() = runTest {
 }
 ```
 
-- [ ] **Step 2: Run focused tests and verify RED**
+- [x] **Step 2: Run focused tests and verify RED**
 
 Run: `cd android-client; .\gradlew.bat :app:testDebugUnitTest --tests "*.CachedOrdersRepositoryTest"`
 
 Expected: FAIL because repository/cache contracts do not exist.
 
-- [ ] **Step 3: Implement snapshot and cache boundaries**
+- [x] **Step 3: Implement snapshot and cache boundaries**
 
 ```kotlin
 data class OrdersSnapshot(
@@ -347,7 +347,7 @@ fun interface SessionInvalidator {
 
 `RoomOrderCache.replace` must overwrite every incoming record’s `companyId` with the trusted current-session company before creating entities. Its `clear()` delegates to `OrderDao.clearAll()`.
 
-- [ ] **Step 4: Implement orchestration**
+- [x] **Step 4: Implement orchestration**
 
 `CachedOrdersRepository` receives `CoroutineScope`, session repository, network monitor, API, cache, and `SessionInvalidator`. Collect session changes with `collectLatest`; switch cache observation without ever emitting the prior company’s rows. Combine distinct session/network pairs to refresh when an authenticated session is online. Use `Mutex.tryLock()` so duplicate triggers do not queue duplicate requests.
 
@@ -364,7 +364,7 @@ private fun OrdersFailure.message() = when (this) {
 
 Unauthorized order: set public rows empty, `cache.clear()`, then invoke `SessionInvalidator.invalidate()`.
 
-- [ ] **Step 5: Run repository and full JVM regression**
+- [x] **Step 5: Run repository and full JVM regression**
 
 Run: `cd android-client; .\gradlew.bat :app:testDebugUnitTest --tests "*.CachedOrdersRepositoryTest"`
 
@@ -372,7 +372,7 @@ Run: `cd android-client; .\gradlew.bat :app:testDebugUnitTest`
 
 Expected: BUILD SUCCESSFUL with all cache/session/network cases green.
 
-- [ ] **Step 6: Update handoff, commit, and push**
+- [x] **Step 6: Update handoff, commit, and push**
 
 Record cache-first ordering, refresh triggers, de-duplication, and unauthorized ordering. Commit message: `feat(android): add cache first orders repository`. Push the current branch.
 
