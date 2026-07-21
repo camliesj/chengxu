@@ -188,19 +188,19 @@ Commit: `feat(orders): add idempotent unified create service`
 - Modify: `src/App.jsx`
 - Modify: `docs/latest-handoff-prompt.md`
 
-- [ ] **Step 1: 写网页状态与 transport RED 测试**
+- [x] **Step 1: 写网页状态与 transport RED 测试**
 
 覆盖四步 next/back、字段错误映射、decimal 输入到 cents 的精确转换、提交锁、UnknownResult 查询、成功只接受服务端详情，以及 canonical fixture 的 request body。
 
-- [ ] **Step 2: 实现独立纯 reducer 与 API adapter**
+- [x] **Step 2: 实现独立纯 reducer 与 API adapter**
 
 创建动作改用 `/api/orders/create`，不再先生成本地正式 ID。API adapter 接收 `AbortSignal`，取消原样传播；401、403、409、字段错误、未知响应均映射为稳定结果。
 
-- [ ] **Step 3: 写浏览器加密草稿 RED/GREEN**
+- [x] **Step 3: 写浏览器加密草稿 RED/GREEN**
 
 IndexedDB 只保存 AES-GCM 密文、IV、版本和非敏感索引；Web Crypto key 不可导出。每个 actor+company 只保留一个新增草稿；登出、公司切换和成功提交清除。Node 无 Web Crypto/IndexedDB 能力部分使用依赖注入 fake，不新增第三方状态库。
 
-- [ ] **Step 4: 全量 Node 回归、文档提交推送**
+- [x] **Step 4: 全量 Node 回归、文档提交推送**
 
 ```powershell
 node --test test/orderCreationWebLogic.test.mjs test/orderCreationDraftStore.test.mjs

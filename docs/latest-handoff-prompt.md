@@ -550,7 +550,12 @@ cd E:\codex\chengxu\android-client
 - 幂等实现覆盖同 hash 完成重放、不同 hash 拒绝、有效租约处理中、超时 CAS 接管、预留 target ID 和未知结果查询。工单 INSERT 带当前租约 EXISTS 条件，工单、operation completed 与无敏感明文的 create audit 在同一 D1 batch，且校验实际 changes，防止失去租约的旧执行者单独落工单。
 - 旧 `POST /api/orders` 在目标不存在时把 `eventId` 和 decimal 金额适配到同一创建服务，忽略客户端 ID/公司/状态/时间；目标已存在时原编辑/结算兼容路径不变。预计交车继续允许现有网页的自定义时间文本，metadata 仅返回建议值，不减少原功能。
 - TDD RED 先失败于 create/operation route 不存在；GREEN 后覆盖权限、服务器字段、编号、重放、hash 冲突、处理中、超时接管、字段错误、actor 查询和旧新增共 8/8。Node 全量 101/101 通过，Vite 生产构建成功；构建后已恢复受版本控制的阶段 1 APK。本任务未访问远端 D1、未部署 Pages、未启动 Android 模拟器。
-- 下一步：执行阶段 2 Task 4，网页创建 transport、四步状态机和 IndexedDB/Web Crypto 加密草稿。
+- 阶段 2 Task 4 已完成：新增 `src/orderCreationLogic.js`，以纯 reducer 管理四步、字段、dirty/submitting/confirming 状态；步骤校验只报告当前页字段，decimal 文本严格转换为安全整数分，canonical payload 不包含客户端系统字段。
+- 新增 `src/orderCreationApi.js`，统一 metadata/create/operation-query 的 Bearer、AbortSignal 和稳定结果映射；401/403/400 field errors/409 pending 与网络、服务端、畸形响应不再靠解析中文字符串。
+- 新增 `src/orderCreationDraftStore.js`：IndexedDB 只保存 AES-GCM 密文、12-byte IV、版本与时间，使用不可导出的 Web Crypto key；actor+company 每端单草稿，支持覆盖/删除，损坏或未知版本会删除记录且不记录明文。没有把手机号/VIN 写入 localStorage。
+- 当前网页旧新增弹窗的数据通路也已切到 `/api/orders/create`：`upsertOrder` 仅在目标不存在时构造统一 payload，编辑既有工单继续调用旧更新接口；服务端返回的正式 ID 替换本地临时 ID。完整四步 UI、自动草稿保存和成功详情导航留在 Task 5。
+- TDD RED 先失败于三个网页模块不存在；GREEN 后聚焦 8/8、Node 全量 109/109 通过，Vite 生产构建成功并已恢复受版本控制的阶段 1 APK。本任务未部署 Pages、未访问远端 D1、未启动 Android 模拟器。
+- 下一步：执行阶段 2 Task 5，网页四步新增工单界面、草稿生命周期与生产 UI 接线。
 
 ## 工作纪律
 

@@ -23,6 +23,8 @@ import {
   relaunchDesktopApp,
 } from './platform/updater.js';
 import { useNetworkStatus } from './platform/useNetworkStatus.js';
+import { createOrderCommand } from './orderCreationApi.js';
+import { legacyOrderToCreatePayload } from './orderCreationLogic.js';
 import { createUpdateProgress } from './updateLogic.js';
 import {
   EMPLOYEE_EDITABLE_STATUSES,
@@ -200,6 +202,25 @@ async function saveCloudOrder(order, session, options = {}) {
     throw new Error(messageMap[data.error] || data.error || `云端保存失败：${response.status}`);
   }
   return response.json();
+}
+
+async function createOrderFromLegacyForm(order, session, operationId) {
+  const result = await createOrderCommand(
+    legacyOrderToCreatePayload(order, operationId),
+    session,
+  );
+  if (result.kind === 'success') return result.value;
+  const messageMap = {
+    validationFailure: '新增工单信息不完整，请检查必填项和金额',
+    unauthorized: '登录状态已失效，请重新登录',
+    forbidden: '当前账号或企业未启用新增工单权限',
+    conflict: '本次新增操作标识冲突，请重新提交',
+    unknownResult: '提交结果正在确认，请稍后刷新工单列表',
+    networkUnavailable: '网络不可用，新增内容尚未提交',
+    serverFailure: '服务暂时不可用，请稍后重试',
+    malformedResponse: '服务器返回异常，请刷新工单列表确认结果',
+  };
+  throw new Error(messageMap[result.kind] || '新增工单失败');
 }
 
 async function voidCloudOrder(orderId, reason, session) {
@@ -1061,9 +1082,12 @@ function App() {
   async function upsertOrder(nextOrder, options = {}) {
     const scopedOrder = { ...nextOrder, companyId: currentCompany.id };
     const requestOptions = { ...options, eventId: options.eventId || crypto.randomUUID() };
+    const isCreate = !companyOrders.some((order) => order.id === nextOrder.id);
     setOrdersCloudState({ loading: true, error: '' });
     try {
-      const data = await saveCloudOrder(scopedOrder, accessSession, requestOptions);
+      const data = isCreate
+        ? await createOrderFromLegacyForm(scopedOrder, accessSession, requestOptions.eventId)
+        : await saveCloudOrder(scopedOrder, accessSession, requestOptions);
       const savedOrder = data.order || scopedOrder;
       setOrders((currentOrders) => upsertRecord(currentOrders, savedOrder));
       setOrdersCloudState({ loading: false, error: '' });
