@@ -540,7 +540,10 @@ cd E:\codex\chengxu\android-client
 - `operationId`、请求哈希、短租约和操作查询用于防重与未知结果恢复；网络结果不明确时禁止生成新操作盲目重建。每个 actor+company 每个平台只保留一个加密本地草稿，离线可继续编辑已有草稿但不能提交。
 - 本阶段同时修改服务端、网页和 Android，并增加共享 JSON 契约 fixtures。发布仍保留能力开关回退；不启动 Android 模拟器，保留 JVM 测试、Android 测试代码编译、Lint、APK 构建和真机交接。
 - 阶段 2 的任务级 TDD 实施计划已生成：`docs/superpowers/plans/2026-07-21-unified-order-creation.md`，共 10 个任务，依次覆盖共享契约/D1、服务端元数据、幂等创建、网页数据层与 UI、Android API/仓库/UI、双端门禁和生产 APK。用户已要求继续开发，后续沿当前分支内联执行，不创建子代理或额外 worktree。
-- 下一步：执行阶段 2 Task 1，共享契约 fixture 与 D1 migration 0011；先写 RED 测试，再实现并完成任务级文档、提交和推送。
+- 阶段 2 Task 1 已完成：新增 canonical `contracts/order-creation-v1.json`，固定 v1 必填项、默认值、选项、长度、合法/非法用例、整数分和禁传系统字段；Node 与后续 Android 将读取同一文件，不维护副本。
+- 新增 `migrations/0011_unified_order_creation.sql`：创建 `order_number_sequences` 月度序列表，为 `order_operations` 增加 `lease_token`/`lease_until`，并增加 lease recovery 索引；没有自动启用 `CREATE_ORDER`，没有删除或重写历史业务数据。
+- TDD RED 的 5 个用例先全部因 fixture/migration 文件缺失失败；实现后聚焦 5/5、Node 全量 86/86 通过。Wrangler 4.107.0 本地确认唯一待迁移为 0011，成功执行 5 条命令后无待迁移；实际 schema 查询确认序列表和两个租约列存在。本任务没有访问远端 D1。
+- 下一步：执行阶段 2 Task 2，服务端创建元数据与纯业务规范化；先写字段校验、默认值、字典和能力交集 RED 测试。
 
 ## 工作纪律
 

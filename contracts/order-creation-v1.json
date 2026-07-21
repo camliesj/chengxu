@@ -1,0 +1,184 @@
+{
+  "version": 1,
+  "metadata": {
+    "requiredFields": [
+      "customer",
+      "phone",
+      "plate",
+      "car",
+      "insuranceExpiry",
+      "record"
+    ],
+    "defaults": {
+      "insurer": "人保财险",
+      "type": "标的车",
+      "accidentType": "喷漆维修（无换件）",
+      "delivery": "待确认",
+      "laborCents": 0,
+      "materialCents": 0,
+      "remark": ""
+    },
+    "options": {
+      "insurers": [
+        "人保财险",
+        "平安财险",
+        "太平洋财险"
+      ],
+      "vehicleTypes": [
+        "标的车",
+        "三者车"
+      ],
+      "accidentTypes": [
+        "喷漆维修（无换件）",
+        "钣喷维修（有换件）",
+        "机电维修保养",
+        "数据修复"
+      ],
+      "deliveryStatuses": [
+        "待确认",
+        "今日交车",
+        "明日交车"
+      ]
+    },
+    "maxLengths": {
+      "customer": 80,
+      "phone": 40,
+      "plate": 24,
+      "car": 120,
+      "vin": 64,
+      "staff": 80,
+      "claimNo": 120,
+      "record": 2000,
+      "remark": 2000
+    }
+  },
+  "validCases": [
+    {
+      "name": "full-order",
+      "operationId": "11111111-1111-4111-8111-111111111111",
+      "input": {
+        "customer": "  王先生  ",
+        "phone": " 15000000000 ",
+        "plate": " 蒙K12345 ",
+        "car": " 小鹏 P7+ ",
+        "vin": " LXP00000000000001 ",
+        "staff": " 张工 ",
+        "insuranceExpiry": "2027-07-21",
+        "insurer": "人保财险",
+        "type": "标的车",
+        "accidentType": "钣喷维修（有换件）",
+        "claimNo": " BA20260721001 ",
+        "record": " 前保险杠修复并喷漆 ",
+        "laborCents": 120050,
+        "materialCents": 88000,
+        "delivery": "明日交车",
+        "remark": " 交车前联系客户 "
+      },
+      "expected": {
+        "customer": "王先生",
+        "phone": "15000000000",
+        "plate": "蒙K12345",
+        "car": "小鹏 P7+",
+        "vin": "LXP00000000000001",
+        "staff": "张工",
+        "insuranceExpiry": "2027-07-21",
+        "insurer": "人保财险",
+        "type": "标的车",
+        "accidentType": "钣喷维修（有换件）",
+        "claimNo": "BA20260721001",
+        "record": "前保险杠修复并喷漆",
+        "laborCents": 120050,
+        "materialCents": 88000,
+        "amountCents": 208050,
+        "delivery": "明日交车",
+        "remark": "交车前联系客户",
+        "status": "在修中",
+        "version": 1
+      }
+    },
+    {
+      "name": "minimal-order-with-default-money",
+      "operationId": "22222222-2222-4222-8222-222222222222",
+      "input": {
+        "customer": "李女士",
+        "phone": "15100000000",
+        "plate": "蒙K54321",
+        "car": "大众迈腾",
+        "vin": "",
+        "staff": "张工",
+        "insuranceExpiry": "2027-12-31",
+        "insurer": "人保财险",
+        "type": "标的车",
+        "accidentType": "喷漆维修（无换件）",
+        "claimNo": "",
+        "record": "右前门划痕修复",
+        "laborCents": 0,
+        "materialCents": 0,
+        "delivery": "待确认",
+        "remark": ""
+      },
+      "expected": {
+        "customer": "李女士",
+        "phone": "15100000000",
+        "plate": "蒙K54321",
+        "car": "大众迈腾",
+        "vin": "",
+        "staff": "张工",
+        "insuranceExpiry": "2027-12-31",
+        "insurer": "人保财险",
+        "type": "标的车",
+        "accidentType": "喷漆维修（无换件）",
+        "claimNo": "",
+        "record": "右前门划痕修复",
+        "laborCents": 0,
+        "materialCents": 0,
+        "amountCents": 0,
+        "delivery": "待确认",
+        "remark": "",
+        "status": "在修中",
+        "version": 1
+      }
+    }
+  ],
+  "invalidCases": [
+    {
+      "name": "missing-required-fields",
+      "input": {
+        "customer": " ",
+        "phone": "",
+        "plate": "",
+        "car": "",
+        "insuranceExpiry": "",
+        "record": ""
+      },
+      "fieldErrors": {
+        "customer": "order.customer.required",
+        "phone": "order.phone.required",
+        "plate": "order.plate.required",
+        "car": "order.car.required",
+        "insuranceExpiry": "order.insuranceExpiry.required",
+        "record": "order.record.required"
+      }
+    },
+    {
+      "name": "invalid-insurance-date",
+      "input": {
+        "insuranceExpiry": "2027-02-30"
+      },
+      "fieldErrors": {
+        "insuranceExpiry": "order.insuranceExpiry.invalid_date"
+      }
+    },
+    {
+      "name": "invalid-money",
+      "input": {
+        "laborCents": -1,
+        "materialCents": 1.5
+      },
+      "fieldErrors": {
+        "laborCents": "order.laborCents.non_negative_integer",
+        "materialCents": "order.materialCents.non_negative_integer"
+      }
+    }
+  ]
+}

@@ -48,7 +48,7 @@ order.record / laborCents / materialCents / delivery / remark
 - Create: `test/orderCreationContract.test.mjs`
 - Modify: `docs/latest-handoff-prompt.md`
 
-- [ ] **Step 1: 写 migration 与契约 RED 测试**
+- [x] **Step 1: 写 migration 与契约 RED 测试**
 
 测试要求迁移具备：
 
@@ -66,11 +66,11 @@ node --test test/orderCreationMigration.test.mjs test/orderCreationContract.test
 
 Expected: RED，文件或必需 SQL/fixture 字段不存在。
 
-- [ ] **Step 2: 实现只增量迁移和 canonical fixture**
+- [x] **Step 2: 实现只增量迁移和 canonical fixture**
 
 迁移只新增表、列和索引，不删除现有列，不修改历史编号。租约列为已有 operation 行提供安全默认值。fixture 版本固定为 `1`，金额使用分。
 
-- [ ] **Step 3: GREEN 与本地 D1 migration 门禁**
+- [x] **Step 3: GREEN 与本地 D1 migration 门禁**
 
 ```powershell
 node --test test/orderCreationMigration.test.mjs test/orderCreationContract.test.mjs
@@ -79,7 +79,7 @@ npx.cmd wrangler d1 migrations apply chengxu-db --local
 
 Expected: 聚焦测试通过，本地 migration 0011 成功且重复执行无待迁移。
 
-- [ ] **Step 4: 更新交接、提交和推送**
+- [x] **Step 4: 更新交接、提交和推送**
 
 Commit: `feat(orders): add unified creation contract and migration`
 
