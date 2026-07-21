@@ -1,6 +1,7 @@
 import { json, requireSession, writeOperationLog } from '../_shared/auth.js';
 import { buildOrderAuditEvent, protectArchiveEdit, settledEditAccessError } from '../_shared/order-audit.js';
 import { decodeOrderCursor, encodeOrderCursor, readCapabilities } from '../_shared/order-foundation.js';
+import { handleCreateOrderCommand, legacyCreateOrderInput } from '../_shared/order-creation.js';
 import { canEmployeeSetOrderStatus } from '../../shared/orderStatusPermissions.js';
 
 const CURRENT_STATUSES = ['在修中', '已完工', '待结算'];
@@ -323,6 +324,13 @@ export async function onRequestPost({ request, env }) {
   const existing = await env.DB.prepare('SELECT * FROM repair_orders WHERE id = ? AND company_id = ?')
     .bind(order.id, session.company_id || 'tongda')
     .first();
+  if (!existing) {
+    return handleCreateOrderCommand({
+      env,
+      session,
+      payload: { operationId: eventId, order: legacyCreateOrderInput(payload.order || payload) },
+    });
+  }
   const settledAccessError = settledEditAccessError(existing, session.role);
   if (settledAccessError) return json({ error: settledAccessError }, { status: 403 });
   if (mode === 'archive_edit') {

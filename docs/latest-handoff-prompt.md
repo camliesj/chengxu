@@ -546,7 +546,11 @@ cd E:\codex\chengxu\android-client
 - 阶段 2 Task 2 已完成：新增 `functions/_shared/order-creation.js`，集中定义 required/default/options/maxLengths，并提供纯 `normalizeCreateOrderCommand`；它 trim 文本、严格校验日期/非负整数分/枚举/长度，计算总金额，固定 `在修中`/version 1，忽略客户端 id/company/role/status 等系统字段并返回稳定 field error key。
 - 新增认证 `GET /api/order-creation-metadata`：从当前会话企业读取 active insurer/staff 字典，合并固定车辆类型/事故类型/交付状态，并返回角色与公司能力交集、`canCreate`、contract v1 和 `serverTime`。员工无法因公司开关获得 settle 等越权能力，未认证/过期仍分别 401。
 - TDD RED 先精确失败于共享模块和 endpoint 不存在；实现后聚焦 7/7、Node 全量 93/93 通过，Vite 6.4.3 生产构建成功。本任务未访问远端 D1、未部署 Pages、未启动 Android 模拟器。
-- 下一步：执行阶段 2 Task 3，幂等编号、统一创建 API、操作结果查询和旧新增兼容分支。
+- 阶段 2 Task 3 已完成：新增认证 `POST /api/orders/create` 和 actor/company/action 隔离的 `GET /api/order-operations/create-order/:operationId`；创建服务使用 canonical normalize、`CREATE_ORDER` 能力、服务端北京时间和 D1 月序列生成 `ROYYYYMM#####`。
+- 幂等实现覆盖同 hash 完成重放、不同 hash 拒绝、有效租约处理中、超时 CAS 接管、预留 target ID 和未知结果查询。工单 INSERT 带当前租约 EXISTS 条件，工单、operation completed 与无敏感明文的 create audit 在同一 D1 batch，且校验实际 changes，防止失去租约的旧执行者单独落工单。
+- 旧 `POST /api/orders` 在目标不存在时把 `eventId` 和 decimal 金额适配到同一创建服务，忽略客户端 ID/公司/状态/时间；目标已存在时原编辑/结算兼容路径不变。预计交车继续允许现有网页的自定义时间文本，metadata 仅返回建议值，不减少原功能。
+- TDD RED 先失败于 create/operation route 不存在；GREEN 后覆盖权限、服务器字段、编号、重放、hash 冲突、处理中、超时接管、字段错误、actor 查询和旧新增共 8/8。Node 全量 101/101 通过，Vite 生产构建成功；构建后已恢复受版本控制的阶段 1 APK。本任务未访问远端 D1、未部署 Pages、未启动 Android 模拟器。
+- 下一步：执行阶段 2 Task 4，网页创建 transport、四步状态机和 IndexedDB/Web Crypto 加密草稿。
 
 ## 工作纪律
 

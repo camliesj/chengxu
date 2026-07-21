@@ -105,7 +105,7 @@ node --test test/orderCreationLogic.test.mjs test/orderCreationMetadata.test.mjs
 
 - [x] **Step 2: 实现纯规范化边界**
 
-`normalizeCreateOrderCommand(input, metadata)` 返回 `{ value, fieldErrors }`，不访问 D1；`buildCreationMetadata` 统一输出保险公司、车辆类型、事故类型、负责人、交付状态、默认值、长度和契约版本。所有稳定错误使用 code/key，不由客户端解析中文句子。
+`normalizeCreateOrderCommand(input, metadata)` 返回 `{ value, fieldErrors }`，不访问 D1；`buildCreationMetadata` 统一输出保险公司、车辆类型、事故类型、负责人、预计交车建议值、默认值、长度和契约版本。预计交车保持现有网页的自定义时间文本能力。所有稳定错误使用 code/key，不由客户端解析中文句子。
 
 - [x] **Step 3: 实现认证元数据接口**
 
@@ -134,7 +134,7 @@ Commit: `feat(orders): add shared creation metadata and validation`
 - Modify: `functions/_shared/order-audit.js`
 - Modify: `docs/latest-handoff-prompt.md`
 
-- [ ] **Step 1: 写 API RED 测试与 fake D1 场景**
+- [x] **Step 1: 写 API RED 测试与 fake D1 场景**
 
 覆盖：
 
@@ -153,19 +153,19 @@ Commit: `feat(orders): add shared creation metadata and validation`
 node --test test/orderCreationApi.test.mjs
 ```
 
-- [ ] **Step 2: 实现编号与租约 helper**
+- [x] **Step 2: 实现编号与租约 helper**
 
 增加原子 `allocateOrderNumber`、操作认领/CAS 接管、`target_id` 预留和安全历史响应读取。协程/请求异常不能把 started 操作错误标成 completed；日志不得包含完整请求。
 
-- [ ] **Step 3: 实现 `POST /api/orders/create` 与操作查询**
+- [x] **Step 3: 实现 `POST /api/orders/create` 与操作查询**
 
 成功响应使用 201；历史成功重放保持原 http status 和 body；请求失败按设计错误码返回。工单插入与 operation completed 使用 D1 batch。日期时间和 `updated_at` 由同一北京时间/服务端时钟派生。
 
-- [ ] **Step 4: 收紧旧新增分支**
+- [x] **Step 4: 收紧旧新增分支**
 
 网页新代码随后直接调用新接口。兼容分支只在目标不存在时把 `eventId` 映射到 operation；缺失 eventId 拒绝不安全新增；客户端 id/status/company 等不进入共享创建命令。现有工单更新测试必须保持通过。
 
-- [ ] **Step 5: GREEN、全量 Node/Vite 门禁、文档提交推送**
+- [x] **Step 5: GREEN、全量 Node/Vite 门禁、文档提交推送**
 
 ```powershell
 node --test test/orderCreationApi.test.mjs
