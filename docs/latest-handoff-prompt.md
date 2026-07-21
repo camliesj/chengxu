@@ -543,7 +543,10 @@ cd E:\codex\chengxu\android-client
 - 阶段 2 Task 1 已完成：新增 canonical `contracts/order-creation-v1.json`，固定 v1 必填项、默认值、选项、长度、合法/非法用例、整数分和禁传系统字段；Node 与后续 Android 将读取同一文件，不维护副本。
 - 新增 `migrations/0011_unified_order_creation.sql`：创建 `order_number_sequences` 月度序列表，为 `order_operations` 增加 `lease_token`/`lease_until`，并增加 lease recovery 索引；没有自动启用 `CREATE_ORDER`，没有删除或重写历史业务数据。
 - TDD RED 的 5 个用例先全部因 fixture/migration 文件缺失失败；实现后聚焦 5/5、Node 全量 86/86 通过。Wrangler 4.107.0 本地确认唯一待迁移为 0011，成功执行 5 条命令后无待迁移；实际 schema 查询确认序列表和两个租约列存在。本任务没有访问远端 D1。
-- 下一步：执行阶段 2 Task 2，服务端创建元数据与纯业务规范化；先写字段校验、默认值、字典和能力交集 RED 测试。
+- 阶段 2 Task 2 已完成：新增 `functions/_shared/order-creation.js`，集中定义 required/default/options/maxLengths，并提供纯 `normalizeCreateOrderCommand`；它 trim 文本、严格校验日期/非负整数分/枚举/长度，计算总金额，固定 `在修中`/version 1，忽略客户端 id/company/role/status 等系统字段并返回稳定 field error key。
+- 新增认证 `GET /api/order-creation-metadata`：从当前会话企业读取 active insurer/staff 字典，合并固定车辆类型/事故类型/交付状态，并返回角色与公司能力交集、`canCreate`、contract v1 和 `serverTime`。员工无法因公司开关获得 settle 等越权能力，未认证/过期仍分别 401。
+- TDD RED 先精确失败于共享模块和 endpoint 不存在；实现后聚焦 7/7、Node 全量 93/93 通过，Vite 6.4.3 生产构建成功。本任务未访问远端 D1、未部署 Pages、未启动 Android 模拟器。
+- 下一步：执行阶段 2 Task 3，幂等编号、统一创建 API、操作结果查询和旧新增兼容分支。
 
 ## 工作纪律
 

@@ -95,7 +95,7 @@ Commit: `feat(orders): add unified creation contract and migration`
 - Modify: `functions/_shared/order-foundation.js`
 - Modify: `docs/latest-handoff-prompt.md`
 
-- [ ] **Step 1: 写纯规则与元数据 RED 测试**
+- [x] **Step 1: 写纯规则与元数据 RED 测试**
 
 覆盖：trim、必填错误 key、有效日期、非负整数分、长度上限、枚举成员、服务端默认值、未知字段忽略、固定状态与版本，以及员工/管理员和公司能力的交集。
 
@@ -103,15 +103,15 @@ Commit: `feat(orders): add unified creation contract and migration`
 node --test test/orderCreationLogic.test.mjs test/orderCreationMetadata.test.mjs
 ```
 
-- [ ] **Step 2: 实现纯规范化边界**
+- [x] **Step 2: 实现纯规范化边界**
 
 `normalizeCreateOrderCommand(input, metadata)` 返回 `{ value, fieldErrors }`，不访问 D1；`buildCreationMetadata` 统一输出保险公司、车辆类型、事故类型、负责人、交付状态、默认值、长度和契约版本。所有稳定错误使用 code/key，不由客户端解析中文句子。
 
-- [ ] **Step 3: 实现认证元数据接口**
+- [x] **Step 3: 实现认证元数据接口**
 
 `GET /api/order-creation-metadata`：未认证 401；无 `CREATE_ORDER` 返回能力列表但 `canCreate=false`；有权限时返回公司隔离的负责人和统一字典。不得暴露其他企业账号或密码字段。
 
-- [ ] **Step 4: GREEN、全量 Node 回归、文档提交推送**
+- [x] **Step 4: GREEN、全量 Node 回归、文档提交推送**
 
 ```powershell
 node --test test/orderCreationLogic.test.mjs test/orderCreationMetadata.test.mjs
