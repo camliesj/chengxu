@@ -531,6 +531,16 @@ cd E:\codex\chengxu\android-client
 - 发布 APK：`dist/releases/android/autoservice-android-debug-0.1.0.apk`，19,540,634 bytes，SHA-256 `E2AB554D5EDBF9BB33D66485890CAEFCDF866BBD0541C933498C3995D611BE52`；与 clean 构建源哈希一致，`apksigner verify --verbose` 通过且 `Verified using v2 scheme: true`，1 个 Debug 签名者。
 - `docs/android-client.md` 已补充阶段 1 真机回归清单：登录、双公司隔离、当前 UI 不回归、离线缓存、退出/401 清理、v1→v2 覆盖升级和敏感字段落库检查。下一阶段可开始新增工单纵向切片；在用户真机验收前不声称连接式 Android 测试通过。
 
+### 阶段 2：Web 与 Android 统一新增工单（设计已批准）
+
+- 用户明确要求涉及新增工单的规则统一修改，不接受网页端与 Android 使用不同编号、默认值、字典、权限或校验逻辑。正式设计见 `docs/superpowers/specs/2026-07-21-unified-order-creation-design.md`。
+- 网页端与 Android 的新增动作将统一调用 `POST /api/orders/create`；旧 `POST /api/orders` 的新增分支调用同一共享服务，既有工单更新分支留待后续编辑阶段迁移。正式编号由服务端按北京时间生成 `ROYYYYMM#####`，月度序号全局递增且允许空洞、不允许重复。
+- 服务端强制使用会话企业、`在修中`、version 1 和空结算/回款/作废状态；客户端不能自行覆盖系统字段。这不减少用户业务权限，后续状态、结算等能力仍由专用命令和权限控制。
+- 双端共享创建元数据、四步字段顺序、默认值、金额分值、字段错误 key 和能力列表。四步为客户与车辆、保险与事故、维修与费用、确认提交；创建成功后均以服务端详情替换本地对象并刷新列表/工作台。
+- `operationId`、请求哈希、短租约和操作查询用于防重与未知结果恢复；网络结果不明确时禁止生成新操作盲目重建。每个 actor+company 每个平台只保留一个加密本地草稿，离线可继续编辑已有草稿但不能提交。
+- 本阶段同时修改服务端、网页和 Android，并增加共享 JSON 契约 fixtures。发布仍保留能力开关回退；不启动 Android 模拟器，保留 JVM 测试、Android 测试代码编译、Lint、APK 构建和真机交接。
+- 下一步：基于已批准设计生成任务级 TDD 实施计划；计划获准后再开始代码实现。
+
 ## 工作纪律
 
 每次重要改动后必须：
