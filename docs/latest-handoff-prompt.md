@@ -618,6 +618,15 @@ cd E:\codex\chengxu\android-client
 - Task 2 第三轮复核修复了 D1 batch `[1,0,0]` 遗留命令审计哨兵的问题。失败更新现在先按派生 event ID、`update_order`、`repair_order` 和目标工单精确补偿删除；删除 SQL 以完整版本、时间戳及 17 个数据库编辑值作为成功后置条件保护，不会删除外部碰撞行或并发成功审计。补偿后会重读工单与 operation：并发精确成功恢复为 200，哨兵仍存在或补偿异常则返回 `AUDIT_SENTINEL_CLEANUP_FAILED` 500 且不存储虚假终态 409。focused RED 分别观测到哨兵计数 `1 !== 0`、错误 409 和并发成功误报 409；实现后新增/更新的 4 个回归用例与完整编辑端点 15/15 通过。最终全量门禁结果见 Task 2 报告；本轮仍未部署、访问远端 D1、启用能力、启动模拟器、更新 APK 或 push。
 - Task 2 第四轮复核收紧了补偿来源边界：只有当前 batch 的 audit 语句 `changes === 1`（即本批新插入哨兵）且工单未达到本次精确结果时才允许删除。audit `changes === 0` 的预存 scoped 哨兵一律保留；若工单/operation 不能恢复为成功，则保持 operation 非终态并返回 `OPERATION_RECONCILIATION_REQUIRED` 500。现有 schema 没有字段可区分“失败残留哨兵”与此前 `[1,1,0]` 已真实更新但未完成 operation 的有效审计，因此不能安全自动清理预存行。RED 复现了工单随后被其他命令推进到更高版本时旧实现误存 409 的场景；focused 边界用例修复后 6/6 通过，且本批 `[1,0,0]` 清理、cleanup failure、并发精确成功、预存 `[0,1,1]` 成功和无哨兵普通版本冲突均未退化。
 
+### 阶段 3 Task 3：旧编辑兼容与能力信封
+
+- 旧 `POST /api/orders` 对“已存在、未结算、状态不变、非遗留维护字段变更”的普通编辑，现通过可测试导出的 `routeLegacyExistingOrder` 与 `legacyEditOrderInput` 调用共享 `handleEditOrderCommand`；`eventId` 映射为 `operationId`，`order.version` 映射为 `expectedVersion`，16 字段/整数分适配复用 `legacyCreateOrderInput`，没有第二套 canonical 规范化。
+- 状态变化、结算、返结算、回执维护和 `archive_edit` 仍走原 legacy UPSERT/审计分支。普通编辑的无效 UUID 或缺失/非法版本由共享命令稳定返回 400。
+- legacy `GET /api/orders` 保留原 `orders`（含旧回执字段）并新增经过 authenticated company + role 过滤的 `capabilities` 与 ISO `serverTime`，响应不包含 session token、username 等账户秘密。
+- 网页初次加载和手动刷新均分别保存 `orders` 与 `orderCapabilities`。新增、编辑、普通状态、结算、返结算、作废、回执维护入口分别要求对应企业能力；管理员角色不再单独推断企业写能力。返结算测试断言同步改为独立 `REVERSE_SETTLEMENT` 门控。
+- TDD：初始 compatibility RED 为 22 pass / 4 fail；另有历史 empty/null 默认值分类 RED `0 !== 1`。最终 focused 35/35、Node 全量 144/144、Vite 6.4.3 构建成功（64 modules）。构建清理的已跟踪 Stage 2 APK 已从 HEAD 恢复，APK 未更新。
+- 本任务无 migration、无生产/远端 D1、无部署、无能力开关、无模拟器、无 push。
+
 ## 工作纪律
 
 每次重要改动后必须：

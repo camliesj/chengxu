@@ -1,21 +1,45 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 
 import { decodeOrderCursor } from '../functions/_shared/order-foundation.js';
 import { onRequestGet as getOrders } from '../functions/api/orders.js';
 import { onRequestGet as getOrderDetail } from '../functions/api/orders/[id]/index.js';
 
-test('legacy orders read keeps the original envelope query and receipt fields', async () => {
-  const env = environment({ orders: [row()] });
+test('legacy orders read keeps orders and adds role-filtered capabilities without session secrets', async () => {
+  const env = environment({
+    orders: [row()],
+    capabilities: [
+      { capability: 'VIEW_ORDERS', enabled: 1 },
+      { capability: 'EDIT_ORDER', enabled: 1 },
+      { capability: 'SETTLE_ORDER', enabled: 1 },
+    ],
+  });
   const response = await getOrders({ request: request('/api/orders'), env });
   const payload = await response.json();
 
   assert.equal(response.status, 200);
-  assert.deepEqual(Object.keys(payload), ['orders']);
+  assert.deepEqual(Object.keys(payload), ['orders', 'capabilities', 'serverTime']);
+  assert.deepEqual(payload.capabilities, ['VIEW_ORDERS', 'EDIT_ORDER']);
+  assert.match(payload.serverTime, /^\d{4}-\d{2}-\d{2}T/u);
+  assert.equal(JSON.stringify(payload).includes('test-token'), false);
+  assert.equal(JSON.stringify(payload).includes('worker'), false);
   assert.equal(payload.orders[0].settlementReceiptKey, 'receipts/tongda/private.png');
   const query = env.calls.find((call) => call.sql.includes('SELECT * FROM repair_orders'));
   assert.match(query.sql, /voided = 0 AND company_id = \? ORDER BY date DESC, time DESC, created_at DESC/);
   assert.deepEqual(query.values, ['tongda']);
+});
+
+test('web client stores legacy orders and capabilities separately and capability-gates order writes', async () => {
+  const appSource = await readFile(new URL('../src/App.jsx', import.meta.url), 'utf8');
+  assert.match(appSource, /return \{\s*orders: Array\.isArray\(data\.orders\)[\s\S]*capabilities: Array\.isArray\(data\.capabilities\)[\s\S]*serverTime:/u);
+  assert.match(appSource, /const \[orderCapabilities, setOrderCapabilities\] = useState/u);
+  assert.match(appSource, /setOrders\(cloudEnvelope\.orders\)/u);
+  assert.match(appSource, /setOrderCapabilities\(cloudEnvelope\.capabilities\)/u);
+  assert.doesNotMatch(appSource, /const canSettleOrder = isAdmin;/u);
+  for (const capability of ['CREATE_ORDER', 'EDIT_ORDER', 'ADVANCE_ORDER_STATUS', 'SETTLE_ORDER', 'VOID_ORDER', 'MAINTAIN_RECEIPT']) {
+    assert.match(appSource, new RegExp(`orderCapabilities\\.includes\\('${capability}'\\)`), capability);
+  }
 });
 
 test('current full page is scoped paginated and hides receipt object keys', async () => {

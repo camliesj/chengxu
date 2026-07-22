@@ -2,6 +2,7 @@ import { json, requireSession, writeOperationLog } from '../_shared/auth.js';
 import { buildOrderAuditEvent, protectArchiveEdit, settledEditAccessError } from '../_shared/order-audit.js';
 import { decodeOrderCursor, encodeOrderCursor, readCapabilities } from '../_shared/order-foundation.js';
 import { handleCreateOrderCommand, legacyCreateOrderInput } from '../_shared/order-creation.js';
+import { handleEditOrderCommand } from '../_shared/order-edit.js';
 import { canEmployeeSetOrderStatus } from '../../shared/orderStatusPermissions.js';
 
 const CURRENT_STATUSES = ['在修中', '已完工', '待结算'];
@@ -197,7 +198,11 @@ async function readLegacyOrders(env, session) {
   const result = await env.DB.prepare(
     'SELECT * FROM repair_orders WHERE voided = 0 AND company_id = ? ORDER BY date DESC, time DESC, created_at DESC',
   ).bind(session.company_id || 'tongda').all();
-  return json({ orders: result.results.map(toOrder) });
+  return json({
+    orders: result.results.map(toOrder),
+    capabilities: await readCapabilities(env, session),
+    serverTime: new Date().toISOString(),
+  });
 }
 
 async function readScopedOrders({ url, env, session, scope }) {
@@ -331,6 +336,55 @@ export async function onRequestPost({ request, env }) {
       payload: { operationId: eventId, order: legacyCreateOrderInput(payload.order || payload) },
     });
   }
+  return routeLegacyExistingOrder({ env, session, payload, existing });
+}
+
+export function legacyEditOrderInput(input = {}) {
+  return legacyCreateOrderInput(input);
+}
+
+export async function routeLegacyExistingOrder({
+  env,
+  session,
+  payload,
+  existing,
+  editOrderCommand = handleEditOrderCommand,
+  legacyUpsert = legacyUpsertExistingOrder,
+}) {
+  const mode = cleanText(payload?.mode);
+  const source = payload?.order || payload || {};
+  const order = normalizeOrder(source, session);
+  if (isOrdinaryLegacyEdit({ mode, order, existing, session })) {
+    return editOrderCommand({
+      env,
+      session,
+      orderId: existing.id,
+      payload: {
+        operationId: cleanText(payload?.eventId),
+        expectedVersion: source.version,
+        order: legacyEditOrderInput(source),
+      },
+    });
+  }
+  return legacyUpsert({ env, session, payload, existing, order, mode });
+}
+
+function isOrdinaryLegacyEdit({ mode, order, existing, session }) {
+  if (mode || !CURRENT_STATUSES.includes(existing?.status) || order.status !== existing.status) return false;
+  const normalizedExisting = normalizeOrder(toOrder(existing), session);
+  const legacyOnlyFields = [
+    'payment_method', 'settlement_date', 'settlement_time', 'settlement_remark',
+    'settlement_receipt_key', 'settlement_receipt_name', 'settlement_receipt_type',
+    'settlement_receipt_size', 'settlement_receipt_uploaded_at',
+    'voided', 'voided_at', 'void_reason',
+  ];
+  return legacyOnlyFields.every(
+    (field) => String(order[field] ?? '') === String(normalizedExisting[field] ?? ''),
+  );
+}
+
+async function legacyUpsertExistingOrder({ env, session, payload, existing, order: normalizedOrder, mode }) {
+  let order = normalizedOrder;
   const settledAccessError = settledEditAccessError(existing, session.role);
   if (settledAccessError) return json({ error: settledAccessError }, { status: 403 });
   if (mode === 'archive_edit') {

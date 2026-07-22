@@ -7,12 +7,86 @@ import { buildOrderCreationMetadata } from '../functions/_shared/order-creation.
 import { normalizeEditOrderCommand } from '../functions/_shared/order-edit.js';
 import { onRequestPatch as patchOrder } from '../functions/api/orders/[id]/index.js';
 import { onRequestGet as getEditOperation } from '../functions/api/order-operations/edit-order/[operationId].js';
+import * as legacyOrdersApi from '../functions/api/orders.js';
 
 const contract = JSON.parse(await readFile(
   new URL('../contracts/order-edit-v1.json', import.meta.url),
   'utf8',
 ));
 const operationId = '22222222-2222-4222-8222-222222222222';
+
+test('legacy ordinary edits adapt event/version and route through the shared edit command', async () => {
+  assert.equal(typeof legacyOrdersApi.legacyEditOrderInput, 'function');
+  assert.equal(typeof legacyOrdersApi.routeLegacyExistingOrder, 'function');
+  const existing = databaseRow();
+  const payload = {
+    eventId: operationId,
+    order: { ...legacyOrder(existing), version: existing.version, customer: '李先生', labor: 321.45, material: 67.89 },
+  };
+  const editServiceCalls = [];
+  let legacyUpsertCalls = 0;
+  const result = await legacyOrdersApi.routeLegacyExistingOrder({
+    env: {}, session: staffSession(), payload, existing,
+    editOrderCommand: async (input) => {
+      editServiceCalls.push(input);
+      return new Response(JSON.stringify({ order: payload.order }), { status: 200 });
+    },
+    legacyUpsert: async () => { legacyUpsertCalls += 1; return new Response(null, { status: 204 }); },
+  });
+
+  assert.equal(result.status, 200);
+  assert.equal(editServiceCalls.length, 1);
+  assert.equal(editServiceCalls[0].orderId, existing.id);
+  assert.equal(editServiceCalls[0].payload.operationId, payload.eventId);
+  assert.equal(editServiceCalls[0].payload.expectedVersion, payload.order.version);
+  assert.deepEqual(editServiceCalls[0].payload.order, {
+    customer: '李先生', phone: existing.phone, plate: existing.plate, car: existing.car,
+    vin: existing.vin, staff: existing.staff, insuranceExpiry: existing.insurance_expiry,
+    insurer: existing.insurer, type: existing.type, accidentType: existing.accident_type,
+    claimNo: existing.claim_no, record: existing.record, laborCents: 32145,
+    materialCents: 6789, delivery: existing.delivery, remark: existing.remark,
+  });
+  assert.equal(legacyUpsertCalls, 0);
+});
+
+test('legacy status, settlement, reverse settlement, receipt, and archive edits retain legacy handling', async () => {
+  const ordinary = databaseRow();
+  const settled = databaseRow({ status: '已结算' });
+  const cases = [
+    { existing: ordinary, payload: { eventId: operationId, order: { ...legacyOrder(ordinary), status: '已完工' } } },
+    { existing: ordinary, payload: { eventId: operationId, order: { ...legacyOrder(ordinary), status: '已结算', settlementDate: '2026-07-22' } } },
+    { existing: settled, payload: { eventId: operationId, order: { ...legacyOrder(settled), status: '待结算' } } },
+    { existing: settled, payload: { eventId: operationId, order: { ...legacyOrder(settled), settlementReceiptKey: 'receipts/tongda/new.png' } } },
+    { existing: settled, payload: { mode: 'archive_edit', eventId: operationId, order: legacyOrder(settled) } },
+  ];
+
+  for (const item of cases) {
+    let editCalls = 0;
+    let legacyCalls = 0;
+    const response = await legacyOrdersApi.routeLegacyExistingOrder({
+      env: {}, session: { ...staffSession(), role: 'admin' }, ...item,
+      editOrderCommand: async () => { editCalls += 1; return new Response(null); },
+      legacyUpsert: async () => { legacyCalls += 1; return new Response(null, { status: 202 }); },
+    });
+    assert.equal(response.status, 202);
+    assert.equal(editCalls, 0);
+    assert.equal(legacyCalls, 1);
+  }
+});
+
+test('legacy ordinary edit classification compares normalized legacy-only defaults', async () => {
+  const existing = databaseRow({ payment_method: '', settlement_receipt_size: null });
+  let editCalls = 0;
+  let legacyCalls = 0;
+  await legacyOrdersApi.routeLegacyExistingOrder({
+    env: {}, session: staffSession(), existing,
+    payload: { eventId: operationId, order: legacyOrder(existing) },
+    editOrderCommand: async () => { editCalls += 1; return new Response(null); },
+    legacyUpsert: async () => { legacyCalls += 1; return new Response(null); },
+  });
+  assert.equal(editCalls, 1);
+  assert.equal(legacyCalls, 0);
+});
 
 test('PATCH requires authentication and hides cross-company or voided targets', async () => {
   const unauthorized = await patchOrder({
@@ -745,5 +819,24 @@ function databaseRow(overrides = {}) {
     voided: 0, voided_at: '', void_reason: '', created_at: '2026-07-20 09:30:00',
     updated_at: '2026-07-20 10:00:00',
     ...overrides,
+  };
+}
+
+function legacyOrder(row) {
+  return {
+    id: row.id, companyId: row.company_id, version: row.version,
+    date: row.date, time: row.time, plate: row.plate, customer: row.customer,
+    phone: row.phone, car: row.car, insurer: row.insurer,
+    insuranceExpiry: row.insurance_expiry, type: row.type, status: row.status,
+    labor: row.labor, material: row.material, amount: row.amount, record: row.record,
+    staff: row.staff, delivery: row.delivery, vin: row.vin, claimNo: row.claim_no,
+    accidentType: row.accident_type, paymentMethod: row.payment_method, remark: row.remark,
+    settlementDate: row.settlement_date, settlementTime: row.settlement_time,
+    settlementRemark: row.settlement_remark, settlementReceiptKey: row.settlement_receipt_key,
+    settlementReceiptName: row.settlement_receipt_name,
+    settlementReceiptType: row.settlement_receipt_type,
+    settlementReceiptSize: row.settlement_receipt_size,
+    settlementReceiptUploadedAt: row.settlement_receipt_uploaded_at,
+    voided: row.voided, voidedAt: row.voided_at, voidReason: row.void_reason,
   };
 }

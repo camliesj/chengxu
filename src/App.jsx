@@ -189,7 +189,11 @@ async function fetchCloudOrders(session) {
     throw new Error(`云端读取失败：${response.status}`);
   }
   const data = await response.json();
-  return Array.isArray(data.orders) ? data.orders : [];
+  return {
+    orders: Array.isArray(data.orders) ? data.orders : [],
+    capabilities: Array.isArray(data.capabilities) ? data.capabilities : [],
+    serverTime: String(data.serverTime || ''),
+  };
 }
 
 async function saveCloudOrder(order, session, options = {}) {
@@ -784,6 +788,7 @@ function App() {
   const [query, setQuery] = useState('');
   const [dateRange, setDateRange] = useState({ start: '2026-07-01', end: '2026-07-31' });
   const [orders, setOrders] = useState(readStoredOrders);
+  const [orderCapabilities, setOrderCapabilities] = useState([]);
   const [insurancePolicies, setInsurancePolicies] = useState(readStoredInsurancePolicies);
   const [customerVehicles, setCustomerVehicles] = useState(readStoredCustomerVehicles);
   const [dictionaries, setDictionaries] = useState([]);
@@ -906,11 +911,16 @@ function App() {
 
   const currentCompany = companyById(accessSession?.companyId || 'tongda');
   const isAdmin = accessSession?.role === 'admin';
+  const canCreateOrder = orderCapabilities.includes('CREATE_ORDER');
+  const canEditOrder = orderCapabilities.includes('EDIT_ORDER');
+  const canAdvanceOrderStatus = orderCapabilities.includes('ADVANCE_ORDER_STATUS');
   const canExportData = hasUiPermission(accessSession, 'export');
   const canOpenSettings = hasUiPermission(accessSession, 'settings');
-  const canVoidOrder = hasUiPermission(accessSession, 'voidOrder');
+  const canVoidOrder = hasUiPermission(accessSession, 'voidOrder') && orderCapabilities.includes('VOID_ORDER');
   const canViewLogs = hasUiPermission(accessSession, 'logs');
-  const canSettleOrder = isAdmin;
+  const canSettleOrder = isAdmin && orderCapabilities.includes('SETTLE_ORDER');
+  const canReverseSettlement = isAdmin && orderCapabilities.includes('REVERSE_SETTLEMENT');
+  const canMaintainReceipt = isAdmin && orderCapabilities.includes('MAINTAIN_RECEIPT');
   const orderData = useMemo(() => orderRepository.listOrders(orders), [orders]);
   const companyOrders = useMemo(
     () => orderData.filter((order) => (order.companyId || 'tongda') === currentCompany.id),
@@ -953,10 +963,11 @@ function App() {
     let isCancelled = false;
     setOrdersCloudState({ loading: true, error: '' });
     fetchCloudOrders(accessSession)
-      .then((cloudOrders) => {
+      .then((cloudEnvelope) => {
         if (isCancelled) return;
-        setOrders(cloudOrders);
-        localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(cloudOrders));
+        setOrders(cloudEnvelope.orders);
+        setOrderCapabilities(cloudEnvelope.capabilities);
+        localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(cloudEnvelope.orders));
         setOrdersCloudState({ loading: false, error: '' });
         setLastRefreshAt(currentTimeLabel());
       })
@@ -1076,9 +1087,10 @@ function App() {
     if (!accessSession?.token) return;
     setOrdersCloudState({ loading: true, error: '' });
     fetchCloudOrders(accessSession)
-      .then((cloudOrders) => {
-        setOrders(cloudOrders);
-        localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(cloudOrders));
+      .then((cloudEnvelope) => {
+        setOrders(cloudEnvelope.orders);
+        setOrderCapabilities(cloudEnvelope.capabilities);
+        localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(cloudEnvelope.orders));
         setOrdersCloudState({ loading: false, error: '' });
         setLastRefreshAt(currentTimeLabel());
       })
@@ -1436,7 +1448,7 @@ function App() {
               placeholder="搜索客户 / 车牌 / 手机号 / 工单号"
             />
           </div>
-          <button
+          {canCreateOrder ? <button
             className="primary-action"
             {...requireOnline}
             onClick={() => {
@@ -1445,7 +1457,7 @@ function App() {
             }}
           >
             ＋ 新增工单
-          </button>
+          </button> : null}
           {canExportData ? (
             <button className="secondary-action" {...requireOnline} onClick={() => setActivePage('数据导出')}><AssetIcon name="action-excel.png" className="button-icon" />导出Excel</button>
           ) : null}
@@ -1577,6 +1589,11 @@ function App() {
             cloudState={ordersCloudState}
             role={accessSession?.role || 'staff'}
             canSettleOrder={canSettleOrder}
+            canCreateOrder={canCreateOrder}
+            canEditOrder={canEditOrder}
+            canAdvanceOrderStatus={canAdvanceOrderStatus}
+            canReverseSettlement={canReverseSettlement}
+            canMaintainReceipt={canMaintainReceipt}
             canVoidOrder={canVoidOrder}
             canExportData={canExportData}
             insurerOptions={insurerChoices}
@@ -1596,6 +1613,9 @@ function App() {
             insurerOptions={insurerChoices}
             staffOptions={staffChoices}
             isAdmin={isAdmin}
+            canEditOrder={canEditOrder}
+            canReverseSettlement={canReverseSettlement}
+            canMaintainReceipt={canMaintainReceipt}
             cloudState={ordersCloudState}
             focusRequest={historyFocus}
             onFocusHandled={() => setHistoryFocus(null)}
@@ -2292,7 +2312,7 @@ function LegacyHistoryQueryPage({ orders, insurerOptions, onView, onEdit }) {
   );
 }
 
-function HistoryOrderTable({ orders, isAdmin, onView, onEdit, onPrint, onReverse, cloudReadOnly = false }) {
+function HistoryOrderTable({ orders, canEditOrder, canReverseSettlement, onView, onEdit, onPrint, onReverse, cloudReadOnly = false }) {
   function runAction(event, action) {
     event.stopPropagation();
     action();
@@ -2329,8 +2349,8 @@ function HistoryOrderTable({ orders, isAdmin, onView, onEdit, onPrint, onReverse
                 <div className="history-row-actions">
                   <button type="button" onClick={(event) => runAction(event, () => onView(order))}>查看</button>
                   <button type="button" onClick={(event) => runAction(event, () => onPrint(order))}>打印</button>
-                  {isAdmin ? <button type="button" disabled={cloudReadOnly} title={cloudReadOnly ? '网络不可用，暂时不能编辑' : undefined} onClick={(event) => runAction(event, () => onEdit(order))}>编辑</button> : null}
-                  {isAdmin ? <button type="button" disabled={cloudReadOnly} title={cloudReadOnly ? '网络不可用，暂时不能返结算' : undefined} className="danger-link" onClick={(event) => runAction(event, () => onReverse(order))}>返结算</button> : null}
+                  {canEditOrder ? <button type="button" disabled={cloudReadOnly} title={cloudReadOnly ? '网络不可用，暂时不能编辑' : undefined} onClick={(event) => runAction(event, () => onEdit(order))}>编辑</button> : null}
+                  {canReverseSettlement ? <button type="button" disabled={cloudReadOnly} title={cloudReadOnly ? '网络不可用，暂时不能返结算' : undefined} className="danger-link" onClick={(event) => runAction(event, () => onReverse(order))}>返结算</button> : null}
                 </div>
               </td>
             </tr>
@@ -2347,6 +2367,9 @@ function HistoryQueryPage({
   insurerOptions,
   staffOptions,
   isAdmin,
+  canEditOrder,
+  canReverseSettlement,
+  canMaintainReceipt,
   cloudState,
   focusRequest,
   onFocusHandled,
@@ -2404,7 +2427,7 @@ function HistoryQueryPage({
   }
 
   function openEdit(order) {
-    if (!isAdmin) return;
+    if (!isAdmin || !canEditOrder) return;
     setDetailOrderId('');
     setEditOrderId(order.id);
     setDraft(createOrderDraft(order));
@@ -2412,7 +2435,7 @@ function HistoryQueryPage({
 
   function saveArchiveEdit(event) {
     event.preventDefault();
-    if (!isAdmin || !editOrder) return;
+    if (!isAdmin || !canEditOrder || !editOrder) return;
     const edited = draftToOrder(draft);
     onSaveArchivedOrder({
       ...edited,
@@ -2431,7 +2454,7 @@ function HistoryQueryPage({
   }
 
   function requestReverse(order) {
-    if (!isAdmin) return;
+    if (!isAdmin || !canReverseSettlement) return;
     setConfirmAction({
       title: '确认返结算',
       description: `工单 ${order.id}（${order.plate}）将恢复为待结算，并重新出现在维修接待页面。`,
@@ -2493,7 +2516,8 @@ function HistoryQueryPage({
         {cloudState?.error ? <div className="cloud-banner error">{cloudState.error}</div> : null}
         <HistoryOrderTable
           orders={paginated.rows}
-          isAdmin={isAdmin}
+          canEditOrder={canEditOrder}
+          canReverseSettlement={canReverseSettlement}
           onView={openView}
           onEdit={openEdit}
           onPrint={printOrder}
@@ -2518,10 +2542,10 @@ function HistoryQueryPage({
           order={detailOrder}
           company={company}
           onClose={() => setDetailOrderId('')}
-          onEdit={isAdmin ? () => openEdit(detailOrder) : null}
+          onEdit={canEditOrder ? () => openEdit(detailOrder) : null}
           onPrint={() => printOrder(detailOrder)}
-          onReverseSettle={isAdmin ? () => requestReverse(detailOrder) : null}
-          onUploadReceipt={isAdmin ? (file, order) => onUploadReceipt(file, order.id).then((receipt) => {
+          onReverseSettle={canReverseSettlement ? () => requestReverse(detailOrder) : null}
+          onUploadReceipt={canMaintainReceipt ? (file, order) => onUploadReceipt(file, order.id).then((receipt) => {
             const nextOrder = {
               ...order,
               settlementReceiptKey: receipt.key,
@@ -2534,8 +2558,8 @@ function HistoryQueryPage({
             return nextOrder;
           }) : null}
           onViewReceipt={onViewReceipt}
-          onDeleteReceipt={isAdmin ? onDeleteReceipt : null}
-          canManageReceipt={isAdmin}
+          onDeleteReceipt={canMaintainReceipt ? onDeleteReceipt : null}
+          canManageReceipt={canMaintainReceipt}
           cloudReadOnly={cloudReadOnly}
         />
       ) : null}
@@ -2578,7 +2602,12 @@ function RepairReception({
   onSaveOrder,
   onStatusChange,
   cloudState,
+  canCreateOrder,
+  canEditOrder,
+  canAdvanceOrderStatus,
   canSettleOrder,
+  canReverseSettlement,
+  canMaintainReceipt,
   canVoidOrder,
   canExportData,
   insurerOptions,
@@ -2617,12 +2646,12 @@ function RepairReception({
     .reduce((sum, order) => sum + order.amount, 0);
 
   useEffect(() => {
-    if (createRequest > 0) {
+    if (createRequest > 0 && canCreateOrder) {
       setDraft(createOrderDraft());
       setWorkOrderModal(openRepairModal('create'));
       onCreateHandled?.();
     }
-  }, [createRequest, onCreateHandled]);
+  }, [canCreateOrder, createRequest, onCreateHandled]);
 
   useEffect(() => {
     if (!visibleOrders.some((order) => order.id === selectedId) && visibleOrders[0]) {
@@ -2661,6 +2690,7 @@ function RepairReception({
   }
 
   function openEdit(order) {
+    if (!canEditOrder) return;
     setSelectedId(order.id);
     setDraft(createOrderDraft(order));
     setWorkOrderModal(openRepairModal('edit', order.id));
@@ -2668,6 +2698,7 @@ function RepairReception({
 
   function saveDraft(event) {
     event.preventDefault();
+    if (workOrderModal.mode === 'create' ? !canCreateOrder : !canEditOrder) return;
     const nextOrder = draftToOrder(draft);
     onSaveOrder(nextOrder);
     setSelectedId(nextOrder.id);
@@ -2677,6 +2708,7 @@ function RepairReception({
 
   function applyStatusChange(order, status) {
     if (!order) return;
+    if (status !== REPAIR_STATUS.settled && !canAdvanceOrderStatus) return;
     if (!canSettleOrder && !canEmployeeSetOrderStatus(status)) return;
     if (status === REPAIR_STATUS.settled) {
       setSettlementOrder(order);
@@ -2715,7 +2747,7 @@ function RepairReception({
   }
 
   function reverseSettlement(order) {
-    if (!canSettleOrder || !order) return;
+    if (!canReverseSettlement || !order) return;
     const nextOrder = {
       ...order,
       status: REPAIR_STATUS.pendingSettlement,
@@ -2731,7 +2763,7 @@ function RepairReception({
   }
 
   function requestReverseSettlement(order) {
-    if (!canSettleOrder || !order) return;
+    if (!canReverseSettlement || !order) return;
     setConfirmAction({
       title: '确认返结算',
       description: `工单 ${order.id}（${order.plate}）已结算，返结算后会清空结算时间和结算备注，状态改为“待结算”。`,
@@ -2764,13 +2796,13 @@ function RepairReception({
           <div className="table-titlebar">
             <h2>维修接待工单</h2>
             <div>
-              <button disabled={cloudReadOnly} title={cloudReadOnly ? '网络不可用，暂时不能新增工单' : undefined} onClick={() => {
+              {canCreateOrder ? <button disabled={cloudReadOnly} title={cloudReadOnly ? '网络不可用，暂时不能新增工单' : undefined} onClick={() => {
                 setDraft(createOrderDraft());
                 setWorkOrderModal(openRepairModal('create'));
               }}
               >
                 新增工单
-              </button>
+              </button> : null}
               {canExportData ? (
                 <button
                   disabled={cloudReadOnly}
@@ -2810,7 +2842,7 @@ function RepairReception({
               setDraft(createOrderDraft(order));
             }}
             onView={openView}
-            onEdit={openEdit}
+            onEdit={canEditOrder ? openEdit : null}
             onPrint={printOrder}
             onSettle={canSettleOrder ? requestSettlement : null}
             onVoid={canVoidOrder ? (order) => setVoidOrderTarget(order) : null}
@@ -2846,13 +2878,13 @@ function RepairReception({
                 <div className="total"><span>工单金额</span><strong>{formatMoney(selected.amount)}</strong></div>
               </div>
               <div className="state-actions">
-                <button disabled={cloudReadOnly} onClick={() => requestStatusChange(selected, REPAIR_STATUS.repairing)}>切为在修</button>
-                <button disabled={cloudReadOnly} onClick={() => requestStatusChange(selected, REPAIR_STATUS.completed)}>切为完工</button>
-                <button disabled={cloudReadOnly} onClick={() => requestStatusChange(selected, REPAIR_STATUS.pendingSettlement)}>待结算</button>
+                {canAdvanceOrderStatus ? <button disabled={cloudReadOnly} onClick={() => requestStatusChange(selected, REPAIR_STATUS.repairing)}>切为在修</button> : null}
+                {canAdvanceOrderStatus ? <button disabled={cloudReadOnly} onClick={() => requestStatusChange(selected, REPAIR_STATUS.completed)}>切为完工</button> : null}
+                {canAdvanceOrderStatus ? <button disabled={cloudReadOnly} onClick={() => requestStatusChange(selected, REPAIR_STATUS.pendingSettlement)}>待结算</button> : null}
                 {canSettleOrder && selected.status !== REPAIR_STATUS.settled ? <button disabled={cloudReadOnly} onClick={() => requestSettlement(selected)}>完成结算</button> : null}
-                {canSettleOrder && selected.status === REPAIR_STATUS.settled ? <button disabled={cloudReadOnly} onClick={() => requestReverseSettlement(selected)}>返结算</button> : null}
+                {canReverseSettlement && selected.status === REPAIR_STATUS.settled ? <button disabled={cloudReadOnly} onClick={() => requestReverseSettlement(selected)}>返结算</button> : null}
               </div>
-              <button className="wide-edit-button" disabled={cloudReadOnly} title={cloudReadOnly ? '网络不可用，暂时不能编辑' : undefined} onClick={() => openEdit(selected)}>编辑当前工单</button>
+              {canEditOrder ? <button className="wide-edit-button" disabled={cloudReadOnly} title={cloudReadOnly ? '网络不可用，暂时不能编辑' : undefined} onClick={() => openEdit(selected)}>编辑当前工单</button> : null}
             </>
           ) : workOrderModal.kind === 'create' ? (
             <div className="create-side-placeholder">
@@ -2920,11 +2952,11 @@ function RepairReception({
           order={modalOrder}
           company={company}
           onClose={closeWorkOrderModal}
-          onEdit={() => openEdit(modalOrder)}
+          onEdit={canEditOrder ? () => openEdit(modalOrder) : null}
           onPrint={() => printOrder(modalOrder)}
           onSettle={canSettleOrder ? () => requestSettlement(modalOrder) : null}
-          onReverseSettle={canSettleOrder ? () => requestReverseSettlement(modalOrder) : null}
-          onUploadReceipt={canSettleOrder ? (file, order) => onUploadReceipt(file, order.id).then((receipt) => {
+          onReverseSettle={canReverseSettlement ? () => requestReverseSettlement(modalOrder) : null}
+          onUploadReceipt={canMaintainReceipt ? (file, order) => onUploadReceipt(file, order.id).then((receipt) => {
             const nextOrder = {
               ...order,
               settlementReceiptKey: receipt.key,
@@ -2939,11 +2971,11 @@ function RepairReception({
             return nextOrder;
           }) : null}
           onViewReceipt={onViewReceipt}
-          onDeleteReceipt={canSettleOrder ? (order) => onDeleteReceipt(order).then((nextOrder) => {
+          onDeleteReceipt={canMaintainReceipt ? (order) => onDeleteReceipt(order).then((nextOrder) => {
             setWorkOrderModal(openRepairModal('detail', nextOrder.id));
             setDraft(createOrderDraft(nextOrder));
           }) : null}
-          canManageReceipt={canSettleOrder}
+          canManageReceipt={canMaintainReceipt}
           onVoid={canVoidOrder ? () => setVoidOrderTarget(modalOrder) : null}
           cloudReadOnly={cloudReadOnly}
         />
