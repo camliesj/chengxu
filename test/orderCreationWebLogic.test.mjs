@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   buildCreateOrderPayload,
   createInitialOrderCreationState,
+  mapOrderCreationFieldErrors,
   moneyTextToCents,
   orderCreationReducer,
   validateOrderCreationStep,
@@ -48,6 +49,19 @@ test('four-step reducer applies metadata, edits fields and guards navigation', (
   assert.equal(state.dirty, true);
 });
 
+test('four-step reducer restores an encrypted local draft without exceeding the flow', () => {
+  let state = createInitialOrderCreationState(metadata);
+  state = orderCreationReducer(state, {
+    type: 'restoreDraft',
+    draft: { step: 99, fields: { customer: '草稿客户', plate: '蒙K88888' } },
+  });
+  assert.equal(state.step, 3);
+  assert.equal(state.fields.customer, '草稿客户');
+  assert.equal(state.fields.plate, '蒙K88888');
+  assert.equal(state.fields.insurer, '人保财险');
+  assert.equal(state.dirty, true);
+});
+
 test('money conversion is exact and rejects negative, overflow and excess precision', () => {
   assert.deepEqual(moneyTextToCents('1200.50'), { value: 120050, error: '' });
   assert.deepEqual(moneyTextToCents('0'), { value: 0, error: '' });
@@ -79,6 +93,18 @@ test('step validation reports only fields belonging to the active step', () => {
   });
   assert.deepEqual(validateOrderCreationStep(state, 2), {
     record: 'order.record.required',
+  });
+});
+
+test('server integer-cent errors map back to the visible money inputs', () => {
+  assert.deepEqual(mapOrderCreationFieldErrors({
+    laborCents: 'order.laborCents.non_negative_integer',
+    materialCents: 'order.materialCents.out_of_range',
+    plate: 'order.plate.required',
+  }), {
+    labor: 'order.laborCents.non_negative_integer',
+    material: 'order.materialCents.out_of_range',
+    plate: 'order.plate.required',
   });
 });
 

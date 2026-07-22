@@ -9,6 +9,8 @@ release/
 exports/
 .vite/
 .next/
+test-results/
+playwright-report/
 
 # Local environment
 .env

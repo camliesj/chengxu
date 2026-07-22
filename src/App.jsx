@@ -14,6 +14,7 @@ import ClientDownloadsDialog from './components/ClientDownloadsDialog.jsx';
 import DesktopUpdatePanel from './components/DesktopUpdatePanel.jsx';
 import DesktopUpdatePrompt from './components/DesktopUpdatePrompt.jsx';
 import NetworkStatusBar from './components/NetworkStatusBar.jsx';
+import OrderCreationWizard from './components/OrderCreationWizard.jsx';
 import { printCurrentDocument, saveBytes } from './platform/files.js';
 import { isTauriRuntime } from './platform/runtime.js';
 import {
@@ -24,6 +25,7 @@ import {
 } from './platform/updater.js';
 import { useNetworkStatus } from './platform/useNetworkStatus.js';
 import { createOrderCommand } from './orderCreationApi.js';
+import { createBrowserOrderCreationDraftStore } from './orderCreationDraftStore.js';
 import { legacyOrderToCreatePayload } from './orderCreationLogic.js';
 import { createUpdateProgress } from './updateLogic.js';
 import {
@@ -126,6 +128,10 @@ function permissionsForSession(session) {
 
 function hasUiPermission(session, permission) {
   return permissionsForSession(session).includes(permission);
+}
+
+function orderCreationActor(session) {
+  return session?.username || session?.label || '门店账号';
 }
 
 function dictionaryStaffLabel(entry) {
@@ -1135,6 +1141,35 @@ function App() {
     return savedOrder;
   }
 
+  async function createOrderFromWizard(payload) {
+    setOrdersCloudState({ loading: true, error: '' });
+    const result = await createOrderCommand(payload, accessSession);
+    if (result.kind !== 'success') {
+      const errorText = result.kind === 'networkUnavailable'
+        ? '网络不可用，新增工单尚未提交'
+        : result.kind === 'forbidden'
+          ? '当前账号没有新增工单权限'
+          : result.kind === 'serverFailure'
+            ? '云端服务暂时不可用，请稍后重试'
+            : '';
+      setOrdersCloudState({ loading: false, error: errorText });
+      return result;
+    }
+
+    const savedOrder = result.value.order;
+    setOrders((currentOrders) => upsertRecord(currentOrders, savedOrder));
+    setOrdersCloudState({ loading: false, error: '' });
+    setLastRefreshAt(currentTimeLabel());
+    const syncResults = await Promise.allSettled([
+      syncCustomerVehicleFromOrder(savedOrder),
+      syncInsurancePolicyFromOrder(savedOrder),
+    ]);
+    if (syncResults.some((syncResult) => syncResult.status === 'rejected')) {
+      setRecordCloudState({ loading: false, error: '工单已创建，但客户车辆或保险档案同步失败，请稍后重试' });
+    }
+    return result;
+  }
+
   function syncCustomerVehicleFromOrder(order) {
     const existing = companyCustomerVehicles.find((vehicle) => (
       vehicle.plate === order.plate || (vehicle.plate === order.plate && vehicle.phone === order.phone)
@@ -1216,6 +1251,11 @@ function App() {
   }
 
   function logout() {
+    if (accessSession) {
+      createBrowserOrderCreationDraftStore()
+        .delete(orderCreationActor(accessSession), accessSession.companyId || 'tongda')
+        .catch(() => {});
+    }
     localStorage.removeItem('shop-access-granted');
     localStorage.removeItem(ACCESS_SESSION_KEY);
     setAccessSession(null);
@@ -1526,6 +1566,8 @@ function App() {
           <RepairReception
             orders={receptionOrders}
             company={currentCompany}
+            session={accessSession}
+            onCreateOrder={createOrderFromWizard}
             createRequest={createRequest}
             onCreateHandled={() => setCreateRequest(0)}
             focusRequest={receptionFocus}
@@ -2529,6 +2571,8 @@ function HistoryQueryPage({
 function RepairReception({
   orders,
   company,
+  session,
+  onCreateOrder,
   createRequest,
   onCreateHandled,
   focusRequest,
@@ -2812,10 +2856,16 @@ function RepairReception({
               </div>
               <button className="wide-edit-button" disabled={cloudReadOnly} title={cloudReadOnly ? '网络不可用，暂时不能编辑' : undefined} onClick={() => openEdit(selected)}>编辑当前工单</button>
             </>
+          ) : workOrderModal.kind === 'create' ? (
+            <div className="create-side-placeholder">
+              <span>新增工单</span>
+              <h2>四步完成接车建单</h2>
+              <p>客户车辆、保险事故、维修费用和提交确认均在弹窗中完成。</p>
+            </div>
           ) : (
             <OrderForm
               draft={draft}
-              mode={workOrderModal.kind === 'create' ? 'create' : 'edit'}
+              mode="edit"
               canSettleOrder={canSettleOrder}
               insurerOptions={insurerOptions}
               staffOptions={staffOptions}
@@ -2831,7 +2881,26 @@ function RepairReception({
         </aside>
       </section>
 
-      {['create', 'edit'].includes(workOrderModal.kind) ? (
+      {workOrderModal.kind === 'create' ? (
+        <OrderCreationWizard
+          session={session}
+          companyId={company.id}
+          actor={orderCreationActor(session)}
+          isOffline={cloudReadOnly}
+          onCreateOrder={onCreateOrder}
+          onCreated={(order) => {
+            setSelectedId(order.id);
+            setDraft(createOrderDraft(order));
+            setWorkOrderModal(openRepairModal('detail', order.id));
+          }}
+          onClose={() => {
+            setDraft(createOrderDraft(selected));
+            closeWorkOrderModal();
+          }}
+        />
+      ) : null}
+
+      {workOrderModal.kind === 'edit' ? (
         <WorkOrderFormDialog
           draft={draft}
           mode={workOrderModal.kind}

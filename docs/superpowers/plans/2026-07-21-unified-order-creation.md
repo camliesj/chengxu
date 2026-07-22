@@ -222,19 +222,19 @@ Commit: `feat(web): add unified create state and encrypted drafts`
 - Modify: `package.json`
 - Modify: `docs/latest-handoff-prompt.md`
 
-- [ ] **Step 1: 写浏览器 RED 用例**
+- [x] **Step 1: 写浏览器 RED 用例**
 
 覆盖四步字段顺序、默认/hover/pressed/focus/error/disabled、必填错误、草稿恢复/放弃、离开确认、离线提交禁用、权限禁用、单次提交和成功进入服务端返回详情。
 
-- [ ] **Step 2: 实现响应式四步向导**
+- [x] **Step 2: 实现响应式四步向导**
 
 复用现有网页视觉令牌和 Hugeicons，不增加第二套图标。桌面与窄屏均使用同一业务组件；底部操作区固定，内容独立滚动，键盘可达且焦点在步骤/错误间正确移动。
 
-- [ ] **Step 3: 替换网页旧创建入口**
+- [x] **Step 3: 替换网页旧创建入口**
 
 所有网页“新增工单”入口进入同一 wizard。旧 `createOrderDraft()` 仅保留编辑路径需要的部分，新增路径不得生成 `RO202607...` 本地 ID。创建成功以服务端 order 替换状态并刷新列表/详情。
 
-- [ ] **Step 4: Web GREEN 与构建**
+- [x] **Step 4: Web GREEN 与构建**
 
 ```powershell
 npm.cmd test

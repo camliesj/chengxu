@@ -38,6 +38,13 @@ export function orderCreationReducer(state, action) {
         dirty: true,
       };
     }
+    case 'restoreDraft':
+      return {
+        ...state,
+        step: Math.min(3, Math.max(0, Number(action.draft?.step) || 0)),
+        fields: { ...state.fields, ...(action.draft?.fields || {}) },
+        dirty: true,
+      };
     case 'next': {
       const fieldErrors = validateOrderCreationStep(state, state.step);
       return Object.keys(fieldErrors).length > 0
@@ -120,6 +127,13 @@ export function buildCreateOrderPayload(state, operationId) {
     },
     fieldErrors: {},
   };
+}
+
+export function mapOrderCreationFieldErrors(fieldErrors = {}) {
+  return Object.fromEntries(Object.entries(fieldErrors).map(([field, error]) => [
+    field === 'laborCents' ? 'labor' : field === 'materialCents' ? 'material' : field,
+    error,
+  ]));
 }
 
 export function legacyOrderToCreatePayload(order, operationId) {
