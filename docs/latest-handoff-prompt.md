@@ -602,7 +602,10 @@ cd E:\codex\chengxu\android-client
 - 现有 Android `order_drafts` 已具备 `baseOrderId`、`expectedVersion` 和加密 payload；创建草稿、每工单编辑草稿和状态待确认信封通过 local ID namespace 隔离，因此本阶段不升级 Room。现有 D1 `version`、`order_operations` 租约与 operation log 唯一 event ID 足够使用，本阶段也不新增 D1 migration。
 - 交付分四批：A 共享编辑契约/服务；B 网页与 Android 编辑体验；C 普通状态服务与双端交互；D 生产部署、依次启用两个能力和最终 APK。每批更新本交接文档、提交并推送；最终继续执行 Node、Playwright、Vite、Android JVM、Android 测试源码编译、Lint 和 APK 构建，不启动模拟器。
 - 生产部署前即使没有 migration 仍导出完整 D1 备份。因无专用生产测试企业，自动冒烟只验证认证、能力、非法请求、隔离和业务计数不变，不自动编辑或推进真实业务工单；真实写入闭环由用户在网页和最终 APK 上手工验收。
-- 当前只完成并批准设计，尚未生成阶段 3 任务级实施计划，也未修改功能代码、部署生产或开启 `EDIT_ORDER` / `ADVANCE_ORDER_STATUS`。下一步应在用户复核本设计文档后使用 writing-plans 生成详细 TDD 实施计划。
+- 阶段 3 设计里程碑提交为 `070edf5`；用户随后已完成设计复核，允许进入任务级 planning，但尚未授权任何阶段 3 生产部署或能力开启。
+- 用户已复核并确认阶段 3 正式设计。任务级 TDD 实施计划已生成：`docs/superpowers/plans/2026-07-22-unified-order-edit-status.md`，共 13 个任务，按 A 共享编辑服务、B 双端编辑、C 普通状态流转、D clean 门禁/生产部署/APK 四批推进。
+- 计划显式补入 Android 完整详情装配：现有严格 `OrderReadApi` 和 Room 详情表会通过 `OrderDetailRepository` / `OrderDetailViewModel` 接入详情页，编辑不会从缺少手机号、VIN、负责人等字段的摘要构造提交。
+- 当前仍未修改阶段 3 功能代码、未访问或部署生产、未启用 `EDIT_ORDER` / `ADVANCE_ORDER_STATUS`。下一步由用户选择 subagent-driven 或当前会话 inline execution 后，从 Task 1 的 fixture RED 开始执行。
 
 ## 工作纪律
 
