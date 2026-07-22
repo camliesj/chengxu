@@ -79,6 +79,24 @@ class OrderCreationContractTest {
     }
 
     @Test
+    fun everyCanonicalValidFixtureProducesTheExpectedAndroidRequest() {
+        for (element in fixture()["validCases"]?.jsonArray.orEmpty()) {
+            val canonicalCase = element.jsonObject
+            val input = canonicalCase["input"]?.jsonObject ?: error("missing canonical input")
+            val expected = canonicalCase["expected"]?.jsonObject ?: error("missing canonical expected")
+            val operationId = canonicalCase.text("operationId")
+            val result = input.toForm().toCreateCommand(operationId)
+                as OrderCommandResult.Success<OrderCreateCommand>
+            val body = result.value.toJsonObject()
+            val order = body["order"]?.jsonObject ?: error("missing Android request order")
+            val expectedOrder = JsonObject(expected.filterKeys(OrderCreateCommand.CLIENT_FIELDS::contains))
+
+            assertEquals(operationId, body["operationId"]?.jsonPrimitive?.content)
+            assertEquals(expectedOrder, order)
+        }
+    }
+
+    @Test
     fun formRejectsNegativeThreeDecimalAndOverflowMoneyWithoutRounding() {
         val negative = fullForm(labor = "-1").toCreateCommand("operation") as OrderCommandResult.ValidationFailure
         assertEquals("order.laborCents.non_negative", negative.fieldErrors["labor"])
@@ -138,6 +156,25 @@ class OrderCreationContractTest {
         material = material,
         delivery = "明日交车",
         remark = "交车前联系客户",
+    )
+
+    private fun JsonObject.toForm() = OrderCreationForm(
+        customer = text("customer"),
+        phone = text("phone"),
+        plate = text("plate"),
+        car = text("car"),
+        vin = text("vin"),
+        staff = text("staff"),
+        insuranceExpiry = text("insuranceExpiry"),
+        insurer = text("insurer"),
+        type = text("type"),
+        accidentType = text("accidentType"),
+        claimNo = text("claimNo"),
+        record = text("record"),
+        labor = centsAsDecimal(this, "laborCents"),
+        material = centsAsDecimal(this, "materialCents"),
+        delivery = text("delivery"),
+        remark = text("remark"),
     )
 
     private fun JsonObject.text(key: String): String = get(key)?.jsonPrimitive?.content.orEmpty()

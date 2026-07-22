@@ -368,11 +368,11 @@ Commit: `feat(android): ship four-step order creation flow`
 - Modify: `docs/android-client.md`
 - Modify: `docs/latest-handoff-prompt.md`
 
-- [ ] **Step 1: 补齐跨端 fixture 断言**
+- [x] **Step 1: 补齐跨端 fixture 断言**
 
 同一 fixture 必须验证 web request、Android request、服务端 normalize 结果、字段错误 key、金额和默认值完全一致。增加防回归断言：网页不得出现硬编码 `RO202607`，Android 不得包含第二套业务枚举文案。
 
-- [ ] **Step 2: 从 clean 状态执行完整本地门禁**
+- [x] **Step 2: 从 clean 状态执行完整本地门禁**
 
 根目录：
 
@@ -391,7 +391,7 @@ Android 目录：
 
 记录客观 suite/test/task 数量、Lint fatal/error/warning，不启动模拟器。
 
-- [ ] **Step 3: 更新真机清单、提交和推送**
+- [x] **Step 3: 更新真机清单、提交和推送**
 
 真机清单至少覆盖：登录、权限显示、四步输入、后台恢复、断网草稿、提交断网未知结果、重复点击、成功列表/详情同步、网页同时查看、登出清理。
 

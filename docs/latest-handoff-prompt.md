@@ -576,7 +576,13 @@ cd E:\codex\chengxu\android-client
 - Task 8 复核同步增强网页端：固定“保存草稿”、加密恢复 pending operationId、5xx 进入结果确认；没有改变字段、编号、权限或服务端规则。最终全量统计与提交号见本节后续提交记录。
 - 2026-07-22 提交前完整门禁：Node 111/111、生产 Playwright 3/3、Vite 6.4.3 构建均通过；Android 为 26 个 JVM suite、139/139 测试、0 失败/错误/跳过，Android 测试 Kotlin 源码编译、`lintDebug` 和 `assembleDebug` 均成功。Lint XML 为 0 Fatal、0 Error、11 Warning（均为既有版本/清单/KTX提示）。
 - 本轮构建 APK 位于 `E:\codex\chengxu\android-client\app\build\outputs\apk\debug\app-debug.apk`，19,800,096 bytes，SHA-256 `FAB85D361C0E48C8F82E40BF98CA3113383D35F766310A8EDDB5B1798ADBBB84`；Task 10 前不覆盖发布目录的阶段 1 APK。本轮未启动模拟器、未执行连接式 Compose/Room/KeyStore 测试。
-- 下一步：执行阶段 2 Task 9，补齐双端 canonical fixture 断言并从 clean 状态执行 Node/Playwright/Vite 与 Android 全量发布门禁，然后更新真机清单。
+- 阶段 2 Task 9 已完成：Node contract 测试现在从唯一 `contracts/order-creation-v1.json` 驱动网页 `buildCreateOrderPayload` 与服务端 `normalizeCreateOrderCommand`，逐个合法用例核对 16 个客户端字段、整数分、默认值和标准结果；非法用例逐字段核对稳定错误 key 与网页金额字段映射。
+- Android `OrderCreationContractTest` 遍历同一 fixture 的全部合法用例，核对 operationId 和完整 Android JSON request 与 expected 客户端字段一致。源码防回归扫描禁止网页出现硬编码 `RO202607` 正式编号，并禁止 Android 创建 UI/ViewModel 复制 canonical 事故类型文案。
+- 扫描测试先精确失败于 `src/App.jsx` 遗留空草稿生成 `RO202607xxxxx`；现已删除时间戳伪编号，旧表单空草稿 ID 为空，正式 ID 只能由创建服务响应提供。
+- `docs/android-client.md` 已更新阶段 2 真机清单，覆盖双入口四步、权限、字段/金额、显式/后台草稿、断网、不自动提交、unknown operation 重启恢复、防重复、成功列表/详情、网页同步、退出/换公司清理和窄屏/输入法。
+- 2026-07-22 clean 门禁：Node 114/114、Playwright 3/3、Vite 6.4.3 构建通过；Android `clean ... --rerun-tasks` 69/69 task 成功，26 个 suite、140/140 JVM 测试、0 失败/错误/跳过，Android 测试源码编译成功，Lint 0 Fatal/0 Error/11 Warning，Debug APK 构建成功。未启动模拟器、未执行连接式测试。
+- Task 9 clean 构建 APK 为 `E:\codex\chengxu\android-client\app\build\outputs\apk\debug\app-debug.apk`，19,655,322 bytes，SHA-256 `053072B540EEE5FE5A6917DC6BC0D7CC3399A8A53DFF09A4A6BF15C2CCB8DC53`；Task 10 前仍未覆盖发布目录的阶段 1 APK。
+- 下一步执行阶段 2 Task 10：先加载 Cloudflare Wrangler 技能复核远端账号/项目/唯一待迁移 0011，再按计划备份远端 D1、应用 migration、部署 Pages、安全冒烟、为目标企业启用 `CREATE_ORDER`，最后生成/签名校验发布 APK。
 
 ## 工作纪律
 

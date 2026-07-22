@@ -1999,11 +1999,9 @@ function createOrderDraft(order) {
     };
   }
 
-  const now = new Date();
-  const serial = String(now.getTime()).slice(-5);
   const current = todayDateTimeParts();
   return {
-    id: `RO202607${serial}`,
+    id: '',
     date: current.date.slice(5),
     time: current.time,
     plate: '',
