@@ -50,6 +50,7 @@ export function toOrder(row) {
   return {
     id: row.id,
     companyId: row.company_id || 'tongda',
+    version: Number(row.version) || 1,
     date: row.date,
     time: row.time,
     plate: row.plate,
@@ -366,7 +367,9 @@ export async function routeLegacyExistingOrder({
       },
     });
   }
-  return legacyUpsert({ env, session, payload, existing, order, mode });
+  return legacyUpsert({
+    env, session, payload, existing, order, mode, eventId: cleanText(payload?.eventId),
+  });
 }
 
 function isOrdinaryLegacyEdit({ mode, order, existing, session }) {
@@ -383,7 +386,7 @@ function isOrdinaryLegacyEdit({ mode, order, existing, session }) {
   );
 }
 
-async function legacyUpsertExistingOrder({ env, session, payload, existing, order: normalizedOrder, mode }) {
+async function legacyUpsertExistingOrder({ env, session, payload, existing, order: normalizedOrder, mode, eventId }) {
   let order = normalizedOrder;
   const settledAccessError = settledEditAccessError(existing, session.role);
   if (settledAccessError) return json({ error: settledAccessError }, { status: 403 });
@@ -391,6 +394,10 @@ async function legacyUpsertExistingOrder({ env, session, payload, existing, orde
     if (session.role !== 'admin') return json({ error: 'ARCHIVE_EDIT_ADMIN_REQUIRED' }, { status: 403 });
     if (!existing || existing.status !== '已结算') return json({ error: 'ARCHIVE_EDIT_SETTLED_ONLY' }, { status: 400 });
     order = protectArchiveEdit(order, existing);
+  }
+  const requiredCapability = legacyWriteCapability(existing, order, mode);
+  if (!(await readCapabilities(env, session)).includes(requiredCapability)) {
+    return json({ error: 'CAPABILITY_DISABLED' }, { status: 403 });
   }
   const validationError = validateOrder(order, existing);
   if (validationError) {
@@ -427,4 +434,29 @@ async function legacyUpsertExistingOrder({ env, session, payload, existing, orde
   }
 
   return json({ order: toOrder(order) });
+}
+
+function legacyWriteCapability(existing, order, mode) {
+  if (mode === 'archive_edit') return 'EDIT_ORDER';
+  if (order.status !== existing.status) {
+    if (order.status === '已结算') return 'SETTLE_ORDER';
+    if (existing.status === '已结算') return 'REVERSE_SETTLEMENT';
+    return 'ADVANCE_ORDER_STATUS';
+  }
+  const receiptFields = [
+    'settlement_receipt_key', 'settlement_receipt_name', 'settlement_receipt_type',
+    'settlement_receipt_size', 'settlement_receipt_uploaded_at',
+  ];
+  if (receiptFields.some((field) => String(order[field] ?? '') !== String(existing[field] ?? ''))) {
+    return 'MAINTAIN_RECEIPT';
+  }
+  const settlementFields = ['payment_method', 'settlement_date', 'settlement_time', 'settlement_remark'];
+  if (settlementFields.some((field) => String(order[field] ?? '') !== String(existing[field] ?? ''))) {
+    return 'SETTLE_ORDER';
+  }
+  if (Number(order.voided) !== Number(existing.voided)
+      || order.voided_at !== existing.voided_at || order.void_reason !== existing.void_reason) {
+    return 'VOID_ORDER';
+  }
+  return 'EDIT_ORDER';
 }

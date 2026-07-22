@@ -88,6 +88,55 @@ test('legacy ordinary edit classification compares normalized legacy-only defaul
   assert.equal(legacyCalls, 0);
 });
 
+test('legacy GET version flows unchanged into a real ordinary POST edit command', async () => {
+  const env = environment();
+  const getResponse = await legacyOrdersApi.onRequestGet({
+    request: legacyGetRequest(), env,
+  });
+  const envelope = await getResponse.json();
+  assert.equal(envelope.orders[0].version, env.state.row.version);
+  envelope.orders[0].customer = '闭环客户';
+
+  const postResponse = await legacyOrdersApi.onRequestPost({
+    request: legacyPostRequest({ eventId: operationId, order: envelope.orders[0] }), env,
+  });
+
+  assert.equal(postResponse.status, 200);
+  assert.equal((await postResponse.json()).order.version, 5);
+});
+
+test('real legacy status UPSERT writes its audit with the request event id', async () => {
+  const env = legacyMaintenanceEnvironment({ capabilities: ['ADVANCE_ORDER_STATUS'] });
+  const next = { ...legacyOrder(env.state.row), status: '已完工' };
+
+  const response = await legacyOrdersApi.onRequestPost({
+    request: legacyPostRequest({ eventId: operationId, order: next }), env,
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(env.state.upserts, 1);
+  assert.equal(env.state.audits.length, 1);
+  assert.equal(env.state.audits[0][0], 'change_order_status');
+  assert.equal(env.state.audits[0][6], operationId);
+});
+
+test('legacy status and receipt maintenance fail closed without their independent capabilities', async () => {
+  for (const [row, mutate] of [
+    [databaseRow(), (order) => ({ ...order, status: '已完工' })],
+    [databaseRow({ status: '已结算' }), (order) => ({
+      ...order, settlementReceiptKey: 'receipts/tongda/new.png',
+    })],
+  ]) {
+    const env = legacyMaintenanceEnvironment({ row, capabilities: [] });
+    const response = await legacyOrdersApi.onRequestPost({
+      request: legacyPostRequest({ eventId: operationId, order: mutate(legacyOrder(row)) }), env,
+    });
+    assert.equal(response.status, 403);
+    assert.deepEqual(await response.json(), { error: 'CAPABILITY_DISABLED' });
+    assert.equal(env.state.upserts, 0);
+  }
+});
+
 test('PATCH requires authentication and hides cross-company or voided targets', async () => {
   const unauthorized = await patchOrder({
     request: request(validPayload(), false), env: environment({ session: null }), params: { id: 'RO-1' },
@@ -464,6 +513,20 @@ function request(payload, authenticated = true) {
   });
 }
 
+function legacyGetRequest() {
+  return new Request('https://example.test/api/orders', {
+    headers: { authorization: 'Bearer test-token' },
+  });
+}
+
+function legacyPostRequest(payload) {
+  return new Request('https://example.test/api/orders', {
+    method: 'POST',
+    headers: { authorization: 'Bearer test-token', 'content-type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
 function queryRequest() {
   return new Request(`https://example.test/api/order-operations/edit-order/${operationId}`, {
     headers: { authorization: 'Bearer test-token' },
@@ -702,6 +765,7 @@ function environment({
       async all() {
         if (sql.includes('FROM company_capabilities')) return { results: state.capabilities };
         if (sql.includes('FROM system_dictionaries')) return { results: state.dictionaries };
+        if (sql.includes('SELECT * FROM repair_orders')) return { results: state.row ? [{ ...state.row }] : [] };
         throw new Error(`Unexpected all SQL: ${sql}`);
       },
       async run() {
@@ -775,6 +839,46 @@ function environment({
   }
 
   return { DB, calls, state };
+}
+
+function legacyMaintenanceEnvironment({ row = databaseRow(), capabilities = [] } = {}) {
+  const state = { row, upserts: 0, audits: [] };
+  const session = { ...staffSession(), role: 'admin' };
+  return {
+    state,
+    DB: {
+      prepare(sql) {
+        return {
+          bind(...values) {
+            return {
+              first: async () => {
+                if (sql.includes('FROM access_sessions')) return session;
+                if (sql.includes('FROM repair_orders')) return { ...state.row };
+                throw new Error(`Unexpected first SQL: ${sql}`);
+              },
+              all: async () => {
+                if (sql.includes('FROM company_capabilities')) {
+                  return { results: capabilities.map((capability) => ({ capability, enabled: 1 })) };
+                }
+                throw new Error(`Unexpected all SQL: ${sql}`);
+              },
+              run: async () => {
+                if (sql.includes('INSERT INTO repair_orders')) {
+                  state.upserts += 1;
+                  return { meta: { changes: 1 } };
+                }
+                if (sql.includes('INSERT OR IGNORE INTO operation_logs')) {
+                  state.audits.push(values);
+                  return { meta: { changes: 1 } };
+                }
+                throw new Error(`Unexpected run SQL: ${sql}`);
+              },
+            };
+          },
+        };
+      },
+    },
+  };
 }
 
 function batchKind(sql) {

@@ -1,8 +1,12 @@
 import { json, requireSession, writeOperationLog } from '../../../_shared/auth.js';
+import { readCapabilities } from '../../../_shared/order-foundation.js';
 
 export async function onRequestPost({ request, env, params }) {
   const { session, error } = await requireSession(request, env, { permission: 'voidOrder' });
   if (error) return error;
+  if (!(await readCapabilities(env, session)).includes('VOID_ORDER')) {
+    return json({ error: 'CAPABILITY_DISABLED' }, { status: 403 });
+  }
 
   const payload = await request.json().catch(() => ({}));
   const reason = String(payload.reason || '').trim();

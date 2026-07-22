@@ -1,5 +1,6 @@
 import { getBearerToken, json, requireSession, writeOperationLog } from '../_shared/auth.js';
 import { cosFailure, cosFetch } from '../_shared/cos.js';
+import { readCapabilities } from '../_shared/order-foundation.js';
 
 const MAX_RECEIPT_SIZE = 12 * 1024 * 1024;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -45,6 +46,9 @@ export async function onRequestGet({ request, env }) {
 export async function onRequestPost({ request, env }) {
   const { session, error } = await requireSession(request, env, { adminOnly: true });
   if (error) return error;
+  if (!(await readCapabilities(env, session)).includes('MAINTAIN_RECEIPT')) {
+    return json({ error: 'CAPABILITY_DISABLED' }, { status: 403 });
+  }
 
   const formData = await request.formData();
   const file = formData.get('file');
@@ -92,6 +96,9 @@ export async function onRequestPost({ request, env }) {
 export async function onRequestDelete({ request, env }) {
   const { session, error } = await requireSession(request, env, { adminOnly: true });
   if (error) return error;
+  if (!(await readCapabilities(env, session)).includes('MAINTAIN_RECEIPT')) {
+    return json({ error: 'CAPABILITY_DISABLED' }, { status: 403 });
+  }
 
   const payload = await request.json().catch(() => ({}));
   const key = cleanText(payload.key);

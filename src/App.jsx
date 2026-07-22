@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { closedRepairModalState, openRepairModal } from './repairModalState.js';
 import {
   filterHistoryOrders as filterArchivedOrders,
@@ -28,6 +28,13 @@ import { createOrderCommand } from './orderCreationApi.js';
 import { createBrowserOrderCreationDraftStore } from './orderCreationDraftStore.js';
 import { legacyOrderToCreatePayload } from './orderCreationLogic.js';
 import { createUpdateProgress } from './updateLogic.js';
+import {
+  createOrderCapabilityState,
+  hasOrderCapability,
+  orderCapabilityReducer,
+  orderCapabilitySessionKey,
+  receiptUploadForCapabilities,
+} from './orderCapabilityState.js';
 import {
   EMPLOYEE_EDITABLE_STATUSES,
   canEmployeeSetOrderStatus,
@@ -788,7 +795,15 @@ function App() {
   const [query, setQuery] = useState('');
   const [dateRange, setDateRange] = useState({ start: '2026-07-01', end: '2026-07-31' });
   const [orders, setOrders] = useState(readStoredOrders);
-  const [orderCapabilities, setOrderCapabilities] = useState([]);
+  const [orderCapabilityState, dispatchOrderCapabilities] = useReducer(
+    orderCapabilityReducer,
+    accessSession,
+    createOrderCapabilityState,
+  );
+  const orderCapabilityRequestRef = useRef({
+    sessionKey: orderCapabilitySessionKey(accessSession), requestId: 0,
+  });
+  const orderCapabilityRequestIdRef = useRef(0);
   const [insurancePolicies, setInsurancePolicies] = useState(readStoredInsurancePolicies);
   const [customerVehicles, setCustomerVehicles] = useState(readStoredCustomerVehicles);
   const [dictionaries, setDictionaries] = useState([]);
@@ -911,16 +926,17 @@ function App() {
 
   const currentCompany = companyById(accessSession?.companyId || 'tongda');
   const isAdmin = accessSession?.role === 'admin';
-  const canCreateOrder = orderCapabilities.includes('CREATE_ORDER');
-  const canEditOrder = orderCapabilities.includes('EDIT_ORDER');
-  const canAdvanceOrderStatus = orderCapabilities.includes('ADVANCE_ORDER_STATUS');
+  const canCreateOrder = hasOrderCapability(orderCapabilityState, 'CREATE_ORDER');
+  const canEditOrder = hasOrderCapability(orderCapabilityState, 'EDIT_ORDER');
+  const canAdvanceOrderStatus = hasOrderCapability(orderCapabilityState, 'ADVANCE_ORDER_STATUS');
   const canExportData = hasUiPermission(accessSession, 'export');
   const canOpenSettings = hasUiPermission(accessSession, 'settings');
-  const canVoidOrder = hasUiPermission(accessSession, 'voidOrder') && orderCapabilities.includes('VOID_ORDER');
+  const canVoidOrder = hasUiPermission(accessSession, 'voidOrder')
+    && hasOrderCapability(orderCapabilityState, 'VOID_ORDER');
   const canViewLogs = hasUiPermission(accessSession, 'logs');
-  const canSettleOrder = isAdmin && orderCapabilities.includes('SETTLE_ORDER');
-  const canReverseSettlement = isAdmin && orderCapabilities.includes('REVERSE_SETTLEMENT');
-  const canMaintainReceipt = isAdmin && orderCapabilities.includes('MAINTAIN_RECEIPT');
+  const canSettleOrder = isAdmin && hasOrderCapability(orderCapabilityState, 'SETTLE_ORDER');
+  const canReverseSettlement = isAdmin && hasOrderCapability(orderCapabilityState, 'REVERSE_SETTLEMENT');
+  const canMaintainReceipt = isAdmin && hasOrderCapability(orderCapabilityState, 'MAINTAIN_RECEIPT');
   const orderData = useMemo(() => orderRepository.listOrders(orders), [orders]);
   const companyOrders = useMemo(
     () => orderData.filter((order) => (order.companyId || 'tongda') === currentCompany.id),
@@ -958,21 +974,57 @@ function App() {
     localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(orders));
   }, [orders]);
 
+  function beginOrderCapabilityRequest(session) {
+    const sessionKey = orderCapabilitySessionKey(session);
+    const requestId = orderCapabilityRequestIdRef.current + 1;
+    orderCapabilityRequestIdRef.current = requestId;
+    if (orderCapabilityRequestRef.current.sessionKey !== sessionKey) {
+      dispatchOrderCapabilities({ type: 'sessionChanged', session });
+    }
+    const requestScope = { sessionKey, requestId };
+    orderCapabilityRequestRef.current = requestScope;
+    dispatchOrderCapabilities({ type: 'requestStarted', ...requestScope });
+    return requestScope;
+  }
+
+  function isCurrentOrderCapabilityRequest(requestScope) {
+    return requestScope.sessionKey === orderCapabilityRequestRef.current.sessionKey
+      && requestScope.requestId === orderCapabilityRequestRef.current.requestId;
+  }
+
+  function resetOrderCapabilitySession(session = null) {
+    const requestId = orderCapabilityRequestIdRef.current + 1;
+    orderCapabilityRequestIdRef.current = requestId;
+    orderCapabilityRequestRef.current = {
+      sessionKey: orderCapabilitySessionKey(session), requestId,
+    };
+    dispatchOrderCapabilities(session
+      ? { type: 'sessionChanged', session }
+      : { type: 'logout' });
+  }
+
   useEffect(() => {
-    if (!isUnlocked || !accessSession?.token) return undefined;
+    if (!isUnlocked || !accessSession?.token) {
+      resetOrderCapabilitySession();
+      return undefined;
+    }
     let isCancelled = false;
+    const requestScope = beginOrderCapabilityRequest(accessSession);
     setOrdersCloudState({ loading: true, error: '' });
     fetchCloudOrders(accessSession)
       .then((cloudEnvelope) => {
-        if (isCancelled) return;
+        if (isCancelled || !isCurrentOrderCapabilityRequest(requestScope)) return;
         setOrders(cloudEnvelope.orders);
-        setOrderCapabilities(cloudEnvelope.capabilities);
+        dispatchOrderCapabilities({
+          type: 'requestSucceeded', ...requestScope, capabilities: cloudEnvelope.capabilities,
+        });
         localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(cloudEnvelope.orders));
         setOrdersCloudState({ loading: false, error: '' });
         setLastRefreshAt(currentTimeLabel());
       })
       .catch((error) => {
-        if (isCancelled) return;
+        if (isCancelled || !isCurrentOrderCapabilityRequest(requestScope)) return;
+        dispatchOrderCapabilities({ type: 'requestFailed', ...requestScope });
         setOrdersCloudState({ loading: false, error: error.message || '云端连接失败' });
       });
     return () => {
@@ -1085,16 +1137,24 @@ function App() {
 
   function refreshOrders() {
     if (!accessSession?.token) return;
+    const requestScope = beginOrderCapabilityRequest(accessSession);
     setOrdersCloudState({ loading: true, error: '' });
     fetchCloudOrders(accessSession)
       .then((cloudEnvelope) => {
+        if (!isCurrentOrderCapabilityRequest(requestScope)) return;
         setOrders(cloudEnvelope.orders);
-        setOrderCapabilities(cloudEnvelope.capabilities);
+        dispatchOrderCapabilities({
+          type: 'requestSucceeded', ...requestScope, capabilities: cloudEnvelope.capabilities,
+        });
         localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(cloudEnvelope.orders));
         setOrdersCloudState({ loading: false, error: '' });
         setLastRefreshAt(currentTimeLabel());
       })
-      .catch((error) => setOrdersCloudState({ loading: false, error: error.message || '云端刷新失败' }));
+      .catch((error) => {
+        if (!isCurrentOrderCapabilityRequest(requestScope)) return;
+        dispatchOrderCapabilities({ type: 'requestFailed', ...requestScope });
+        setOrdersCloudState({ loading: false, error: error.message || '云端刷新失败' });
+      });
   }
 
   async function upsertOrder(nextOrder, options = {}) {
@@ -1270,6 +1330,7 @@ function App() {
     }
     localStorage.removeItem('shop-access-granted');
     localStorage.removeItem(ACCESS_SESSION_KEY);
+    resetOrderCapabilitySession();
     setAccessSession(null);
     setIsUnlocked(false);
   }
@@ -1368,6 +1429,7 @@ function App() {
         <div className="access-shell">
           <NetworkStatusBar status={network.status} lastSyncedAt={network.lastSyncedAt} onRetry={network.checkNow} />
           <AccessGate onUnlock={(session) => {
+            resetOrderCapabilitySession(session);
             setAccessSession(session);
             setIsUnlocked(true);
           }} />
@@ -1599,7 +1661,10 @@ function App() {
             insurerOptions={insurerChoices}
             staffOptions={staffChoices}
             onBatchExport={() => setActivePage('数据导出')}
-            onUploadReceipt={(file, orderId, options) => uploadSettlementReceipt(file, orderId, accessSession, options)}
+            onUploadReceipt={receiptUploadForCapabilities(
+              orderCapabilityState,
+              (file, orderId, options) => uploadSettlementReceipt(file, orderId, accessSession, options),
+            )}
             onViewReceipt={(key) => fetchSettlementReceiptBlob(key, accessSession)}
             onDeleteReceipt={clearOrderReceipt}
             onVoidOrder={voidOrder}
@@ -2994,7 +3059,8 @@ function RepairReception({
         <SettlementDialog
           order={settlementOrder}
           onClose={() => setSettlementOrder(null)}
-          onUploadReceipt={onUploadReceipt}
+          onUploadReceipt={canMaintainReceipt ? onUploadReceipt : null}
+          canMaintainReceipt={canMaintainReceipt}
           onSubmit={completeSettlement}
         />
       ) : null}
@@ -3283,7 +3349,7 @@ function VoidOrderDialog({ order, onClose, onSubmit }) {
   );
 }
 
-function SettlementDialog({ order, onClose, onUploadReceipt, onSubmit }) {
+function SettlementDialog({ order, onClose, onUploadReceipt, onSubmit, canMaintainReceipt = false }) {
   const [draft, setDraft] = useState(() => createSettlementDraft(order));
   const [auditEventId] = useState(() => crypto.randomUUID());
   const [receiptFile, setReceiptFile] = useState(null);
@@ -3297,7 +3363,7 @@ function SettlementDialog({ order, onClose, onUploadReceipt, onSubmit }) {
   function submitSettlement(event) {
     event.preventDefault();
     setUploadState({ loading: true, error: '' });
-    const uploadPromise = receiptFile
+    const uploadPromise = receiptFile && canMaintainReceipt && onUploadReceipt
       ? onUploadReceipt(receiptFile, order.id, { eventId: auditEventId, logMode: 'defer' })
       : hasExistingReceipt
         ? Promise.resolve({
@@ -3364,7 +3430,7 @@ function SettlementDialog({ order, onClose, onUploadReceipt, onSubmit }) {
             结算备注
             <textarea value={draft.settlementRemark} onChange={(event) => updateField('settlementRemark', event.target.value)} placeholder="记录收款说明、优惠、挂账原因或保险直赔备注" />
           </label>
-          <label className="full-field receipt-upload-field">
+          {canMaintainReceipt ? <label className="full-field receipt-upload-field">
             到账回执截图
             <input
               type="file"
@@ -3375,7 +3441,9 @@ function SettlementDialog({ order, onClose, onUploadReceipt, onSubmit }) {
               }}
             />
             <span>{receiptFile ? receiptFile.name : hasExistingReceipt ? `已上传：${draft.settlementReceiptName || '到账回执'}` : '必填，请上传到账回执截图'}</span>
-          </label>
+          </label> : (
+            <div className="full-field cloud-banner error">当前企业未启用回执维护，不能在结算时上传回执。</div>
+          )}
         </div>
         {uploadState.error ? <div className="cloud-banner error">{uploadState.error}</div> : null}
 

@@ -33,12 +33,13 @@ test('legacy orders read keeps orders and adds role-filtered capabilities withou
 test('web client stores legacy orders and capabilities separately and capability-gates order writes', async () => {
   const appSource = await readFile(new URL('../src/App.jsx', import.meta.url), 'utf8');
   assert.match(appSource, /return \{\s*orders: Array\.isArray\(data\.orders\)[\s\S]*capabilities: Array\.isArray\(data\.capabilities\)[\s\S]*serverTime:/u);
-  assert.match(appSource, /const \[orderCapabilities, setOrderCapabilities\] = useState/u);
+  assert.match(appSource, /useReducer\(\s*orderCapabilityReducer/u);
   assert.match(appSource, /setOrders\(cloudEnvelope\.orders\)/u);
-  assert.match(appSource, /setOrderCapabilities\(cloudEnvelope\.capabilities\)/u);
+  assert.match(appSource, /type: 'requestSucceeded'[\s\S]{0,160}capabilities: cloudEnvelope\.capabilities/u);
+  assert.match(appSource, /isCurrentOrderCapabilityRequest\(requestScope\)/u);
   assert.doesNotMatch(appSource, /const canSettleOrder = isAdmin;/u);
   for (const capability of ['CREATE_ORDER', 'EDIT_ORDER', 'ADVANCE_ORDER_STATUS', 'SETTLE_ORDER', 'VOID_ORDER', 'MAINTAIN_RECEIPT']) {
-    assert.match(appSource, new RegExp(`orderCapabilities\\.includes\\('${capability}'\\)`), capability);
+    assert.match(appSource, new RegExp(`hasOrderCapability\\(orderCapabilityState, '${capability}'\\)`), capability);
   }
 });
 

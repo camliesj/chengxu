@@ -626,6 +626,10 @@ cd E:\codex\chengxu\android-client
 - 网页初次加载和手动刷新均分别保存 `orders` 与 `orderCapabilities`。新增、编辑、普通状态、结算、返结算、作废、回执维护入口分别要求对应企业能力；管理员角色不再单独推断企业写能力。返结算测试断言同步改为独立 `REVERSE_SETTLEMENT` 门控。
 - TDD：初始 compatibility RED 为 22 pass / 4 fail；另有历史 empty/null 默认值分类 RED `0 !== 1`。最终 focused 35/35、Node 全量 144/144、Vite 6.4.3 构建成功（64 modules）。构建清理的已跟踪 Stage 2 APK 已从 HEAD 恢复，APK 未更新。
 - 本任务无 migration、无生产/远端 D1、无部署、无能力开关、无模拟器、无 push。
+- Task 3 复核返修补齐四个关键边界：legacy `toOrder` 现携带 `version`，真实 GET→普通 POST 闭环把服务端版本送入 `expectedVersion`；抽离的 legacy UPSERT 显式接收 `eventId`，真实状态写入验证一次 UPSERT 后必有同 event ID 审计，不再发生“数据已写、审计 ReferenceError”。
+- 能力状态改为 `orderCapabilityState` 可执行 reducer/helper，以 company + actor + token 和 requestId 双重绑定；请求开始、首次/刷新失败、身份/企业切换、logout 都 fail closed 清空能力，旧 session 或旧手动刷新结果在写入 orders/capabilities 前被拒绝。相关 helper 覆盖 stale session、stale request、failure 与 logout。
+- 企业写能力现端到端独立：legacy 普通状态/结算/返结算/档案/回执维护分支分别要求相应 capability；receipt POST/DELETE 在 COS 前强制 `MAINTAIN_RECEIPT`；void endpoint 在写入前强制 `VOID_ORDER`。结算弹窗即使具备 `SETTLE_ORDER`，没有 `MAINTAIN_RECEIPT` 也不会获得上传 handler/文件入口；已有回执仍可按结算能力完成结算。
+- 复核 TDD RED 依次观察到 `undefined !== 4`、`ReferenceError: eventId is not defined`、缺失 capability state 模块、4 个越权响应状态和缺失独立 upload helper；返修后 focused 38/38、Node 全量 153/153、Vite 6.4.3 构建成功（65 modules）。仍无生产/远端 D1、部署、能力开关、模拟器或 push。
 
 ## 工作纪律
 
