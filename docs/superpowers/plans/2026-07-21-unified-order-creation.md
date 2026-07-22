@@ -257,19 +257,19 @@ Commit: `feat(web): ship unified four-step order creation`
 - Modify: `android-client/app/build.gradle.kts`
 - Modify: `docs/latest-handoff-prompt.md`
 
-- [ ] **Step 1: 配置 canonical fixture 为 JVM test resource 并写 RED**
+- [x] **Step 1: 配置 canonical fixture 为 JVM test resource 并写 RED**
 
 `sourceSets.test.resources` 引用仓库 `contracts/`，测试同一 fixture 的字段、枚举、金额和禁传系统字段；不得复制另一份 fixture。
 
-- [ ] **Step 2: 定义创建领域和失败类型**
+- [x] **Step 2: 定义创建领域和失败类型**
 
 模型包含 metadata、表单值、field errors、operation state 和 `OrderCommandResult<OrderDetail>`；表单金额解析只在纯 Kotlin 边界发生，溢出或三位小数返回字段错误。
 
-- [ ] **Step 3: 实现 metadata/create/operation-query transport**
+- [x] **Step 3: 实现 metadata/create/operation-query transport**
 
 复用现有 Bearer 与 `OrdersHttpTransport` 风格；严格要求成功详情核心字段，未知字段忽略；IOException 映射网络不可用，401/403/409/400 精确映射，CancellationException 原样传播。
 
-- [ ] **Step 4: Android JVM GREEN、文档提交推送**
+- [x] **Step 4: Android JVM GREEN、文档提交推送**
 
 ```powershell
 $env:JAVA_HOME='E:\codex\APP\.android-build\jdk\jdk-17.0.19+10'

@@ -86,10 +86,19 @@ class HttpUrlConnectionOrderReadApi(
     }
 
     private fun mapDetail(body: String): OrderDetail? {
-        val envelope = json.parseToJsonElement(body).jsonObject
-        val order = envelope["order"] as? JsonObject ?: return null
-        val summary = order.asOrderSummaryOrNull(currentYear()) ?: return null
-        return OrderDetail(
+        return parseOrderDetailEnvelope(body, json, currentYear())
+    }
+}
+
+internal fun parseOrderDetailEnvelope(
+    body: String,
+    json: Json,
+    currentYear: Int,
+): OrderDetail? {
+    val envelope = json.parseToJsonElement(body).jsonObject
+    val order = envelope["order"] as? JsonObject ?: return null
+    val summary = order.asOrderSummaryOrNull(currentYear) ?: return null
+    return OrderDetail(
             summary = summary,
             phone = order.string("phone"),
             insurer = order.string("insurer"),
@@ -109,7 +118,6 @@ class HttpUrlConnectionOrderReadApi(
             voidedAt = order.string("voidedAt"),
             voidReason = order.string("voidReason"),
         )
-    }
 }
 
 private fun encodeUrlComponent(value: String): String =

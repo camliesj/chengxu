@@ -560,7 +560,11 @@ cd E:\codex\chengxu\android-client
 - IndexedDB 加密草稿已接入自动覆盖保存、恢复、成功删除、明确放弃、“保存草稿并退出”和登出清理；草稿 actor 使用服务端同源的 username/label，避免同名展示名称串草稿。点击遮罩、关闭按钮或 Escape 均触发离开确认。响应式桌面/窄屏使用同一组件，内容区独立滚动，操作区固定，输入与按钮具备至少 48px 触控高度以及 hover/pressed/focus/error/disabled 状态。
 - 新增生产 Playwright 配置、受控 Vite 测试生命周期和 2 条端到端用例，覆盖四步完整创建、整数分金额、服务端编号详情、必填错误与草稿放弃；Windows 子进程能在测试结束后正常回收。`orderCreationReducer` 另增加越界草稿步骤恢复回归。
 - 2026-07-22 验证：Node 全量 111/111 通过，生产 Playwright 2/2 通过，Vite 6.4.3 构建成功；构建后已恢复受版本控制的阶段 1 APK。本任务未访问远端 D1、未部署 Pages、未启动 Android 模拟器。
-- 下一步：执行阶段 2 Task 6，Android 创建领域模型、共享 canonical fixture 与 metadata/create/operation-query HTTP 适配；继续不启动模拟器。
+- 阶段 2 Task 6 已完成：Android `test` source set 直接把仓库根 `contracts/` 作为资源目录，`OrderCreationContractTest` 从唯一 `order-creation-v1.json` 读取必填字段、合法用例和整数分，不复制 fixture；canonical 表单会 trim 后构造仅含 16 个客户端可写字段的 JSON，禁止携带 ID/公司/角色/状态/版本/日期时间。
+- 新增 `OrderCreationModels.kt`：包含 metadata/default/options/staff、表单、创建 input/command、operation state 和 metadata envelope；decimal 文本在纯 Kotlin 边界精确转整数分，拒绝负数、三位小数、非法文本和超过 JavaScript/JSON 安全整数上限的金额，避免 Android 与服务端数值能力不一致。
+- 新增 `OrderCreateApi`、`OrderCreateHttpTransport` 和 `HttpUrlConnectionOrderCreateApi`：统一 Bearer 调用 metadata、POST create 与 operation query；UTF-8 operationId 被编码为单一路径段。201/200 只接受既有严格 `OrderDetail` 核心字段，400 field errors、401、403、409 pending/冲突、5xx、IOException、畸形响应和 `CancellationException` 均有稳定映射，创建与只读接口复用同一详情解析器。
+- TDD RED 精确失败于创建模型、API 和 transport 不存在；实现后 Task 6 聚焦 9/9 通过。2026-07-22 Android JVM 全量为 24 个 suite、119/119 测试、0 失败/错误/跳过，`:app:compileDebugAndroidTestKotlin` 成功。本任务未启动模拟器、未运行连接式测试、未访问远端 D1、未部署 Pages，也未更新阶段 APK。
+- 下一步：执行阶段 2 Task 7，扩展 `FoundationDao`/`EncryptedOrderStore` 的每企业单创建草稿，并实现 `OrderCreationRepository` 对网络、会话、Room 与未知结果的统一编排。
 
 ## 工作纪律
 
