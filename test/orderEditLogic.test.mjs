@@ -14,7 +14,7 @@ const contract = JSON.parse(await readFile(
   'utf8',
 ));
 
-test('edit normalizer trims a complete snapshot, applies defaults, and calculates integer cents', () => {
+test('edit normalizer trims a complete snapshot, preserves explicit optionals, and calculates integer cents', () => {
   const fixture = contract.validCases[0];
   const input = {
     ...fixture.input,
@@ -55,6 +55,18 @@ test('edit normalizer rejects unsafe integer-cent values', () => {
 
   assert.equal(normalized.value, null);
   assert.equal(normalized.fieldErrors.laborCents, 'order.laborCents.non_negative_integer');
+});
+
+test('edit normalizer rejects a full snapshot missing any one of the 16 editable fields', () => {
+  for (const field of ORDER_EDIT_FIELDS) {
+    const input = structuredClone(contract.validCases[0].input);
+    delete input[field];
+
+    const normalized = normalizeEditOrderCommand(input, metadata());
+
+    assert.equal(normalized.value, null, field);
+    assert.equal(normalized.fieldErrors[field], `order.${field}.required`, field);
+  }
 });
 
 test('editable-field diff reports only canonical submitted differences', () => {

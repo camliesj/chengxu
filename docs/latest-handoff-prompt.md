@@ -612,6 +612,9 @@ cd E:\codex\chengxu\android-client
 - 新增 canonical `normalizeEditOrderCommand`、`diffEditableFields`、认证 `PATCH /api/orders/:id` 与 `GET /api/order-operations/edit-order/:operationId`。编辑只接受 16 字段完整快照、UUID operationId 和正整数 expectedVersion；服务端忽略受保护字段，重新计算整数分总额，强制公司/工单/版本/未作废/普通状态谓词，并在 D1 batch 中按“唯一审计哨兵 -> version + 1 更新 -> operation completed”顺序校验三个 changes。
 - 编辑授权覆盖企业 `EDIT_ORDER`、管理员或 repair 员工、企业隔离及普通未结算状态。版本前置条件未命中会读取最新安全详情，把 `ORDER_VERSION_CONFLICT`、精确 `conflictingFields` 和原 409 HTTP 状态稳定存入 operation；同 hash 重放不重复更新/审计，不同 hash 返回 `OPERATION_ID_REUSED`，有效租约返回处理中，过期租约可接管。编辑审计只记录真实变化，手机号/VIN before/after 固定脱敏为 `[REDACTED]`。
 - TDD 证据：纯逻辑先因 `order-edit.js` 不存在 RED；端点先因 PATCH/查询路由不存在 RED；operation 查询顶层 completed 状态与审计脱敏均分别做过可观察失败再恢复 GREEN。最终任务包 focused suite 19/19、Node 全量 131/131 通过，Vite 6.4.3 生产构建成功。构建清理的阶段 2 APK 已按 HEAD blob `b3cf945a0861bffcaddd8034ae25a7474fc76c6b` 恢复。本任务没有 D1 migration、远端 D1 写入、Pages 部署、能力开关变更、Android 模拟器或 APK 更新，也未 push。
+- Task 2 独立复核返修已完成：编辑现强制请求显式包含全部 16 个字段，删除任一可选或必填字段都会 `VALIDATION_FAILED`，不再用空串/metadata 默认值补齐缺失快照。completed operation 的 canonical hash 在读取可变工单/能力/权限/字典前解析；因此同 hash 的稳定 409 在后续作废、结算、能力关闭、repair 撤销或字典变化后仍原样回放，不同完整 hash 仍返回 `OPERATION_ID_REUSED`，未完成命令仍执行全部授权和业务校验。
+- 审计哨兵 event ID 不再直接使用 actor-scoped operationId，而是对 `[company, actor, action, operationId]` 做稳定 SHA-256，避免 `operation_logs.event_id` 全局唯一索引被其他 actor 的同 UUID 占用。三个 batch 语句均绑定 scoped 哨兵；completion 还要求目标工单已达到 `expectedVersion + 1`、本次 `updated_at` 及全部 16 个提交值。批次后 reconciliation 正确处理命令自有哨兵已存在的 `[0,1,1]`，已更新工单不会误报冲突；更新未发生时 completion 不能成功，稳定冲突不会误报处理中。
+- 测试 fake D1 已从无条件三语句成功改为逐条解释订单/租约/哨兵/后置条件，并覆盖 foreign raw eventId collision、`[0,1,1]`、伪报告 `[1,0,1]`、只伪造版本/时间但字段未写入、终态跨可变状态 replay 和 16 字段逐项缺失。返修 focused 25/25、Node 全量 137/137、Vite 6.4.3 构建通过；批准设计未要求员工只能编辑本人负责工单，因此继续使用“管理员或具备 repair 权限员工”的既定规则。本轮仍无远端 D1、部署、能力开关、模拟器或 APK 更新，构建清理的既有 APK 已按相同 HEAD blob 恢复。
 
 ## 工作纪律
 

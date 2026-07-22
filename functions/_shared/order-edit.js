@@ -2,7 +2,9 @@ import { hasPermission, json, sha256Hex } from './auth.js';
 import { buildOrderEditAuditEvent } from './order-audit.js';
 import {
   claimOperation,
+  findOperation,
   readOperationResult,
+  replayCompletedOperation,
   storeTerminalOperationResult,
 } from './order-command-operation.js';
 import { buildOrderCreationMetadata } from './order-creation.js';
@@ -18,26 +20,7 @@ const REQUIRED_FIELDS = ['customer', 'phone', 'plate', 'car', 'insuranceExpiry',
 
 export function normalizeEditOrderCommand(input = {}, metadata = {}) {
   const source = input && typeof input === 'object' ? input : {};
-  const defaults = metadata.defaults || {};
-  const value = {
-    customer: cleanText(source.customer),
-    phone: cleanText(source.phone),
-    plate: cleanText(source.plate),
-    car: cleanText(source.car),
-    vin: cleanText(source.vin),
-    staff: cleanText(source.staff),
-    insuranceExpiry: cleanText(source.insuranceExpiry),
-    insurer: cleanText(source.insurer) || cleanText(defaults.insurer),
-    type: cleanText(source.type) || cleanText(defaults.type),
-    accidentType: cleanText(source.accidentType) || cleanText(defaults.accidentType),
-    claimNo: cleanText(source.claimNo),
-    record: cleanText(source.record),
-    laborCents: source.laborCents ?? defaults.laborCents ?? 0,
-    materialCents: source.materialCents ?? defaults.materialCents ?? 0,
-    delivery: cleanText(source.delivery) || cleanText(defaults.delivery),
-    remark: cleanText(source.remark),
-  };
-  const fieldErrors = {};
+  const { value, fieldErrors } = canonicalizeEditSnapshot(source);
 
   for (const field of REQUIRED_FIELDS) {
     if (!value[field]) fieldErrors[field] = `order.${field}.required`;
@@ -62,8 +45,8 @@ export function normalizeEditOrderCommand(input = {}, metadata = {}) {
       (metadata.options?.staff || []).map((row) => row.name),
     );
   }
-  validateMoney(fieldErrors, 'laborCents', value.laborCents);
-  validateMoney(fieldErrors, 'materialCents', value.materialCents);
+  if (!fieldErrors.laborCents) validateMoney(fieldErrors, 'laborCents', value.laborCents);
+  if (!fieldErrors.materialCents) validateMoney(fieldErrors, 'materialCents', value.materialCents);
   if (!fieldErrors.laborCents && !fieldErrors.materialCents
       && !Number.isSafeInteger(value.laborCents + value.materialCents)) {
     fieldErrors.laborCents = 'order.laborCents.non_negative_integer';
@@ -92,6 +75,25 @@ export async function handleEditOrderCommand({ env, session, orderId, payload })
     return json({ error: 'EXPECTED_VERSION_REQUIRED' }, { status: 400 });
   }
 
+  const canonical = canonicalizeEditSnapshot(payload?.order);
+  if (Object.keys(canonical.fieldErrors).length > 0) {
+    return json(
+      { error: 'VALIDATION_FAILED', fieldErrors: canonical.fieldErrors },
+      { status: 400 },
+    );
+  }
+  const key = editOperationKey(session, operationId);
+  const requestHash = await sha256Hex(JSON.stringify({
+    orderId: cleanText(orderId), expectedVersion, order: canonical.value,
+  }));
+  const priorOperation = await findOperation(env, key);
+  if (priorOperation) {
+    if (priorOperation.request_hash !== requestHash) {
+      return json({ error: 'OPERATION_ID_REUSED' }, { status: 409 });
+    }
+    if (priorOperation.state === 'completed') return replayCompletedOperation(priorOperation);
+  }
+
   const companyId = session?.company_id || 'tongda';
   const existing = await readSafeOrder(env, companyId, cleanText(orderId));
   if (!existing) return json({ error: 'ORDER_NOT_FOUND' }, { status: 404 });
@@ -117,10 +119,6 @@ export async function handleEditOrderCommand({ env, session, orderId, payload })
   const changedFields = diffEditableFields(toEditableOrder(existing), normalized.value);
 
   const command = { operationId, expectedVersion, order: normalized.value };
-  const key = editOperationKey(session, operationId);
-  const requestHash = await sha256Hex(JSON.stringify({
-    orderId: cleanText(orderId), expectedVersion: command.expectedVersion, order: command.order,
-  }));
   const claim = await claimOperation(env, key, requestHash, cleanText(orderId));
   if (claim.kind === 'response') return claim.response;
   if (changedFields.length === 0) {
@@ -141,6 +139,7 @@ export async function handleEditOrderCommand({ env, session, orderId, payload })
     operation: { id: operationId, state: 'completed' },
   };
   const audit = buildOrderEditAuditEvent(existing, command.order, changedFields);
+  const auditEventId = await scopedAuditEventId(key);
   const responseJson = JSON.stringify(responseBody);
   const ordinaryPredicate = "status IN ('在修中', '已完工', '待结算')";
 
@@ -158,7 +157,7 @@ export async function handleEditOrderCommand({ env, session, orderId, payload })
           AND state = 'started' AND lease_token = ? AND target_id = ?
       )
   `).bind(
-    session?.role || '', session?.label || '', operationId, audit.summary,
+    session?.role || '', session?.label || '', auditEventId, audit.summary,
     JSON.stringify(audit.changes), companyId, cleanText(orderId), expectedVersion,
     key.companyId, key.actor, key.action, key.operationId, claim.leaseToken, cleanText(orderId),
   );
@@ -187,7 +186,7 @@ export async function handleEditOrderCommand({ env, session, orderId, payload })
     command.order.type, command.order.accidentType, command.order.claimNo, command.order.record,
     command.order.laborCents / 100, command.order.materialCents / 100,
     command.order.amountCents / 100, command.order.delivery, command.order.remark, updatedAt,
-    companyId, cleanText(orderId), expectedVersion, operationId,
+    companyId, cleanText(orderId), expectedVersion, auditEventId,
     key.companyId, key.actor, key.action, key.operationId, claim.leaseToken, cleanText(orderId),
   );
   const operationComplete = env.DB.prepare(`
@@ -202,9 +201,31 @@ export async function handleEditOrderCommand({ env, session, orderId, payload })
         WHERE event_id = ? AND action = 'update_order' AND target_type = 'repair_order'
           AND target_id = ?
       )
+      AND EXISTS (
+        -- require-order-postcondition
+        SELECT 1 FROM repair_orders AS completed_order
+        WHERE completed_order.company_id = ? AND completed_order.id = ?
+          AND completed_order.version = ? AND completed_order.updated_at = ?
+          -- require-edit-values
+          AND completed_order.customer = ? AND completed_order.phone = ?
+          AND completed_order.plate = ? AND completed_order.car = ?
+          AND completed_order.vin = ? AND completed_order.staff = ?
+          AND completed_order.insurance_expiry = ? AND completed_order.insurer = ?
+          AND completed_order.type = ? AND completed_order.accident_type = ?
+          AND completed_order.claim_no = ? AND completed_order.record = ?
+          AND completed_order.labor = ? AND completed_order.material = ?
+          AND completed_order.amount = ? AND completed_order.delivery = ?
+          AND completed_order.remark = ?
+      )
   `).bind(
     200, responseJson, key.companyId, key.actor, key.action, key.operationId,
-    claim.leaseToken, cleanText(orderId), operationId, cleanText(orderId),
+    claim.leaseToken, cleanText(orderId), auditEventId, cleanText(orderId),
+    companyId, cleanText(orderId), expectedVersion + 1, updatedAt,
+    command.order.customer, command.order.phone, command.order.plate, command.order.car,
+    command.order.vin, command.order.staff, command.order.insuranceExpiry, command.order.insurer,
+    command.order.type, command.order.accidentType, command.order.claimNo, command.order.record,
+    command.order.laborCents / 100, command.order.materialCents / 100,
+    command.order.amountCents / 100, command.order.delivery, command.order.remark,
   );
 
   const batch = await env.DB.batch([auditSentinel, orderUpdate, operationComplete]);
@@ -213,6 +234,30 @@ export async function handleEditOrderCommand({ env, session, orderId, payload })
   }
 
   const latest = await readSafeOrder(env, companyId, cleanText(orderId));
+  const operationAfterBatch = await findOperation(env, key);
+  const orderWasUpdated = latest
+    && Number(latest.version) === expectedVersion + 1
+    && latest.updated_at === updatedAt
+    && diffEditableFields(toEditableOrder(latest), command.order).length === 0;
+  if (orderWasUpdated) {
+    if (operationAfterBatch?.state === 'completed') {
+      return replayCompletedOperation(operationAfterBatch);
+    }
+    const recovered = await storeTerminalOperationResult(
+      env,
+      key,
+      claim.leaseToken,
+      200,
+      responseBody,
+    );
+    if (recovered.stored) return json(responseBody);
+    const completed = await findOperation(env, key);
+    if (completed?.state === 'completed') return replayCompletedOperation(completed);
+    return json({ error: 'OPERATION_RESULT_INCONSISTENT' }, { status: 500 });
+  }
+  if (operationAfterBatch?.state === 'completed') {
+    return json({ error: 'OPERATION_RESULT_INCONSISTENT' }, { status: 500 });
+  }
   const conflictBody = latest && isOrdinaryStatus(latest.status)
     ? {
       error: 'ORDER_VERSION_CONFLICT',
@@ -240,6 +285,15 @@ function editOperationKey(session, operationId) {
     action: 'edit_order',
     operationId,
   };
+}
+
+async function scopedAuditEventId(key) {
+  return sha256Hex(JSON.stringify([
+    key.companyId,
+    key.actor,
+    key.action,
+    key.operationId,
+  ]));
 }
 
 async function readSafeOrder(env, companyId, orderId) {
@@ -318,6 +372,28 @@ function isUuid(value) {
 
 function changes(result) {
   return Number(result?.meta?.changes ?? result?.changes ?? 0);
+}
+
+function canonicalizeEditSnapshot(input) {
+  const source = input && typeof input === 'object' ? input : {};
+  const fieldErrors = {};
+  for (const field of ORDER_EDIT_FIELDS) {
+    if (!Object.hasOwn(source, field)) fieldErrors[field] = `order.${field}.required`;
+  }
+  const value = {
+    customer: cleanText(source.customer), phone: cleanText(source.phone),
+    plate: cleanText(source.plate), car: cleanText(source.car), vin: cleanText(source.vin),
+    staff: cleanText(source.staff), insuranceExpiry: cleanText(source.insuranceExpiry),
+    insurer: cleanText(source.insurer), type: cleanText(source.type),
+    accidentType: cleanText(source.accidentType), claimNo: cleanText(source.claimNo),
+    record: cleanText(source.record), laborCents: source.laborCents,
+    materialCents: source.materialCents, delivery: cleanText(source.delivery),
+    remark: cleanText(source.remark),
+  };
+  return {
+    value: { ...value, amountCents: value.laborCents + value.materialCents },
+    fieldErrors,
+  };
 }
 
 function cleanText(value) {

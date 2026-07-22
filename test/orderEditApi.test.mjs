@@ -78,7 +78,7 @@ test('PATCH atomically writes one audit sentinel, one versioned update, and oper
   const payload = validPayload();
   payload.order.phone = '13911112222';
   payload.order.vin = 'LHG99999999999999';
-  const env = environment({ submitted: payload.order });
+  const env = environment();
 
   const response = await patchOrder({ request: request(payload), env, params: { id: 'RO-1' } });
   const body = await response.json();
@@ -89,7 +89,8 @@ test('PATCH atomically writes one audit sentinel, one versioned update, and oper
   assert.equal(body.order.status, '在修中');
   assert.deepEqual(env.state.batchKinds, ['audit-sentinel', 'order-update', 'operation-complete']);
   assert.equal(env.state.row.version, payload.expectedVersion + 1);
-  assert.equal(env.state.auditRows.filter((row) => row.event_id === operationId).length, 1);
+  const scopedAuditId = await expectedAuditEventId();
+  assert.equal(env.state.auditRows.filter((row) => row.event_id === scopedAuditId).length, 1);
 
   const audit = env.calls.find((call) => call.sql.includes('-- audit-sentinel'));
   const auditText = audit.values.map(String).join('|');
@@ -104,9 +105,89 @@ test('PATCH atomically writes one audit sentinel, one versioned update, and oper
   assert.match(update.sql, /status IN \('在修中', '已完工', '待结算'\)/u);
 });
 
+test('a foreign global event-id collision cannot become this command audit sentinel', async () => {
+  const payload = validPayload();
+  const foreignAudit = {
+    event_id: operationId,
+    action: 'update_order',
+    target_type: 'repair_order',
+    target_id: 'RO-1',
+  };
+  const env = environment({
+    auditRows: [foreignAudit],
+  });
+  const scopedAuditId = await expectedAuditEventId();
+
+  const response = await patchOrder({ request: request(payload), env, params: { id: 'RO-1' } });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(env.state.actualBatchChanges, [1, 1, 1]);
+  assert.equal(env.state.auditRows.filter((row) => row.event_id === operationId).length, 1);
+  assert.equal(env.state.auditRows.filter((row) => row.event_id === scopedAuditId).length, 1);
+  assert.equal(env.state.operation.state, 'completed');
+});
+
+test('a pre-existing command-owned sentinel permits [0,1,1] recovery without a false conflict', async () => {
+  const payload = validPayload();
+  const scopedAuditId = await expectedAuditEventId();
+  const env = environment({
+    auditRows: [{
+      event_id: scopedAuditId,
+      action: 'update_order',
+      target_type: 'repair_order',
+      target_id: 'RO-1',
+    }],
+  });
+
+  const response = await patchOrder({ request: request(payload), env, params: { id: 'RO-1' } });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(env.state.actualBatchChanges, [0, 1, 1]);
+  assert.equal(env.state.row.version, payload.expectedVersion + 1);
+  assert.equal(env.state.auditRows.filter((row) => row.event_id === scopedAuditId).length, 1);
+  assert.equal(env.state.operation.http_status, 200);
+});
+
+test('completion refuses [1,0,1] without the order postcondition and stores a stable conflict', async () => {
+  const payload = validPayload();
+  const env = environment({
+    blockOrderUpdate: true,
+    reportedBatchChanges: [1, 0, 1],
+  });
+
+  const response = await patchOrder({ request: request(payload), env, params: { id: 'RO-1' } });
+  const body = await response.json();
+
+  assert.equal(response.status, 409);
+  assert.equal(body.error, 'ORDER_VERSION_CONFLICT');
+  assert.notEqual(body.error, 'OPERATION_IN_PROGRESS');
+  assert.deepEqual(env.state.reportedBatchChanges, [1, 0, 1]);
+  assert.deepEqual(env.state.actualBatchChanges, [1, 0, 0]);
+  assert.equal(env.state.row.version, payload.expectedVersion);
+  assert.equal(env.state.operation.state, 'completed');
+  assert.equal(env.state.operation.http_status, 409);
+});
+
+test('completion also requires the submitted edit values, not only version and timestamp', async () => {
+  const payload = validPayload();
+  const env = environment({
+    blockOrderUpdate: true,
+    spoofVersionTimestamp: true,
+  });
+
+  const response = await patchOrder({ request: request(payload), env, params: { id: 'RO-1' } });
+  const body = await response.json();
+
+  assert.equal(response.status, 409);
+  assert.equal(body.error, 'ORDER_VERSION_CONFLICT');
+  assert.deepEqual(env.state.actualBatchChanges, [1, 0, 0]);
+  assert.equal(env.state.operation.http_status, 409);
+  assert.notEqual(env.state.row.record, String(payload.order.record).trim());
+});
+
 test('a missed version precondition stores and deterministically replays a terminal 409', async () => {
   const payload = validPayload();
-  const env = environment({ submitted: payload.order, batchConflict: true });
+  const env = environment({ batchConflict: true });
 
   const conflict = await patchOrder({ request: request(payload), env, params: { id: 'RO-1' } });
   const conflictBody = await conflict.json();
@@ -124,9 +205,42 @@ test('a missed version precondition stores and deterministically replays a termi
   assert.equal(env.state.batches, 1);
 });
 
+test('a completed terminal conflict replays before mutable authorization and order checks', async () => {
+  const scenarios = [
+    ['voided', (state) => { state.row.voided = 1; }],
+    ['settled', (state) => { state.row.status = '已结算'; }],
+    ['capability-disabled', (state) => {
+      state.capabilities.splice(0, state.capabilities.length, { capability: 'VIEW_ORDERS', enabled: 1 });
+    }],
+    ['permission-revoked', (state) => { state.session.permissions = '["history"]'; }],
+    ['dictionary-changed', (state) => {
+      state.dictionaries.splice(0, state.dictionaries.length);
+    }],
+  ];
+
+  for (const [name, mutate] of scenarios) {
+    const payload = validPayload();
+    const env = environment({ batchConflict: true });
+    const first = await patchOrder({ request: request(payload), env, params: { id: 'RO-1' } });
+    const firstBody = await first.json();
+    assert.equal(first.status, 409, name);
+
+    mutate(env.state);
+    const replay = await patchOrder({ request: request(payload), env, params: { id: 'RO-1' } });
+    assert.equal(replay.status, 409, name);
+    assert.deepEqual(await replay.json(), firstBody, name);
+
+    const changed = structuredClone(payload);
+    changed.order.customer = `${changed.order.customer}-${name}`;
+    const reuse = await patchOrder({ request: request(changed), env, params: { id: 'RO-1' } });
+    assert.equal(reuse.status, 409, name);
+    assert.deepEqual(await reuse.json(), { error: 'OPERATION_ID_REUSED' }, name);
+  }
+});
+
 test('same operation hash replays once while hash reuse and an active lease are rejected', async () => {
   const payload = validPayload();
-  const replayEnv = environment({ submitted: payload.order });
+  const replayEnv = environment();
   const first = await patchOrder({ request: request(payload), env: replayEnv, params: { id: 'RO-1' } });
   const firstBody = await first.json();
   const replay = await patchOrder({ request: request(payload), env: replayEnv, params: { id: 'RO-1' } });
@@ -151,7 +265,6 @@ test('same operation hash replays once while hash reuse and an active lease are 
 test('an expired matching lease is reclaimed and the operation query is actor isolated', async () => {
   const payload = validPayload();
   const env = await leasedEnvironment(payload, '2000-01-01 00:00:00');
-  env.state.submitted = payload.order;
   const response = await patchOrder({ request: request(payload), env, params: { id: 'RO-1' } });
   assert.equal(response.status, 200);
   assert.equal(env.state.batches, 1);
@@ -188,6 +301,10 @@ async function leasedEnvironment(payload, leaseUntil) {
       target_id: 'RO-1', lease_token: 'other-worker', lease_until: leaseUntil,
     },
   });
+}
+
+async function expectedAuditEventId() {
+  return sha256Hex(JSON.stringify(['tongda', 'worker', 'edit_order', operationId]));
 }
 
 function request(payload, authenticated = true) {
@@ -231,20 +348,30 @@ function environment({
   ],
   operation = null,
   operations: suppliedOperations = null,
-  submitted = contract.validCases[0].input,
+  dictionaries = dictionaryRows(),
   batchConflict = false,
+  auditRows = [],
+  blockOrderUpdate = false,
+  reportedBatchChanges = null,
+  spoofVersionTimestamp = false,
 } = {}) {
   const calls = [];
   const operations = suppliedOperations || new Map();
   const state = {
     row: row ? { ...row } : null,
-    submitted,
     operation: operation ? { ...operation } : null,
     operations,
-    auditRows: [],
+    auditRows: auditRows.map((row) => ({ ...row })),
     batchKinds: [],
     batches: 0,
     batchConflict,
+    capabilities,
+    dictionaries,
+    session,
+    blockOrderUpdate,
+    reportedBatchChanges,
+    actualBatchChanges: [],
+    spoofVersionTimestamp,
   };
   if (state.operation) operations.set(operationKey(session, operationId), state.operation);
 
@@ -259,19 +386,138 @@ function environment({
           record: contract.conflictCases[0].serverOrder.record,
           labor: contract.conflictCases[0].serverOrder.laborCents / 100,
         });
-        return statements.map(() => ({ success: true, meta: { changes: 0 } }));
       }
-      const operationRow = operations.get(operationKey(session, operationId));
-      state.auditRows.push({ event_id: operationId, action: 'update_order' });
-      state.row = editedDatabaseRow(state.row, state.submitted);
-      operationRow.state = 'completed';
-      operationRow.http_status = statements[2].values[0];
-      operationRow.response_json = statements[2].values[1];
-      operationRow.lease_token = '';
-      operationRow.lease_until = '';
-      return statements.map(() => ({ success: true, meta: { changes: 1 } }));
+      state.actualBatchChanges = statements.map((item) => evaluateBatchStatement(item));
+      state.reportedBatchChanges = state.reportedBatchChanges || [...state.actualBatchChanges];
+      return state.reportedBatchChanges.map((count) => ({
+        success: true,
+        meta: { changes: count },
+      }));
     },
   };
+
+  function evaluateBatchStatement(item) {
+    switch (batchKind(item.sql)) {
+      case 'audit-sentinel': return evaluateAuditSentinel(item.values);
+      case 'order-update': return evaluateOrderUpdate(item.values);
+      case 'operation-complete': return evaluateOperationComplete(item.sql, item.values);
+      default: throw new Error(`Unexpected batch SQL: ${item.sql}`);
+    }
+  }
+
+  function evaluateAuditSentinel(values) {
+    const eventId = values[2];
+    if (state.auditRows.some((row) => row.event_id === eventId)) return 0;
+    const operationRow = operations.get(values.slice(8, 12).join('|'));
+    const orderMatches = state.row
+      && state.row.company_id === values[5]
+      && state.row.id === values[6]
+      && state.row.version === values[7]
+      && state.row.voided === 0
+      && ['在修中', '已完工', '待结算'].includes(state.row.status);
+    const leaseMatches = operationRow
+      && operationRow.state === 'started'
+      && operationRow.lease_token === values[12]
+      && operationRow.target_id === values[13];
+    if (!orderMatches || !leaseMatches) return 0;
+    state.auditRows.push({
+      event_id: eventId,
+      action: 'update_order',
+      target_type: 'repair_order',
+      target_id: values[6],
+    });
+    return 1;
+  }
+
+  function evaluateOrderUpdate(values) {
+    if (state.blockOrderUpdate) {
+      if (state.spoofVersionTimestamp && state.row) {
+        state.row.version = values[20] + 1;
+        state.row.updated_at = values[17];
+      }
+      return 0;
+    }
+    const operationRow = operations.get(values.slice(22, 26).join('|'));
+    const sentinel = state.auditRows.some((row) => (
+      row.event_id === values[21]
+      && row.action === 'update_order'
+      && row.target_type === 'repair_order'
+      && row.target_id === values[19]
+    ));
+    const orderMatches = state.row
+      && state.row.company_id === values[18]
+      && state.row.id === values[19]
+      && state.row.version === values[20]
+      && state.row.voided === 0
+      && ['在修中', '已完工', '待结算'].includes(state.row.status);
+    const leaseMatches = operationRow
+      && operationRow.state === 'started'
+      && operationRow.lease_token === values[26]
+      && operationRow.target_id === values[27];
+    if (!sentinel || !orderMatches || !leaseMatches) return 0;
+    state.row = {
+      ...state.row,
+      customer: values[0], phone: values[1], plate: values[2], car: values[3], vin: values[4],
+      staff: values[5], insurance_expiry: values[6], insurer: values[7], type: values[8],
+      accident_type: values[9], claim_no: values[10], record: values[11], labor: values[12],
+      material: values[13], amount: values[14], delivery: values[15], remark: values[16],
+      version: state.row.version + 1, updated_at: values[17],
+    };
+    return 1;
+  }
+
+  function evaluateOperationComplete(sql, values) {
+    const operationRow = operations.get(values.slice(2, 6).join('|'));
+    const leaseMatches = operationRow
+      && operationRow.state === 'started'
+      && operationRow.lease_token === values[6]
+      && operationRow.target_id === values[7];
+    const sentinel = state.auditRows.some((row) => (
+      row.event_id === values[8]
+      && row.action === 'update_order'
+      && row.target_type === 'repair_order'
+      && row.target_id === values[9]
+    ));
+    let postcondition = true;
+    if (sql.includes('-- require-order-postcondition')) {
+      postcondition = Boolean(state.row
+        && state.row.company_id === values[10]
+        && state.row.id === values[11]
+        && state.row.version === values[12]
+        && state.row.updated_at === values[13]);
+      if (postcondition && sql.includes('-- require-edit-values')) {
+        postcondition = rowMatchesCompletionValues(state.row, values.slice(14));
+      }
+    }
+    if (!leaseMatches || !sentinel || !postcondition) return 0;
+    operationRow.state = 'completed';
+    operationRow.http_status = values[0];
+    operationRow.response_json = values[1];
+    operationRow.lease_token = '';
+    operationRow.lease_until = '';
+    state.operation = operationRow;
+    return 1;
+  }
+
+  function rowMatchesCompletionValues(row, values) {
+    return row.customer === values[0]
+      && row.phone === values[1]
+      && row.plate === values[2]
+      && row.car === values[3]
+      && row.vin === values[4]
+      && row.staff === values[5]
+      && row.insurance_expiry === values[6]
+      && row.insurer === values[7]
+      && row.type === values[8]
+      && row.accident_type === values[9]
+      && row.claim_no === values[10]
+      && row.record === values[11]
+      && row.labor === values[12]
+      && row.material === values[13]
+      && row.amount === values[14]
+      && row.delivery === values[15]
+      && row.remark === values[16];
+  }
 
   function statement(sql, values) {
     return {
@@ -296,8 +542,8 @@ function environment({
         throw new Error(`Unexpected first SQL: ${sql}`);
       },
       async all() {
-        if (sql.includes('FROM company_capabilities')) return { results: capabilities };
-        if (sql.includes('FROM system_dictionaries')) return { results: dictionaryRows() };
+        if (sql.includes('FROM company_capabilities')) return { results: state.capabilities };
+        if (sql.includes('FROM system_dictionaries')) return { results: state.dictionaries };
         throw new Error(`Unexpected all SQL: ${sql}`);
       },
       async run() {
@@ -362,22 +608,6 @@ function dictionaryRows() {
     { id: 'i-3', category: 'insurer', value: '太平洋财险', extra: '', sort_order: 30 },
     { id: 's-1', category: 'staff', value: '接待顾问', extra: '王师傅', sort_order: 10 },
   ];
-}
-
-function editedDatabaseRow(existing, submitted) {
-  return {
-    ...existing,
-    customer: String(submitted.customer).trim(), phone: String(submitted.phone).trim(),
-    plate: String(submitted.plate).trim(), car: String(submitted.car).trim(),
-    vin: String(submitted.vin).trim(), staff: String(submitted.staff).trim(),
-    insurance_expiry: submitted.insuranceExpiry, insurer: submitted.insurer,
-    type: submitted.type, accident_type: submitted.accidentType,
-    claim_no: String(submitted.claimNo).trim(), record: String(submitted.record).trim(),
-    labor: submitted.laborCents / 100, material: submitted.materialCents / 100,
-    amount: (submitted.laborCents + submitted.materialCents) / 100,
-    delivery: submitted.delivery, remark: String(submitted.remark).trim(),
-    version: existing.version + 1, updated_at: '2026-07-22 12:00:00',
-  };
 }
 
 function databaseRow(overrides = {}) {
