@@ -1,102 +1,137 @@
-# Stage 3 Task 2 Report
+# Task 2 Report: 共享移动组件与登录页
 
-Status: original implementation committed as `a442ebf`; independent review repairs implemented and verified, repair commit pending.
+## 任务结果
 
-## Changes
+- 已新增共享移动壳层、底部导航、状态标签、指标卡、表单控件与固定示例数据。
+- 已将 `login-company` 从占位映射替换为真实 `LoginCompanyScreen`。
+- 其余 21 个 screen id 继续走占位映射，`?screen` 路由未回归。
+- 未修改生产 `src/App.jsx`。
 
-- Added the single shared operation lease module with the required `claimOperation`, `replayCompletedOperation`, `storeTerminalOperationResult`, and `readOperationResult` contracts.
-- Migrated order creation to the shared 30-second lease implementation and retained compatibility re-exports from `order-foundation.js`.
-- Added canonical 16-field edit normalization/diff, protected-field filtering, integer-cent validation and server-calculated total.
-- Added authenticated `PATCH /api/orders/:id` and actor/company/action-scoped edit operation query.
-- Added the ordered D1 batch: audit sentinel, optimistic versioned order update, conditional operation completion. All three `changes` are checked.
-- Added stable terminal 409 storage/replay for version conflicts, latest safe detail and exact `conflictingFields`.
-- Added safe edit audit changes; phone and VIN values are `[REDACTED]`.
+## 变更文件
 
-## RED / GREEN Evidence
+- `design/mobile-ui/src/mock-data.js`
+- `design/mobile-ui/src/components/MobileShell.jsx`
+- `design/mobile-ui/src/components/BottomNav.jsx`
+- `design/mobile-ui/src/components/StatusPill.jsx`
+- `design/mobile-ui/src/components/MetricCard.jsx`
+- `design/mobile-ui/src/components/FormControls.jsx`
+- `design/mobile-ui/src/screens/AuthScreens.jsx`
+- `design/mobile-ui/src/screens/registry.jsx`
+- `design/mobile-ui/src/app.css`
+- `design/mobile-ui/tests/visual.spec.mjs`
 
-- Pure RED: `node --test test/orderEditLogic.test.mjs` failed with `ERR_MODULE_NOT_FOUND` for `functions/_shared/order-edit.js`.
-- Pure GREEN plus create/foundation regression: 17/17 passed.
-- Endpoint RED: `node --test test/orderEditApi.test.mjs` failed with `ERR_MODULE_NOT_FOUND` for the edit operation query route.
-- Endpoint GREEN: 7/7 passed.
-- Query-envelope RED: the focused query test failed because top-level `state` was `undefined`; after implementing the completed envelope it passed.
-- Audit sensitivity check: temporarily removing redaction made the focused test fail on the submitted phone/VIN plaintext; restoring redaction returned the suite to 7/7.
+## TDD 证据
 
-## Verification
+### RED
 
-- Focused required command: `node --test test/orderEditLogic.test.mjs test/orderEditApi.test.mjs test/orderCreationApi.test.mjs` — 19/19 passed.
-- Full Node command: `npm.cmd test` — 131/131 passed, 0 failed/skipped.
-- Production build: `npm.cmd run build` — Vite 6.4.3 succeeded, 64 modules transformed.
-- `git diff --check` passed before documentation updates; final check is recorded after staging/commit attempt.
-- No deployment, remote D1 access/write, capability enablement, emulator start, or APK replacement occurred.
+先新增 `design/mobile-ui/tests/visual.spec.mjs`，只写登录页与壳层测试，再执行：
 
-## Risks / Follow-up
+`npm.cmd run test:mobile-ui -- --grep "login screen|phone shell"`
 
-- The fake D1 batch verifies SQL shape, ordering, result counts, idempotency and conflict behavior; no remote D1 integration was authorized or run.
-- Legacy `POST /api/orders` edit compatibility is intentionally deferred to Stage 3 Task 3.
-- `EDIT_ORDER` remains disabled in production until the later deployment task.
-- `npm run build` removes tracked release assets under `dist`; the pre-existing APK was restored byte-for-byte from the main workspace copy, whose Git blob hash matched HEAD (`b3cf945a0861bffcaddd8034ae25a7474fc76c6b`).
-- The original index permission block was resolved by the controller, which created commit `a442ebf feat(orders): add idempotent edit command` without pushing this isolated branch.
+结果：
 
-## Independent Review Repair
+- `login screen exposes company choice and credentials` 失败
+- `phone shell has no horizontal overflow` 失败
 
-### Changes
+失败原因：
 
-- Full snapshots now require all 16 editable properties to be explicitly present. Missing optional fields are not converted to empty strings or metadata defaults.
-- Existing completed operations are resolved from the canonical request hash before mutable order, permission, capability, status and dictionary checks. New/started commands still pass every current authorization and validation gate.
-- Edit audit event IDs are stable SHA-256 values derived from `[companyId, actor, action, operationId]`, preventing a different actor's identical UUID from occupying the global `operation_logs.event_id` sentinel.
-- Order update and operation completion both bind the scoped sentinel. Completion additionally requires company/order, `expectedVersion + 1`, the command's `updated_at`, and all 16 submitted values.
-- Partial-batch reconciliation treats a command-owned `[0,1,1]` as completed success, recovers an updated order whose completion was missed, stores a stable 409 when the update did not happen, and reports an explicit 500 only for an impossible completed-operation/order mismatch.
-- The fake D1 batch now executes each statement's lease, row, sentinel and postcondition checks; returned `changes` can be varied independently from actual state effects for resilience tests.
+- `getByRole('heading', { name: '选择门店' })` 找不到，说明 `login-company` 仍是占位页
+- `[data-mobile-shell]` 找不到，说明共享移动壳层尚未实现
 
-### RED / GREEN Evidence
+### GREEN
 
-- Removing each editable field initially failed at `vin`, which was silently normalized to `''`; all 16 parameterized cases now return `order.<field>.required`.
-- A completed 409 replay after setting the order voided initially returned 404; separate voided, settled, capability-off, permission-revoked and dictionary-changed cases now replay the original 409, while a different complete hash returns `OPERATION_ID_REUSED`.
-- A foreign audit row using the raw operation UUID reproduced actual `[0,1,1]` and an in-progress response. The scoped audit ID produces independent `[1,1,1]` success.
-- A command-owned pre-existing sentinel now exercises `[0,1,1]` and returns success without duplicating audit or reporting conflict.
-- A reported `[1,0,1]` initially completed the operation and returned `OPERATION_IN_PROGRESS`; the order postcondition makes actual effects `[1,0,0]` and stores/replays a 409.
-- Spoofing only `version + 1` and the same timestamp initially returned false 200; completion now also compares all submitted values and returns the stable conflict.
+实现共享组件与真实登录页后，重新执行：
 
-### Repair Verification
+`npm.cmd run test:mobile-ui -- --grep "login screen|phone shell"`
 
-- Required focused suite: 25/25 passed.
-- Full Node suite: 137/137 passed, 0 failed/skipped.
-- Vite 6.4.3 production build succeeded with 64 modules transformed.
-- No employee ownership restriction was added because the approved design requires admin or `repair` permission, not assignment ownership.
-- No deployment, remote D1 access/write, capability enablement, emulator, push, or APK replacement occurred. The build-cleaned APK was restored with HEAD blob `b3cf945a0861bffcaddd8034ae25a7474fc76c6b`.
-- Repair commit attempt: `git add functions test docs/latest-handoff-prompt.md .superpowers/sdd/task-2-report.md` and `git commit -m "fix(orders): harden edit command atomicity"` both failed because Git could not create `E:/codex/chengxu/.git/worktrees/stage-3-edit-status/index.lock` (`Permission denied`). No elevation or retry was attempted; the controller must create this commit.
+结果：
 
-## Third Review: Failed Audit Sentinel Compensation
+- 2 / 2 通过
 
-### Changes
+再补充三档手机宽度响应式测试后执行：
 
-- A failed versioned update now compensates the command-owned audit sentinel before storing a terminal 409.
-- Cleanup matches only the derived event ID plus exact `update_order` / `repair_order` / target ID, so unrelated and foreign audit rows are preserved.
-- The delete is guarded by the complete successful order postcondition: company/order, version, command timestamp, and all 17 persisted edit values including the calculated amount.
-- After cleanup the command re-reads the order and operation. A concurrent exact completion is recovered as 200 without deleting its audit; a remaining sentinel or cleanup exception returns `AUDIT_SENTINEL_CLEANUP_FAILED` 500 and leaves the operation non-terminal.
+`npm.cmd run test:mobile-ui -- --grep "login responsive"`
 
-### RED / GREEN Evidence
+结果：
 
-- Focused RED: the `[1,0,0]` path and a previously stranded same-command sentinel both failed with audit count `1 !== 0`; cleanup failure returned 409 instead of 500; concurrent exact success returned 409 instead of 200.
-- Focused GREEN: `node --test --test-name-pattern "completion refuses|failed retry|audit cleanup" test/orderEditApi.test.mjs` — 4/4 passed.
-- Endpoint GREEN: `node --test test/orderEditApi.test.mjs` — 15/15 passed.
+- `login responsive at 360` 通过
+- `login responsive at 390` 通过
+- `login responsive at 412` 通过
 
-### Final Verification
+### 审查返修 RED
 
-- Required focused suite: 28/28 passed.
-- Full Node suite: 140/140 passed, 0 failed/skipped.
-- Vite 6.4.3 production build succeeded with 64 modules transformed.
-- The build-cleaned APK was restored byte-for-byte; working-copy and HEAD blobs both equal `b3cf945a0861bffcaddd8034ae25a7474fc76c6b`.
-- `git diff --check` and the single commit attempt are recorded after this update.
+收到 Task 2 审查后，先补 focused 测试，再执行：
 
-## Fourth Review: Preserve Ambiguous Prior Sentinel
+`npm.cmd run test:mobile-ui -- --grep "company selection|shared shell|offline placeholder|workbench-admin registered|login screen|phone shell"`
 
-- Cleanup provenance now comes from the current batch result: compensation runs only when the audit statement reports `changes === 1` and the order is not the exact submitted result.
-- A scoped sentinel with audit `changes === 0` is never deleted automatically. If the order and operation do not reconcile to success, the command returns `OPERATION_RECONCILIATION_REQUIRED` 500 and leaves the operation non-terminal.
-- This conservative boundary is required because the current schema records no marker that distinguishes a failed-insert sentinel from the valid audit of an earlier `[1,1,0]` update whose order was subsequently advanced by another command.
-- RED reproduced the higher-version prior-audit scenario and observed 409 instead of the required 500. Focused boundary GREEN passed 6/6, including prior `[0,1,1]` success, new `[1,0,0]` cleanup, cleanup failure, concurrent exact success, and ordinary no-sentinel version conflict.
-- Required focused suite: 28/28 passed.
-- Full Node suite: 140/140 passed, 0 failed/skipped.
-- Vite 6.4.3 production build succeeded with 64 modules transformed.
-- The build-cleaned APK was restored byte-for-byte; working-copy and HEAD blobs both equal `b3cf945a0861bffcaddd8034ae25a7474fc76c6b`.
-- No push, deployment, remote D1 access, capability change, emulator, or APK update occurred.
+结果：
+
+- `company selection switches to the second company` 失败
+- `placeholder routes use the shared shell and keep workbench-admin registered` 失败
+- `shared shell keeps bottom nav pinned while main scrolls` 失败
+- `offline placeholder shows the offline strip inside the shared shell` 失败
+
+失败原因：
+
+- 公司选择仍是静态选中态，没有真实 state 切换
+- 非 auth 占位页仍使用旧 `phone-shell`，没有共享 `MobileShell + BottomNav`
+- 壳层缺少 `data-mobile-main` / `data-mobile-nav`，且未形成稳定三段布局
+- `offline-readonly` 占位路由没有复用共享壳层上的离线提示条
+
+### 审查返修 GREEN
+
+完成壳层改造、占位路由接入、公司单选交互与 MetricCard tone 变体后，重新执行：
+
+`npm.cmd run test:mobile-ui -- --grep "company selection|shared shell|offline placeholder|workbench-admin registered|login screen|phone shell"`
+
+结果：
+
+- 6 / 6 通过
+
+覆盖点：
+
+- 点击第二家公司后 `aria-pressed` 正确切换
+- 选中项显示 `CheckCircle2`，未选中项显示空心圆
+- `workbench-admin` 仍为占位路由，但已挂共享底栏
+- 长内容下 `main` 可滚动且 `BottomNav` 仍贴合 phone shell 底部
+- `offline-readonly` 占位页可见离线提示条
+
+## 最终验证
+
+执行：
+
+`npm.cmd run test:mobile-ui`
+
+结果：
+
+- Node catalog tests 3 项通过
+- Playwright 路由与视觉测试 12 项通过
+
+执行：
+
+`npm.cmd run build`
+
+结果：
+
+- 生产 Vite build 成功
+- 证明本次改动未破坏生产入口，`src/App.jsx` 未被修改
+
+## 视觉自检
+
+- 登录页为安静浅色界面，主背景使用 `#F5F7FA`，表面使用 `#FFFFFF`
+- 组件圆角统一保持 8px
+- 页面包含双公司选择、账号、密码、主按钮与网络安全提示
+- 未出现访问码提示
+- 未出现 logo 插画
+- 表单使用真实 `label` 与原生表单控件，便于可访问性查询
+- 底部导航使用 Lucide 图标，中心 `新增` 为蓝色圆形按钮
+- `MobileShell` 已改为稳定三段式 grid：语义 header、独立滚动 main、固定底部五栏导航
+- 非 auth 占位路由已复用共享壳层与底栏，可直接作为后续任务的壳层回归面
+- `MetricCard` 已实现 `neutral / primary / success / warning / danger` 视觉变体
+- 360 / 390 / 412 三档宽度均验证 `scrollWidth <= clientWidth`
+- 主按钮 `进入系统` 在三档宽度下均保持在视口内
+- 长内容占位页已验证仅主滚动区移动，底部导航边界稳定
+
+## 疑虑
+
+- `routing.spec.mjs` 里的原有 “placeholder” 命名仍未调整；它们当前验证的是路由存在性，不影响行为正确性，但后续可以顺手改名以降低语义噪音。
