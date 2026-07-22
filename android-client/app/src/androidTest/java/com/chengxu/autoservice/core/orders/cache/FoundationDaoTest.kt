@@ -68,6 +68,31 @@ class FoundationDaoTest {
     }
 
     @Test
+    fun createDraftReplaceAndDeleteKeepFutureEditDrafts() = runTest {
+        store.upsertDraft(OrderDraft("EDIT-1", "tongda", "RO-1", 2L, "{\"edit\":true}", 5L))
+        store.replaceCreateDraft(OrderDraft("CREATE-1", "tongda", null, null, "{\"plate\":\"蒙A1\"}", 10L))
+        store.replaceCreateDraft(OrderDraft("CREATE-2", "tongda", null, null, "{\"plate\":\"蒙A2\"}", 20L))
+
+        assertEquals("CREATE-2", store.getLatestCreateDraft("tongda")?.localId)
+        assertEquals("CREATE-2", store.observeCreateDraft("tongda").first()?.localId)
+        assertEquals(2, dao.observeDrafts("tongda").first().size)
+
+        store.deleteCreateDraft("tongda")
+        assertNull(store.getLatestCreateDraft("tongda"))
+        assertEquals(listOf("EDIT-1"), dao.observeDrafts("tongda").first().map { it.localId })
+    }
+
+    @Test
+    fun corruptCreateDraftIsDeletedWithoutLeakingCiphertext() = runTest {
+        store.replaceCreateDraft(OrderDraft("CREATE-1", "tongda", null, null, "{\"phone\":\"150\"}", 10L))
+        val raw = requireNotNull(dao.getLatestCreateDraft("tongda"))
+        dao.upsertDraft(raw.copy(encryptedPayload = "bad"))
+
+        assertNull(store.getLatestCreateDraft("tongda"))
+        assertNull(dao.getLatestCreateDraft("tongda"))
+    }
+
+    @Test
     fun companyAndGlobalClearCoverEveryFoundationTable() = runTest {
         for (company in listOf("tongda", "xinqiheng")) {
             store.upsertDetail(detail(company, "RO-$company"))

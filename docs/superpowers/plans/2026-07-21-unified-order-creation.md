@@ -291,19 +291,19 @@ Commit: `feat(android): add unified order creation API contract`
 - Modify: `android-client/app/src/androidTest/java/com/chengxu/autoservice/core/orders/cache/FoundationDaoTest.kt`
 - Modify: `docs/latest-handoff-prompt.md`
 
-- [ ] **Step 1: 写仓库与 DAO RED 测试**
+- [x] **Step 1: 写仓库与 DAO RED 测试**
 
 覆盖每公司仅最新一个创建草稿、损坏密文删除、保存/恢复/放弃、离线拒绝提交、能力拒绝、成功写详情与摘要后删草稿、未知结果查询以及 401 触发会话失效。
 
-- [ ] **Step 2: 扩展加密草稿存储**
+- [x] **Step 2: 扩展加密草稿存储**
 
 增加 `getLatestCreateDraft`、`observeCreateDraft`、`replaceCreateDraft`、`deleteCreateDraft`，全部 company 隔离。保存新草稿时事务删除同企业旧新增草稿，但不删除未来编辑草稿。
 
-- [ ] **Step 3: 实现创建仓库编排**
+- [x] **Step 3: 实现创建仓库编排**
 
 仓库是网络、session/network monitor、EncryptedOrderStore、Room summary/detail 写入和 session invalidator 的唯一协调点；UI 不直接调用 DAO 或 HTTP。
 
-- [ ] **Step 4: JVM GREEN 与 Android 测试源码编译**
+- [x] **Step 4: JVM GREEN 与 Android 测试源码编译**
 
 ```powershell
 .\gradlew.bat :app:testDebugUnitTest --tests "*OrderCreationRepositoryTest"

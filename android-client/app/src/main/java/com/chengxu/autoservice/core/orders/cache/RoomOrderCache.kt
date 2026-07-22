@@ -1,13 +1,15 @@
 package com.chengxu.autoservice.core.orders.cache
 
 import com.chengxu.autoservice.core.orders.OrderCache
+import com.chengxu.autoservice.core.orders.OrderCreationSummaryStore
 import com.chengxu.autoservice.core.orders.RepairOrder
+import com.chengxu.autoservice.core.orders.model.OrderSummary
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
 class RoomOrderCache(
     private val orderDao: OrderDao,
-) : OrderCache {
+) : OrderCache, OrderCreationSummaryStore {
     override fun observe(companyId: String): Flow<List<RepairOrder>> =
         orderDao.observeByCompany(companyId).map { rows -> rows.map(OrderSummaryEntity::toDomain) }
 
@@ -19,7 +21,30 @@ class RoomOrderCache(
     }
 
     override suspend fun clear() = orderDao.clearAll()
+
+    override suspend fun upsert(summary: OrderSummary) =
+        orderDao.insertAll(listOf(summary.toEntity()))
 }
+
+private fun OrderSummary.toEntity() = OrderSummaryEntity(
+    companyId = companyId,
+    orderId = id,
+    scope = if (status == "已结算") "HISTORY" else "CURRENT",
+    version = version,
+    date = date,
+    dateSortKey = dateSortKey,
+    time = time,
+    plate = plate,
+    customer = customer,
+    car = car,
+    type = type,
+    status = status,
+    amountCents = amountCents,
+    record = record,
+    insuranceExpiry = insuranceExpiry,
+    delivery = delivery,
+    updatedAt = updatedAt,
+)
 
 private fun RepairOrder.toEntity(trustedCompanyId: String) = OrderSummaryEntity(
     companyId = trustedCompanyId,

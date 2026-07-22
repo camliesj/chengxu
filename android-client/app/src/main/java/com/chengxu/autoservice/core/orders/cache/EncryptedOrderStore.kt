@@ -4,14 +4,17 @@ import com.chengxu.autoservice.core.orders.model.OrderDetail
 import com.chengxu.autoservice.core.orders.model.OrderDraft
 import com.chengxu.autoservice.core.orders.model.OrderSummary
 import com.chengxu.autoservice.core.orders.model.ReceiptMetadata
+import com.chengxu.autoservice.core.orders.OrderCreationLocalStore
 import com.chengxu.autoservice.core.security.StringCipher
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 class EncryptedOrderStore(
     private val dao: FoundationDao,
     private val cipher: StringCipher,
-) {
-    suspend fun upsertDetail(detail: OrderDetail) = dao.upsertDetail(detail.toEntity(cipher))
+) : OrderCreationLocalStore {
+    override suspend fun upsertDetail(detail: OrderDetail) = dao.upsertDetail(detail.toEntity(cipher))
 
     suspend fun getDetail(companyId: String, orderId: String): OrderDetail? {
         val entity = dao.getDetail(companyId, orderId) ?: return null
@@ -26,16 +29,49 @@ class EncryptedOrderStore(
     }
 
     suspend fun upsertDraft(draft: OrderDraft) = dao.upsertDraft(
-        OrderDraftEntity(
-            companyId = draft.companyId,
-            localId = draft.localId,
-            baseOrderId = draft.baseOrderId,
-            expectedVersion = draft.expectedVersion,
-            encryptedPayload = cipher.encrypt(draft.payloadJson),
-            updatedAtMillis = draft.updatedAtMillis,
-        ),
+        draft.toEntity(cipher),
     )
+
+    override suspend fun getLatestCreateDraft(companyId: String): OrderDraft? =
+        dao.getLatestCreateDraft(companyId)?.decryptOrDelete()
+
+    override fun observeCreateDraft(companyId: String): Flow<OrderDraft?> =
+        dao.observeCreateDraft(companyId).map { entity -> entity?.decryptOrDelete() }
+
+    override suspend fun replaceCreateDraft(draft: OrderDraft) {
+        require(draft.baseOrderId == null) { "Create draft cannot reference an existing order" }
+        dao.replaceCreateDraft(draft.toEntity(cipher))
+    }
+
+    override suspend fun deleteCreateDraft(companyId: String) = dao.deleteCreateDraft(companyId)
+
+    private suspend fun OrderDraftEntity.decryptOrDelete(): OrderDraft? = try {
+        toDomain(cipher)
+    } catch (cancellation: CancellationException) {
+        throw cancellation
+    } catch (_: Exception) {
+        dao.deleteDraft(companyId, localId)
+        null
+    }
 }
+
+private fun OrderDraft.toEntity(cipher: StringCipher) = OrderDraftEntity(
+    companyId = companyId,
+    localId = localId,
+    baseOrderId = baseOrderId,
+    expectedVersion = expectedVersion,
+    encryptedPayload = cipher.encrypt(payloadJson),
+    updatedAtMillis = updatedAtMillis,
+)
+
+private fun OrderDraftEntity.toDomain(cipher: StringCipher) = OrderDraft(
+    localId = localId,
+    companyId = companyId,
+    baseOrderId = baseOrderId,
+    expectedVersion = expectedVersion,
+    payloadJson = cipher.decrypt(encryptedPayload),
+    updatedAtMillis = updatedAtMillis,
+)
 
 private fun OrderDetail.toEntity(cipher: StringCipher) = OrderDetailEntity(
     companyId = summary.companyId, orderId = summary.id, version = summary.version,

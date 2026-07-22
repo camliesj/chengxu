@@ -18,10 +18,28 @@ interface FoundationDao {
 
     @Query("SELECT * FROM order_drafts WHERE companyId = :companyId ORDER BY updatedAtMillis DESC")
     fun observeDrafts(companyId: String): Flow<List<OrderDraftEntity>>
+    @Query(
+        "SELECT * FROM order_drafts WHERE companyId = :companyId AND baseOrderId IS NULL " +
+            "ORDER BY updatedAtMillis DESC LIMIT 1",
+    )
+    suspend fun getLatestCreateDraft(companyId: String): OrderDraftEntity?
+    @Query(
+        "SELECT * FROM order_drafts WHERE companyId = :companyId AND baseOrderId IS NULL " +
+            "ORDER BY updatedAtMillis DESC LIMIT 1",
+    )
+    fun observeCreateDraft(companyId: String): Flow<OrderDraftEntity?>
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertDraft(entity: OrderDraftEntity)
     @Query("DELETE FROM order_drafts WHERE companyId = :companyId AND localId = :localId")
     suspend fun deleteDraft(companyId: String, localId: String)
+    @Query("DELETE FROM order_drafts WHERE companyId = :companyId AND baseOrderId IS NULL")
+    suspend fun deleteCreateDraft(companyId: String)
+
+    @Transaction
+    suspend fun replaceCreateDraft(entity: OrderDraftEntity) {
+        deleteCreateDraft(entity.companyId)
+        upsertDraft(entity)
+    }
 
     @Query("SELECT * FROM sync_cursors WHERE companyId = :companyId AND resource = :resource")
     suspend fun getCursor(companyId: String, resource: String): SyncCursorEntity?

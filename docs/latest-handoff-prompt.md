@@ -564,7 +564,11 @@ cd E:\codex\chengxu\android-client
 - 新增 `OrderCreationModels.kt`：包含 metadata/default/options/staff、表单、创建 input/command、operation state 和 metadata envelope；decimal 文本在纯 Kotlin 边界精确转整数分，拒绝负数、三位小数、非法文本和超过 JavaScript/JSON 安全整数上限的金额，避免 Android 与服务端数值能力不一致。
 - 新增 `OrderCreateApi`、`OrderCreateHttpTransport` 和 `HttpUrlConnectionOrderCreateApi`：统一 Bearer 调用 metadata、POST create 与 operation query；UTF-8 operationId 被编码为单一路径段。201/200 只接受既有严格 `OrderDetail` 核心字段，400 field errors、401、403、409 pending/冲突、5xx、IOException、畸形响应和 `CancellationException` 均有稳定映射，创建与只读接口复用同一详情解析器。
 - TDD RED 精确失败于创建模型、API 和 transport 不存在；实现后 Task 6 聚焦 9/9 通过。2026-07-22 Android JVM 全量为 24 个 suite、119/119 测试、0 失败/错误/跳过，`:app:compileDebugAndroidTestKotlin` 成功。本任务未启动模拟器、未运行连接式测试、未访问远端 D1、未部署 Pages，也未更新阶段 APK。
-- 下一步：执行阶段 2 Task 7，扩展 `FoundationDao`/`EncryptedOrderStore` 的每企业单创建草稿，并实现 `OrderCreationRepository` 对网络、会话、Room 与未知结果的统一编排。
+- 阶段 2 Task 7 已完成：`FoundationDao` 新增 `baseOrderId IS NULL` 的单企业创建草稿查询/观察/删除和事务替换；替换创建草稿不会删除未来 `baseOrderId != NULL` 的编辑草稿。`EncryptedOrderStore` 实现加密保存、解密观察/读取、损坏密文受控删除和协程取消传播，手机号/VIN/草稿 payload 仍不以明文落 Room。
+- `RoomOrderCache` 新增按服务端 `OrderSummary` 单条 upsert 能力；新增 `OrderCreationLocalStore`/`OrderCreationSummaryStore` 边界和 `DefaultOrderCreationRepository`，UI 后续只经仓库观察/保存/放弃草稿、加载 metadata、创建和确认未知结果，不直接访问 DAO/HTTP。
+- 仓库默认拒绝：无会话返回 Unauthorized、离线不发请求、未为当前 company+username+token 成功加载 `canCreate=true` metadata 时拒绝 create。服务端成功详情必须匹配当前会话企业，随后写加密详情、摘要并删除创建草稿；UnknownResult 保留草稿，同 operation 查询成功后再执行相同落库流程；401 清除缓存能力并调用现有 `SessionInvalidator`。
+- TDD RED 同时精确失败于仓库/本地接口和 DAO 创建草稿方法不存在；GREEN 后仓库聚焦 8/8 通过，Android 测试源码包含“两个创建草稿只留最新、未来编辑草稿保留、损坏密文删除”场景并成功编译。2026-07-22 Android JVM 全量为 25 个 suite、127/127 测试、0 失败/错误/跳过，`:app:compileDebugAndroidTestKotlin` 成功；按约定未启动模拟器、未运行 Room 连接式测试，也未更新阶段 APK。
+- 下一步：执行阶段 2 Task 8，完成 `CreateOrderViewModel`、品牌化四步 Compose UI、Navigation 3 双入口、生产 DI 与 Android 测试源码/Lint 门禁。
 
 ## 工作纪律
 
