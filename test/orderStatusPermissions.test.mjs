@@ -24,6 +24,26 @@ test('canonical ordinary status contract locks targets and staff edges', () => {
     { from: '在修中', to: '已完工' },
     { from: '已完工', to: '待结算' },
   ]);
+  assert.deepEqual(
+    statusContract.forbiddenCases
+      .filter(({ role }) => role === 'staff')
+      .map(({ from, to }) => ({ from, to })),
+    [
+      { from: '在修中', to: '待结算' },
+      { from: '已完工', to: '在修中' },
+      { from: '待结算', to: '已完工' },
+      { from: '待结算', to: '在修中' },
+      { from: '待结算', to: '已结算' },
+      { from: '已结算', to: '待结算' },
+      { from: '在修中', to: '在修中' },
+    ],
+  );
+  assert.deepEqual(
+    statusContract.transitions.admin,
+    statusContract.allowedCases
+      .filter(({ role }) => role === 'admin')
+      .map(({ from, to }) => ({ from, to })),
+  );
   assert.equal(statusContract.targets.includes('已结算'), false);
 });
 

@@ -16,6 +16,14 @@ const EDIT_FIELDS = [
   'insuranceExpiry', 'insurer', 'type', 'accidentType', 'claimNo',
   'record', 'laborCents', 'materialCents', 'delivery', 'remark',
 ];
+const FORBIDDEN_FIELDS = [
+  'id', 'companyId', 'role', 'status', 'version', 'date', 'dateSortKey', 'time',
+  'labor', 'material', 'amount', 'amountCents', 'paymentMethod',
+  'settlementDate', 'settlementTime', 'settlementRemark',
+  'settlementReceiptKey', 'settlementReceiptName', 'settlementReceiptType',
+  'settlementReceiptSize', 'settlementReceiptUploadedAt', 'receipt',
+  'voided', 'voidedAt', 'voidReason', 'updatedAt',
+];
 
 test('edit contract locks version, fields, and stage 2 metadata', () => {
   assert.equal(contract.version, 1);
@@ -69,13 +77,8 @@ test('edit contract covers every validator family with stable field errors', () 
 });
 
 test('edit contract protects system fields and locks conflict differences', () => {
-  assert.ok(contract.forbiddenFields.includes('id'));
-  assert.ok(contract.forbiddenFields.includes('companyId'));
-  assert.ok(contract.forbiddenFields.includes('status'));
-  assert.ok(contract.forbiddenFields.includes('version'));
-  assert.ok(contract.forbiddenFields.includes('settledAt'));
-  assert.ok(contract.forbiddenFields.includes('receiptStatus'));
-  assert.ok(contract.forbiddenFields.includes('voidedAt'));
+  assert.deepEqual(contract.forbiddenFields, FORBIDDEN_FIELDS);
+  assert.deepEqual(Object.keys(contract.forbiddenFieldCase.values), FORBIDDEN_FIELDS);
   assert.equal(contract.conflictCases.length, 1);
   assert.deepEqual(contract.conflictCases[0].conflictingFields, ['record', 'laborCents']);
 });
