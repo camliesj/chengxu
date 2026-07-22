@@ -406,11 +406,11 @@ Commit: `test(orders): verify unified creation across clients`
 - Modify: `docs/latest-handoff-prompt.md`
 - Update artifact: `dist/releases/android/autoservice-android-debug-0.1.0.apk`
 
-- [ ] **Step 1: 复核 Wrangler 技能、登录和待迁移清单**
+- [x] **Step 1: 复核 Wrangler 技能、登录和待迁移清单**
 
 确认目标 account、`chengxu-db`、Pages project `chengxu`，且唯一待迁移文件为 0011。任何不符立即停止远端写入。
 
-- [ ] **Step 2: 远端备份与 migration**
+- [x] **Step 2: 远端备份与 migration**
 
 ```powershell
 npx.cmd wrangler d1 export chengxu-db --remote --output tmp/d1-backups/pre-android-stage-2.sql
@@ -419,7 +419,7 @@ npx.cmd wrangler d1 migrations apply chengxu-db --remote
 
 记录备份 byte 与 SHA-256；只读确认序列表、operation 租约列和无待迁移。备份保留到真机验收完成。
 
-- [ ] **Step 3: 部署 Pages 并执行安全冒烟**
+- [x] **Step 3: 部署 Pages 并执行安全冒烟**
 
 ```powershell
 npm.cmd run build
@@ -428,11 +428,13 @@ npx.cmd wrangler pages deploy dist --project-name chengxu
 
 验证生产域名 metadata/create/operation-query 未认证均为 401；使用不含敏感信息的授权方式验证公司隔离、能力关闭 403 和测试创建/回读。不得在命令历史、文档或日志写入密码/Token。
 
-- [ ] **Step 4: 启用目标企业 `CREATE_ORDER` 并验证**
+发布复核说明：生产 D1 只有通达与鑫齐恒两个业务企业，没有独立测试租户。依据设计中“自动化不得向生产业务企业写测试工单”的更高优先级安全约束，本步骤改为临时、自动清理的授权会话验证公司隔离、关闭时 403、启用后 metadata 与 400 字段校验，并以前后业务计数不变证明无测试工单写入；真实创建/回读保留给 `docs/android-client.md` 的真机验收。
+
+- [x] **Step 4: 启用目标企业 `CREATE_ORDER` 并验证**
 
 在接口与网页已部署且门禁通过后，使用受控 D1 命令为目标企业 upsert `CREATE_ORDER=1`。只读查询确认，不开启其他阶段能力。若冒烟失败立即设回 0。
 
-- [ ] **Step 5: 生成、验证并复制 APK**
+- [x] **Step 5: 生成、验证并复制 APK**
 
 ```powershell
 .\gradlew.bat :app:assembleDebug
@@ -440,7 +442,7 @@ npx.cmd wrangler pages deploy dist --project-name chengxu
 
 复制到 `dist/releases/android/autoservice-android-debug-0.1.0.apk`，核对源/副本 SHA-256，执行 `apksigner verify --verbose` 并记录 v2 签名结果。
 
-- [ ] **Step 6: 最终交接、提交和推送**
+- [x] **Step 6: 最终交接、提交和推送**
 
 交接记录：生产 deployment URL、migration、能力状态、全量测试统计、APK 绝对路径/bytes/SHA-256、未启动模拟器和待用户真机验证项。
 

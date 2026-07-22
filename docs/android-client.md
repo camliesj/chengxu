@@ -35,7 +35,7 @@ cd E:\codex\chengxu\android-client
 .\gradlew.bat :app:connectedDebugAndroidTest
 ```
 
-2026-07-22 阶段 2 Task 9 无设备验证从 clean 状态通过 `--rerun-tasks` 强制执行 69 个 Gradle task：26 个 suite、140/140 个 JVM 测试全部通过，0 失败、0 错误、0 跳过；Android 测试源码编译、`lintDebug` 与 Debug APK 构建通过，Lint 为 0 Fatal、0 Error、11 个非阻塞 Warning。Node 114/114、生产 Playwright 3/3 和 Vite 6.4.3 构建同时通过。本轮没有启动模拟器，也没有执行连接式 Android 测试；Room migration/DAO、AndroidKeyStore、四步新增、离线草稿、Navigation 3 成功跳转与其他 Compose 场景均只完成测试源码编译，必须由 Task 10 APK 和真机验收确认。
+2026-07-22 阶段 2 Task 9 无设备验证从 clean 状态通过 `--rerun-tasks` 强制执行 69 个 Gradle task：26 个 suite、140/140 个 JVM 测试全部通过，0 失败、0 错误、0 跳过；Android 测试源码编译、`lintDebug` 与 Debug APK 构建通过，Lint 为 0 Fatal、0 Error、11 个非阻塞 Warning。Node 114/114、生产 Playwright 3/3 和 Vite 6.4.3 构建同时通过。Task 10 在相同源码上再次完成 Vite 生产构建与 `:app:assembleDebug`，并把同哈希 APK 归档到发布目录。本轮没有启动模拟器，也没有执行连接式 Android 测试；Room migration/DAO、AndroidKeyStore、四步新增、离线草稿、Navigation 3 成功跳转与其他 Compose 场景仍须由本 APK 和真机验收确认。
 
 ## 安装调试 APK
 
@@ -47,7 +47,7 @@ adb install -r E:\codex\chengxu\dist\releases\android\autoservice-android-debug-
 
 初次打开显示登录页。认证成功后确认底部固定为“工作台 / 工单 / 新增 / 档案 / 我的”，第三项是“新增”。
 
-当前交付 APK 为 19,540,634 字节，SHA-256：`E2AB554D5EDBF9BB33D66485890CAEFCDF866BBD0541C933498C3995D611BE52`。发布副本与 clean 构建源文件哈希一致；Android Build Tools `apksigner verify` 已确认 APK 使用 v2 签名且签名有效，签名者为 Android Debug。
+当前阶段 2 交付 APK 为 19,655,322 字节，SHA-256：`053072B540EEE5FE5A6917DC6BC0D7CC3399A8A53DFF09A4A6BF15C2CCB8DC53`。发布副本与 clean 构建源文件哈希一致；Android Build Tools 35.0.0 的 `apksigner verify --verbose` 已确认 APK 使用 v2 签名且签名有效，签名者为 Android Debug。生产 API 为 `https://chengxu.pages.dev`，通达与鑫齐恒均已启用服务端 `CREATE_ORDER`；如真机冒烟异常，应先关闭该能力开关再排查，不要让客户端自行降级为本地正式工单。
 
 ## 品牌 UI 真机验收
 

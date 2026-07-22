@@ -582,7 +582,14 @@ cd E:\codex\chengxu\android-client
 - `docs/android-client.md` 已更新阶段 2 真机清单，覆盖双入口四步、权限、字段/金额、显式/后台草稿、断网、不自动提交、unknown operation 重启恢复、防重复、成功列表/详情、网页同步、退出/换公司清理和窄屏/输入法。
 - 2026-07-22 clean 门禁：Node 114/114、Playwright 3/3、Vite 6.4.3 构建通过；Android `clean ... --rerun-tasks` 69/69 task 成功，26 个 suite、140/140 JVM 测试、0 失败/错误/跳过，Android 测试源码编译成功，Lint 0 Fatal/0 Error/11 Warning，Debug APK 构建成功。未启动模拟器、未执行连接式测试。
 - Task 9 clean 构建 APK 为 `E:\codex\chengxu\android-client\app\build\outputs\apk\debug\app-debug.apk`，19,655,322 bytes，SHA-256 `053072B540EEE5FE5A6917DC6BC0D7CC3399A8A53DFF09A4A6BF15C2CCB8DC53`；Task 10 前仍未覆盖发布目录的阶段 1 APK。
-- 下一步执行阶段 2 Task 10：先加载 Cloudflare Wrangler 技能复核远端账号/项目/唯一待迁移 0011，再按计划备份远端 D1、应用 migration、部署 Pages、安全冒烟、为目标企业启用 `CREATE_ORDER`，最后生成/签名校验发布 APK。
+- 阶段 2 Task 10 已完成：Wrangler 4.107.0 登录账号为“流年似水”（Account ID `dc362dcd98a28242f874adfd3dffb1bd`），目标 Pages project 为 `chengxu`、D1 为 `chengxu-db`；写入前确认远端唯一待迁移文件为 `0011_unified_order_creation.sql`。
+- 迁移前完整 D1 备份保存在 Git 忽略路径 `tmp/d1-backups/pre-android-stage-2.sql`，100,186 bytes，SHA-256 `C70DCDB4D89162459CA3A7271B7FE9ADD05E442C820C54A921FB13DAB4713680`，须保留至真机验收完成。0011 成功执行 5 条命令，随后无待迁移；只读查询确认 `order_number_sequences`、`order_operations.lease_token`、`order_operations.lease_until` 与 `idx_order_operations_lease` 均存在。
+- Vite 6.4.3 生产构建成功，并显式部署到 Pages 生产分支 `main`；本次部署 URL 为 `https://bffe9e5e.chengxu.pages.dev`，生产主域名仍为 `https://chengxu.pages.dev`。短暂传播窗口结束后，metadata、create、operation-query 三个未认证请求稳定为 401。
+- 授权冒烟没有读取生产密码或现有会话 Token：使用 Cloudflare 官方 D1 参数化 API 创建 5 分钟、仅 `repair` 权限的内存随机 smoke 会话，并在 finally 中精确删除。启用前两家公司均为 `canCreate=false`、`VIEW_ORDERS` 且 create 返回 `403 CAPABILITY_DISABLED`；响应不含另一企业标识或 password 字段，临时会话 0 残留。
+- 已只为 `tongda` 与 `xinqiheng` upsert `CREATE_ORDER=1`，两家公司最终能力均精确为 `VIEW_ORDERS + CREATE_ORDER`，没有开启编辑、状态推进、结算或其他阶段能力。启用后两家公司 metadata 均为 `canCreate=true`，空表单 create 均返回 `400 VALIDATION_FAILED` 和相同 6 个必填字段 key。自动冒烟没有创建生产业务工单：前后计数均为 10 个工单、0 个 operation、0 个编号序列，smoke 会话为 0。
+- Task 9 clean 门禁仍是本阶段最终全量代码门禁：Node 114/114、Playwright 3/3、Vite 构建、Android 69/69 Gradle task、26 个 suite、140/140 JVM 测试、Android 测试源码编译、Lint 0 Fatal/0 Error/11 Warning、Debug APK 构建全部通过。Task 10 在相同源码上再次完成 Vite 生产构建与 `:app:assembleDebug`；没有启动模拟器，也没有执行或声称连接式 Compose/Room/KeyStore 测试通过。
+- 阶段 2 发布 APK 已更新为 `E:\codex\chengxu\dist\releases\android\autoservice-android-debug-0.1.0.apk`，19,655,322 bytes，SHA-256 `053072B540EEE5FE5A6917DC6BC0D7CC3399A8A53DFF09A4A6BF15C2CCB8DC53`。它与 `android-client\app\build\outputs\apk\debug\app-debug.apk` 哈希一致；Build Tools 35.0.0 `apksigner verify --verbose` 通过，`Verified using v2 scheme: true`，1 个 Debug 签名者。
+- 阶段 2 的 10 个计划任务现已全部完成。下一步先由用户按 `docs/android-client.md` 在真实手机验证登录、双入口四步创建、离线加密草稿、未知结果恢复、服务端编号、列表/详情与网页同步；验收前保留阶段 1/2 D1 备份。若真实创建异常，优先把两家企业 `CREATE_ORDER` 设回 0，再沿同一 operationId 排查，禁止客户端本地补造正式编号。
 
 ## 工作纪律
 
