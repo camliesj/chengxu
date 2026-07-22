@@ -49,4 +49,17 @@ class AppNavigationStateTest {
             state.currentStack,
         )
     }
+
+    @Test
+    fun createdOrderSwitchesToOrdersAndPushesServerDetailId() {
+        val state = AppNavigationState(initialTab = RootTab.CREATE)
+
+        state.openCreatedOrder("RO20260700001")
+
+        assertEquals(RootTab.ORDERS, state.activeTab)
+        assertEquals(
+            listOf(AppRoute.Orders, AppRoute.OrderDetail("RO20260700001")),
+            state.currentStack,
+        )
+    }
 }

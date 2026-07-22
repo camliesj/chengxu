@@ -87,12 +87,27 @@ export default function OrderCreationWizard({ session, companyId, actor, isOffli
       step: state.step,
       fields: state.fields,
       contractVersion: state.metadata?.contractVersion || '',
+      operationId: state.operationId,
+      submitState: state.submitState,
     };
   }
 
   function requestClose() {
     if (state.dirty) setLeaveConfirm(true);
     else onClose();
+  }
+
+  async function saveCurrentDraft() {
+    if (!state.dirty || !state.metadata) {
+      setMessage('当前没有可保存的草稿');
+      return;
+    }
+    try {
+      await draftStore.save(actor, companyId, currentDraft());
+      setMessage('草稿已加密保存在本机');
+    } catch {
+      setMessage('草稿保存失败，请稍后重试');
+    }
   }
 
   async function submit() {
@@ -116,8 +131,13 @@ export default function OrderCreationWizard({ session, companyId, actor, isOffli
       setMessage('请检查标记的字段');
       return;
     }
-    if (['unknownResult', 'networkUnavailable', 'malformedResponse'].includes(result.kind)) {
+    if (['unknownResult', 'networkUnavailable', 'malformedResponse', 'serverFailure'].includes(result.kind)) {
       dispatch({ type: 'unknownResult' });
+      await draftStore.save(actor, companyId, {
+        ...currentDraft(),
+        operationId,
+        submitState: 'confirming',
+      }).catch(() => {});
       setMessage('提交结果正在确认，请勿重复新增');
       return;
     }
@@ -161,6 +181,7 @@ export default function OrderCreationWizard({ session, companyId, actor, isOffli
         <footer className="order-wizard-footer">
           <button type="button" onClick={() => dispatch({ type: 'back' })} disabled={state.step === 0 || state.submitting}>上一步</button>
           <span>第 {state.step + 1} / 4 步</span>
+          <button type="button" onClick={saveCurrentDraft} disabled={!state.dirty || loading || state.submitting}>保存草稿</button>
           {state.submitState === 'confirming' ? <button type="button" className="primary" onClick={confirmUnknownResult} disabled={isOffline}>确认提交结果</button> : state.step < 3 ? <button type="button" className="primary" onClick={() => dispatch({ type: 'next' })} disabled={loading}>下一步</button> : <button type="button" className="primary" onClick={submit} disabled={disabled}>{state.submitting ? '正在提交…' : '确认并创建'}</button>}
         </footer>
         {leaveConfirm ? <div className="wizard-leave" role="alertdialog" aria-modal="true" aria-labelledby="wizard-leave-title"><div><h3 id="wizard-leave-title">保留当前填写内容？</h3><p>草稿仅保存在当前设备，尚未同步为正式工单。</p><div><button type="button" onClick={() => setLeaveConfirm(false)}>继续编辑</button><button type="button" onClick={async () => { await draftStore.delete(actor, companyId); onClose(); }}>放弃草稿</button><button type="button" className="primary" onClick={async () => { await draftStore.save(actor, companyId, currentDraft()); onClose(); }}>保存草稿并退出</button></div></div></div> : null}

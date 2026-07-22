@@ -333,23 +333,23 @@ Commit: `feat(android): add encrypted creation draft repository`
 - Modify: `android-client/app/src/main/java/com/chengxu/autoservice/core/designsystem/BrandIcon.kt`
 - Modify: `docs/latest-handoff-prompt.md`
 
-- [ ] **Step 1: 写 ViewModel RED**
+- [x] **Step 1: 写 ViewModel RED**
 
 覆盖 metadata loading、四步校验、金额转换、debounced/立即草稿保存、恢复/放弃、离开确认、offline/capability disabled、submit lock、UnknownResult 和成功事件仅消费一次。
 
-- [ ] **Step 2: 写 Compose/导航测试源码**
+- [x] **Step 2: 写 Compose/导航测试源码**
 
 覆盖步骤和字段顺序、48dp 操作、错误语义、禁用状态、保存/放弃 dialog、软键盘滚动语义、工作台与中间 tab 同入口、创建成功切换 Orders 并 push `OrderDetail(serverId)`。
 
-- [ ] **Step 3: 实现品牌化原生 UI**
+- [x] **Step 3: 实现品牌化原生 UI**
 
 复用现有 tokens、Brand controls 和已转换 Hugeicons vector；缺图标只从 Hugeicons 补充，不使用 Emoji 或其他图标库。移动端覆盖 default/focus/pressed/error/loading/disabled，不伪造 hover。
 
-- [ ] **Step 4: 完成 DI 与 Navigation 3 接线**
+- [x] **Step 4: 完成 DI 与 Navigation 3 接线**
 
 `MainActivity` 创建单一 repository；authenticated session 范围持有 `CreateOrderViewModel`；`StageScreen(CREATE)` 被正式 screen 替换。成功后 Room 先更新，再 `navigationState.openOrderDetail(orderId)` 切换工单栈。
 
-- [ ] **Step 5: JVM、Android test compile 与 Lint GREEN**
+- [x] **Step 5: JVM、Android test compile 与 Lint GREEN**
 
 ```powershell
 .\gradlew.bat :app:testDebugUnitTest --tests "*CreateOrderViewModelTest" --tests "*AppNavigationStateTest"

@@ -53,12 +53,19 @@ test('four-step reducer restores an encrypted local draft without exceeding the 
   let state = createInitialOrderCreationState(metadata);
   state = orderCreationReducer(state, {
     type: 'restoreDraft',
-    draft: { step: 99, fields: { customer: '草稿客户', plate: '蒙K88888' } },
+    draft: {
+      step: 99,
+      fields: { customer: '草稿客户', plate: '蒙K88888' },
+      operationId: 'operation-pending',
+      submitState: 'confirming',
+    },
   });
   assert.equal(state.step, 3);
   assert.equal(state.fields.customer, '草稿客户');
   assert.equal(state.fields.plate, '蒙K88888');
   assert.equal(state.fields.insurer, '人保财险');
+  assert.equal(state.operationId, 'operation-pending');
+  assert.equal(state.submitState, 'confirming');
   assert.equal(state.dirty, true);
 });
 

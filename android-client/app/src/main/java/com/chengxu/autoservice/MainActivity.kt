@@ -15,6 +15,8 @@ import com.chengxu.autoservice.core.auth.SharedPreferencesEncryptedValueStore
 import com.chengxu.autoservice.core.auth.androidKeystoreSessionCipher
 import com.chengxu.autoservice.core.network.AndroidConnectivityNetworkMonitor
 import com.chengxu.autoservice.core.orders.CachedOrdersRepository
+import com.chengxu.autoservice.core.orders.DefaultOrderCreationRepository
+import com.chengxu.autoservice.core.orders.HttpUrlConnectionOrderCreateApi
 import com.chengxu.autoservice.core.orders.HttpUrlConnectionOrdersApi
 import com.chengxu.autoservice.core.orders.SessionInvalidator
 import com.chengxu.autoservice.core.orders.cache.AutoserviceDatabase
@@ -51,15 +53,24 @@ class MainActivity : ComponentActivity() {
             connectivityManager = getSystemService(ConnectivityManager::class.java),
             applicationScope = lifecycleScope,
         )
+        val sessionInvalidator = SessionInvalidator {
+            authenticationRepository.invalidate(AuthFailure.SessionExpired)
+        }
         val ordersRepository = CachedOrdersRepository(
             applicationScope = lifecycleScope,
             sessionRepository = authenticationRepository,
             networkMonitor = networkMonitor,
             ordersApi = HttpUrlConnectionOrdersApi(BuildConfig.API_ORIGIN),
             orderCache = orderCache,
-            sessionInvalidator = SessionInvalidator {
-                authenticationRepository.invalidate(AuthFailure.SessionExpired)
-            },
+            sessionInvalidator = sessionInvalidator,
+        )
+        val orderCreationRepository = DefaultOrderCreationRepository(
+            sessionRepository = authenticationRepository,
+            networkMonitor = networkMonitor,
+            api = HttpUrlConnectionOrderCreateApi(BuildConfig.API_ORIGIN),
+            localStore = encryptedOrderStore,
+            summaryStore = orderCache,
+            sessionInvalidator = sessionInvalidator,
         )
 
         setContent {
@@ -67,6 +78,7 @@ class MainActivity : ComponentActivity() {
                 authenticationRepository = authenticationRepository,
                 networkMonitor = networkMonitor,
                 ordersRepository = ordersRepository,
+                orderCreationRepository = orderCreationRepository,
             )
         }
     }

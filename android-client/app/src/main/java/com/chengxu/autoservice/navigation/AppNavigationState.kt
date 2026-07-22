@@ -40,4 +40,13 @@ class AppNavigationState(initialTab: RootTab = RootTab.WORKBENCH) {
             false
         }
     }
+
+    fun openCreatedOrder(orderId: String) {
+        activeTab = RootTab.ORDERS
+        stacks.getValue(RootTab.ORDERS).apply {
+            clear()
+            add(AppRoute.Orders)
+            add(AppRoute.OrderDetail(orderId))
+        }
+    }
 }

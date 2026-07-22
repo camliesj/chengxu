@@ -67,6 +67,20 @@ class OrderCreationRepositoryTest {
     }
 
     @Test
+    fun serverForbiddenRevokesTheCachedCreateCapability() = runTest {
+        val api = FakeCreateApi(
+            metadataResult = OrderCommandResult.Success(metadata(canCreate = true)),
+            createResult = OrderCommandResult.Forbidden,
+        )
+        val repository = repository(api = api)
+        repository.loadMetadata()
+
+        assertEquals(OrderCommandResult.Forbidden, repository.create(command()))
+        assertEquals(OrderCommandResult.Forbidden, repository.create(command()))
+        assertEquals(1, api.createCalls)
+    }
+
+    @Test
     fun successWritesEncryptedDetailAndSummaryThenDeletesDraft() = runTest {
         val detail = detail()
         val local = FakeLocalStore().apply {

@@ -131,9 +131,37 @@ test('guards incomplete steps and confirms before discarding a local draft', asy
   await dialog.getByRole('button', { name: '下一步' }).click();
   await expect(dialog.getByText('请输入客户姓名')).toBeVisible();
   await dialog.getByLabel('客户姓名 *').fill('草稿客户');
+  await dialog.getByRole('button', { name: '保存草稿', exact: true }).click();
+  await expect(dialog.getByText('草稿已加密保存在本机')).toBeVisible();
   await dialog.getByRole('button', { name: '关闭' }).click();
   const leave = page.getByRole('alertdialog', { name: '保留当前填写内容？' });
   await expect(leave).toBeVisible();
   await leave.getByRole('button', { name: '放弃草稿' }).click();
   await expect(dialog).toBeHidden();
+});
+
+test('keeps the operation in confirmation after a server failure', async ({ page }) => {
+  await page.route('**/api/orders/create', (route) => route.fulfill({
+    status: 503,
+    contentType: 'application/json',
+    body: JSON.stringify({ error: 'TEMPORARY_FAILURE' }),
+  }));
+  await page.goto('/');
+  await page.getByRole('button', { name: '维修接待' }).click();
+  await page.getByRole('button', { name: '新增工单', exact: true }).first().click();
+  const dialog = page.locator('.order-wizard');
+
+  await dialog.getByLabel('客户姓名 *').fill('王先生');
+  await dialog.getByLabel('手机号 *').fill('15000000000');
+  await dialog.getByLabel('车牌号 *').fill('蒙K12345');
+  await dialog.getByLabel('车型 *').fill('小鹏 P7+');
+  await dialog.getByRole('button', { name: '下一步' }).click();
+  await dialog.getByLabel('保险到期日 *').fill('2027-07-22');
+  await dialog.getByRole('button', { name: '下一步' }).click();
+  await dialog.getByLabel('维修项目 *').fill('维修');
+  await dialog.getByRole('button', { name: '下一步' }).click();
+  await dialog.getByRole('button', { name: '确认并创建' }).click();
+
+  await expect(dialog.getByRole('button', { name: '确认提交结果' })).toBeVisible();
+  await expect(dialog.getByText('提交结果正在确认，请勿重复新增')).toBeVisible();
 });

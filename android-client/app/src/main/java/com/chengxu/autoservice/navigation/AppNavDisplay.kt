@@ -10,6 +10,9 @@ import androidx.compose.ui.Modifier
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.ui.NavDisplay
 import com.chengxu.autoservice.core.session.AppSession
+import com.chengxu.autoservice.ui.create.CreateOrderField
+import com.chengxu.autoservice.ui.create.CreateOrderScreen
+import com.chengxu.autoservice.ui.create.CreateOrderUiState
 import com.chengxu.autoservice.ui.profile.ProfileScreen
 import com.chengxu.autoservice.ui.orders.OrderDetailScreen
 import com.chengxu.autoservice.ui.orders.OrderStatusFilter
@@ -33,6 +36,17 @@ fun AppNavDisplay(
     onOrdersFilterSelected: (OrderStatusFilter) -> Unit = {},
     onOrdersClearFilters: () -> Unit = {},
     onOrdersRefresh: () -> Unit = {},
+    createState: CreateOrderUiState = CreateOrderUiState(),
+    onCreateUpdate: (CreateOrderField, String) -> Unit = { _, _ -> },
+    onCreateNext: () -> Unit = {},
+    onCreateBack: () -> Unit = {},
+    onCreateSubmit: () -> Unit = {},
+    onCreateConfirmUnknown: () -> Unit = {},
+    onCreateSaveDraft: () -> Unit = {},
+    onCreateExit: () -> Unit = {},
+    onCreateContinueEditing: () -> Unit = {},
+    onCreateDiscardAndExit: () -> Unit = {},
+    onCreateSaveAndExit: () -> Unit = {},
     profileSession: AppSession? = null,
     onLogout: () -> Unit = {},
     isOffline: Boolean = false,
@@ -65,7 +79,19 @@ fun AppNavDisplay(
                             navigationState.push(AppRoute.OrderDetail(orderId))
                         },
                     )
-                    AppRoute.CreateOrder -> StageScreen(kind = StageKind.CREATE, offline = isOffline)
+                    AppRoute.CreateOrder -> CreateOrderScreen(
+                        state = createState,
+                        onUpdate = onCreateUpdate,
+                        onNext = onCreateNext,
+                        onBack = onCreateBack,
+                        onSubmit = onCreateSubmit,
+                        onConfirmUnknown = onCreateConfirmUnknown,
+                        onSaveDraft = onCreateSaveDraft,
+                        onExit = onCreateExit,
+                        onContinueEditing = onCreateContinueEditing,
+                        onDiscardAndExit = onCreateDiscardAndExit,
+                        onSaveAndExit = onCreateSaveAndExit,
+                    )
                     AppRoute.Records -> StageScreen(kind = StageKind.RECORDS, offline = isOffline)
                     AppRoute.Profile -> profileSession?.let {
                         ProfileScreen(session = it, offline = isOffline, onLogout = onLogout)

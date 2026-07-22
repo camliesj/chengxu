@@ -3,6 +3,7 @@ package com.chengxu.autoservice
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -16,6 +17,7 @@ import com.chengxu.autoservice.core.model.AppPermission
 import com.chengxu.autoservice.core.network.ConnectionState
 import com.chengxu.autoservice.core.session.MutationDecision
 import com.chengxu.autoservice.ui.shell.AutoserviceShell
+import com.chengxu.autoservice.ui.create.CreateOrderUiState
 import com.chengxu.autoservice.ui.orders.OrderDisplayModel
 import com.chengxu.autoservice.ui.orders.OrderStatusTone
 import com.chengxu.autoservice.ui.orders.OrdersTestTags
@@ -35,13 +37,14 @@ class AutoserviceShellTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun centerCreateTabIsThirdAndDisabledOffline() {
+    fun centerCreateTabIsThirdAndKeepsEncryptedDraftEditingAvailableOffline() {
         launchShell(connection = ConnectionState.Offline)
 
         assertEquals(listOf("工作台", "工单", "新增", "档案", "我的"), RootTab.entries.map { it.label })
         composeRule.onAllNodesWithTag("root-tab").assertCountEquals(5)
-        composeRule.onNodeWithText("新增").assertIsNotEnabled().assertHeightIsAtLeast(48.dp)
+        composeRule.onNodeWithText("新增").assertIsEnabled().assertHeightIsAtLeast(48.dp).performClick()
         composeRule.onNodeWithText("网络不可用，当前为只读模式").assertIsDisplayed()
+        composeRule.onNodeWithText("离线状态可继续编辑草稿，联网后才能提交").assertIsDisplayed()
     }
 
     @Test
@@ -75,6 +78,7 @@ class AutoserviceShellTest {
             AutoserviceTheme {
                 AutoserviceShell(
                     connection = ConnectionState.Online,
+                    createState = CreateOrderUiState(loading = false, connection = ConnectionState.Online),
                     workbenchState = WorkbenchUiState(
                         loading = false,
                         companyName = "通达汽车服务中心",
@@ -94,7 +98,7 @@ class AutoserviceShellTest {
         }
 
         composeRule.onNodeWithText("新增工单").performClick()
-        composeRule.onNodeWithText("新增工单即将接入").assertIsDisplayed()
+        composeRule.onNodeWithText("客户与车辆").assertIsDisplayed()
     }
 
     private fun launchShell(
@@ -108,6 +112,7 @@ class AutoserviceShellTest {
                 AutoserviceShell(
                     connection = connection,
                     navigationState = navigationState,
+                    createState = CreateOrderUiState(loading = false, connection = connection),
                     ordersState = ordersState,
                     workbenchState = workbenchState,
                 )

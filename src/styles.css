@@ -5693,7 +5693,7 @@ button:disabled,
 
 .order-wizard-footer {
   display: grid;
-  grid-template-columns: minmax(110px, auto) 1fr minmax(150px, auto);
+  grid-template-columns: minmax(110px, auto) 1fr minmax(120px, auto) minmax(150px, auto);
   align-items: center;
   gap: 16px;
   padding: 18px 30px;

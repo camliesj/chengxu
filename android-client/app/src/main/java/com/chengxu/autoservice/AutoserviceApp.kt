@@ -21,10 +21,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.chengxu.autoservice.core.auth.AuthenticationRepository
 import com.chengxu.autoservice.core.auth.AuthenticationState
@@ -36,10 +39,15 @@ import com.chengxu.autoservice.core.designsystem.BrandIcon
 import com.chengxu.autoservice.core.designsystem.BrandIconResource
 import com.chengxu.autoservice.core.network.NetworkMonitor
 import com.chengxu.autoservice.core.orders.OrdersRepository
+import com.chengxu.autoservice.core.orders.OrderCreationRepository
+import com.chengxu.autoservice.navigation.AppNavigationState
+import com.chengxu.autoservice.navigation.RootTab
 import com.chengxu.autoservice.ui.auth.LoginScreen
 import com.chengxu.autoservice.ui.auth.LoginViewModel
 import com.chengxu.autoservice.ui.shell.AutoserviceShell
 import com.chengxu.autoservice.ui.orders.OrdersViewModel
+import com.chengxu.autoservice.ui.create.CreateOrderEvent
+import com.chengxu.autoservice.ui.create.CreateOrderViewModel
 import com.chengxu.autoservice.ui.workbench.WorkbenchViewModel
 import kotlinx.coroutines.launch
 
@@ -48,6 +56,7 @@ fun AutoserviceApp(
     authenticationRepository: AuthenticationRepository,
     networkMonitor: NetworkMonitor,
     ordersRepository: OrdersRepository,
+    orderCreationRepository: OrderCreationRepository,
 ) {
     val authenticationState by authenticationRepository.state.collectAsStateWithLifecycle()
 
@@ -69,6 +78,7 @@ fun AutoserviceApp(
                 authenticationRepository = authenticationRepository,
                 networkMonitor = networkMonitor,
                 ordersRepository = ordersRepository,
+                orderCreationRepository = orderCreationRepository,
                 authenticationState = state,
             )
         }
@@ -141,6 +151,7 @@ private fun AuthenticatedRoot(
     authenticationRepository: AuthenticationRepository,
     networkMonitor: NetworkMonitor,
     ordersRepository: OrdersRepository,
+    orderCreationRepository: OrderCreationRepository,
     authenticationState: AuthenticationState.Authenticated,
 ) {
     val sessionViewModelStoreOwner = remember(authenticationState.session) {
@@ -157,12 +168,37 @@ private fun AuthenticatedRoot(
         viewModelStoreOwner = sessionViewModelStoreOwner,
         factory = ordersViewModelFactory(ordersRepository),
     )
+    val createOrderViewModel: CreateOrderViewModel = viewModel(
+        viewModelStoreOwner = sessionViewModelStoreOwner,
+        factory = createOrderViewModelFactory(orderCreationRepository, networkMonitor),
+    )
     val state by workbenchViewModel.uiState.collectAsStateWithLifecycle()
     val ordersState by ordersViewModel.uiState.collectAsStateWithLifecycle()
+    val createState by createOrderViewModel.uiState.collectAsStateWithLifecycle()
+    val navigationState = remember(authenticationState.session) { AppNavigationState() }
+    val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
+
+    DisposableEffect(lifecycleOwner, createOrderViewModel) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) createOrderViewModel.flushDraft()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    LaunchedEffect(createOrderViewModel, navigationState) {
+        createOrderViewModel.events.collect { event ->
+            when (event) {
+                is CreateOrderEvent.Created -> navigationState.openCreatedOrder(event.orderId)
+                CreateOrderEvent.Exit -> navigationState.select(RootTab.WORKBENCH)
+            }
+        }
+    }
 
     AutoserviceShell(
         connection = state.connection,
+        navigationState = navigationState,
         workbenchState = state,
         onWorkbenchAction = {},
         onWorkbenchRefresh = workbenchViewModel::refresh,
@@ -171,6 +207,17 @@ private fun AuthenticatedRoot(
         onOrdersFilterSelected = ordersViewModel::selectFilter,
         onOrdersClearFilters = ordersViewModel::clearFilters,
         onOrdersRefresh = ordersViewModel::refresh,
+        createState = createState,
+        onCreateUpdate = createOrderViewModel::update,
+        onCreateNext = createOrderViewModel::next,
+        onCreateBack = createOrderViewModel::back,
+        onCreateSubmit = createOrderViewModel::submit,
+        onCreateConfirmUnknown = createOrderViewModel::confirmUnknownResult,
+        onCreateSaveDraft = createOrderViewModel::saveDraft,
+        onCreateExit = createOrderViewModel::requestExit,
+        onCreateContinueEditing = createOrderViewModel::continueEditing,
+        onCreateDiscardAndExit = createOrderViewModel::discardAndExit,
+        onCreateSaveAndExit = createOrderViewModel::saveAndExit,
         profileSession = authenticationState.session,
         onLogout = { scope.launch { authenticationRepository.logout() } },
     )
@@ -215,6 +262,19 @@ private fun ordersViewModelFactory(
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(OrdersViewModel::class.java)) {
             return OrdersViewModel(ordersRepository) as T
+        }
+        throw IllegalArgumentException("Unsupported ViewModel class: ${modelClass.name}")
+    }
+}
+
+private fun createOrderViewModelFactory(
+    orderCreationRepository: OrderCreationRepository,
+    networkMonitor: NetworkMonitor,
+): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(CreateOrderViewModel::class.java)) {
+            return CreateOrderViewModel(orderCreationRepository, networkMonitor) as T
         }
         throw IllegalArgumentException("Unsupported ViewModel class: ${modelClass.name}")
     }

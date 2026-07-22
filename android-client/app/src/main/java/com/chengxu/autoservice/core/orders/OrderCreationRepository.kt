@@ -122,6 +122,10 @@ class DefaultOrderCreationRepository(
             handleUnauthorized()
             result
         }
+        OrderCommandResult.Forbidden -> {
+            creationCapability = CreationCapability(session.identity(), canCreate = false)
+            result
+        }
         else -> result
     }
 

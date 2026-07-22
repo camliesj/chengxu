@@ -24,9 +24,19 @@ import com.chengxu.autoservice.core.model.UserRole
 import com.chengxu.autoservice.core.network.ConnectionState
 import com.chengxu.autoservice.core.network.NetworkMonitor
 import com.chengxu.autoservice.core.orders.OrderSyncState
+import com.chengxu.autoservice.core.orders.OrderCreationRepository
 import com.chengxu.autoservice.core.orders.OrdersRepository
 import com.chengxu.autoservice.core.orders.OrdersSnapshot
 import com.chengxu.autoservice.core.orders.RepairOrder
+import com.chengxu.autoservice.core.orders.model.BusinessCapability
+import com.chengxu.autoservice.core.orders.model.OrderCommandResult
+import com.chengxu.autoservice.core.orders.model.OrderCreateCommand
+import com.chengxu.autoservice.core.orders.model.OrderCreationDefaults
+import com.chengxu.autoservice.core.orders.model.OrderCreationMetadata
+import com.chengxu.autoservice.core.orders.model.OrderCreationMetadataEnvelope
+import com.chengxu.autoservice.core.orders.model.OrderCreationOptions
+import com.chengxu.autoservice.core.orders.model.OrderDetail
+import com.chengxu.autoservice.core.orders.model.OrderDraft
 import com.chengxu.autoservice.core.session.AppSession
 import com.chengxu.autoservice.core.session.PermissionSnapshot
 import com.chengxu.autoservice.core.designsystem.AutoserviceTheme
@@ -35,7 +45,9 @@ import com.chengxu.autoservice.ui.auth.LoginScreen
 import com.chengxu.autoservice.ui.auth.LoginTestTags
 import com.chengxu.autoservice.ui.auth.LoginUiState
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flowOf
 import org.junit.Rule
 import org.junit.Test
 
@@ -97,6 +109,8 @@ class AutoserviceAppTest {
         setApp(storedSession = employeeSession())
 
         composeRule.onNodeWithText("今日工作").assertIsDisplayed()
+        composeRule.onNodeWithText("新增").performClick()
+        composeRule.onNodeWithText("客户与车辆").assertIsDisplayed()
         composeRule.onNodeWithText("工单").performClick()
         composeRule.onNodeWithText("RO-APP-1").assertIsDisplayed()
         composeRule.onNodeWithText("我的").performClick()
@@ -120,6 +134,7 @@ class AutoserviceAppTest {
                 authenticationRepository = authenticationRepository,
                 networkMonitor = FakeNetworkMonitor(),
                 ordersRepository = FakeOrdersRepository(),
+                orderCreationRepository = FakeOrderCreationRepository(),
             )
         }
     }
@@ -176,5 +191,30 @@ class AutoserviceAppTest {
             )
 
         override suspend fun refresh() = Unit
+    }
+
+    private class FakeOrderCreationRepository : OrderCreationRepository {
+        override fun observeDraft(): Flow<OrderDraft?> = flowOf(null)
+        override suspend fun loadMetadata(): OrderCommandResult<OrderCreationMetadataEnvelope> =
+            OrderCommandResult.Success(
+                OrderCreationMetadataEnvelope(
+                    metadata = OrderCreationMetadata(
+                        contractVersion = 1,
+                        requiredFields = setOf("customer", "phone", "plate", "car", "insuranceExpiry", "record"),
+                        defaults = OrderCreationDefaults(),
+                        options = OrderCreationOptions(),
+                        maxLengths = emptyMap(),
+                    ),
+                    capabilities = setOf(BusinessCapability.CREATE_ORDER),
+                    canCreate = true,
+                    serverTime = "now",
+                ),
+            )
+        override suspend fun saveDraft(payloadJson: String, updatedAtMillis: Long) = true
+        override suspend fun discardDraft() = Unit
+        override suspend fun create(command: OrderCreateCommand): OrderCommandResult<OrderDetail> =
+            OrderCommandResult.ServerFailure
+        override suspend fun confirm(operationId: String): OrderCommandResult<OrderDetail> =
+            OrderCommandResult.ServerFailure
     }
 }

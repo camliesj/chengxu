@@ -39,12 +39,19 @@ export function orderCreationReducer(state, action) {
       };
     }
     case 'restoreDraft':
+      {
+        const operationId = typeof action.draft?.operationId === 'string'
+          ? action.draft.operationId.trim()
+          : '';
       return {
         ...state,
         step: Math.min(3, Math.max(0, Number(action.draft?.step) || 0)),
         fields: { ...state.fields, ...(action.draft?.fields || {}) },
+        operationId,
+        submitState: operationId && action.draft?.submitState === 'confirming' ? 'confirming' : 'idle',
         dirty: true,
       };
+      }
     case 'next': {
       const fieldErrors = validateOrderCreationStep(state, state.step);
       return Object.keys(fieldErrors).length > 0

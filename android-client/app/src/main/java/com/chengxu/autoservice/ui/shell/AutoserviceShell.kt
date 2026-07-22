@@ -31,6 +31,8 @@ import com.chengxu.autoservice.navigation.AppNavigationState
 import com.chengxu.autoservice.navigation.RootTab
 import com.chengxu.autoservice.ui.workbench.WorkbenchAction
 import com.chengxu.autoservice.ui.workbench.WorkbenchUiState
+import com.chengxu.autoservice.ui.create.CreateOrderField
+import com.chengxu.autoservice.ui.create.CreateOrderUiState
 import com.chengxu.autoservice.ui.orders.OrderStatusFilter
 import com.chengxu.autoservice.ui.orders.OrdersUiState
 
@@ -47,6 +49,17 @@ fun AutoserviceShell(
     onOrdersFilterSelected: (OrderStatusFilter) -> Unit = {},
     onOrdersClearFilters: () -> Unit = {},
     onOrdersRefresh: () -> Unit = {},
+    createState: CreateOrderUiState = CreateOrderUiState(),
+    onCreateUpdate: (CreateOrderField, String) -> Unit = { _, _ -> },
+    onCreateNext: () -> Unit = {},
+    onCreateBack: () -> Unit = {},
+    onCreateSubmit: () -> Unit = {},
+    onCreateConfirmUnknown: () -> Unit = {},
+    onCreateSaveDraft: () -> Unit = {},
+    onCreateExit: () -> Unit = {},
+    onCreateContinueEditing: () -> Unit = {},
+    onCreateDiscardAndExit: () -> Unit = {},
+    onCreateSaveAndExit: () -> Unit = {},
     profileSession: AppSession? = null,
     onLogout: () -> Unit = {},
 ) {
@@ -79,6 +92,17 @@ fun AutoserviceShell(
             onOrdersFilterSelected = onOrdersFilterSelected,
             onOrdersClearFilters = onOrdersClearFilters,
             onOrdersRefresh = onOrdersRefresh,
+            createState = createState,
+            onCreateUpdate = onCreateUpdate,
+            onCreateNext = onCreateNext,
+            onCreateBack = onCreateBack,
+            onCreateSubmit = onCreateSubmit,
+            onCreateConfirmUnknown = onCreateConfirmUnknown,
+            onCreateSaveDraft = onCreateSaveDraft,
+            onCreateExit = onCreateExit,
+            onCreateContinueEditing = onCreateContinueEditing,
+            onCreateDiscardAndExit = onCreateDiscardAndExit,
+            onCreateSaveAndExit = onCreateSaveAndExit,
             profileSession = profileSession,
             onLogout = onLogout,
             isOffline = isOffline,
@@ -94,7 +118,7 @@ fun AutoserviceShell(
             ) {
                 RootTab.entries.forEach { tab ->
                     val selected = navigationState.activeTab == tab
-                    val enabled = tab != RootTab.CREATE || !isOffline
+                    val enabled = true
                     val primary = tab == RootTab.CREATE
                     NavigationBarItem(
                         selected = selected,

@@ -23,7 +23,7 @@ git -c safe.directory=E:/codex/chengxu -c http.sslBackend=openssl push origin co
 - 两家公司：通达汽车服务中心、鑫齐恒汽车服务中心；管理员拥有两家公司全部权限。
 - 员工可以创建、编辑工单并将状态推进到“待结算”，但不能结算、返结算、作废、维护到账回执或导出。
 - 已结算工单进入历史档案，未结算工单保留在当前工单。
-- 断网时只允许查看缓存数据，显示“网络不可用，当前为只读模式”，并禁用所有写操作。
+- 断网时禁止所有正式业务写入并显示“网络不可用，当前为只读模式”；阶段 2 仅允许继续编辑和加密保存本机新增草稿，不排队、不自动提交。
 - Android 主导航方案 A：`工作台 / 工单 / 新增 / 档案 / 我的`，中间“新增”为第三项。
 
 ## 设计与实施文档
@@ -70,7 +70,7 @@ git -c safe.directory=E:/codex/chengxu -c http.sslBackend=openssl push origin co
 
 - 已实现 `AppRoute`、`RootTab`、`AppNavigationState`、`AppNavDisplay`、`AutoserviceShell` 和阶段占位页。
 - 五个根标签顺序固定为“工作台 / 工单 / 新增 / 档案 / 我的”；每个标签有独立返回栈，重复选择当前标签只重置自身。
-- 离线时显示统一只读横幅并禁用第三项“新增”；除工作台外的根页面显示“该模块将在后续阶段接入”，没有伪造业务写入功能。
+- 离线时显示统一只读横幅；阶段 2 起第三项“新增”允许进入本机加密草稿，但最终提交保持禁用。工单页已接真实只读列表/详情，档案仍为阶段占位。
 
 ### APF Task 6：工作台状态与 ViewModel
 
@@ -558,8 +558,8 @@ cd E:\codex\chengxu\android-client
 - 阶段 2 Task 5 已完成：新增生产组件 `src/components/OrderCreationWizard.jsx`，所有网页“新增工单”入口统一进入客户与车辆、保险与事故、维修与费用、确认提交四步向导；旧单页表单只保留既有工单编辑，不再为新增生成本地正式编号。
 - 向导复用服务端 metadata、稳定字段错误和 `/api/orders/create`；提交成功后以服务端返回工单写入列表并进入同一工单详情，同时沿用既有客户车辆/保险档案同步。离线、无权限、提交中和未知结果均有明确禁用或确认状态，未知结果使用原 operationId 查询，避免重复建单。
 - IndexedDB 加密草稿已接入自动覆盖保存、恢复、成功删除、明确放弃、“保存草稿并退出”和登出清理；草稿 actor 使用服务端同源的 username/label，避免同名展示名称串草稿。点击遮罩、关闭按钮或 Escape 均触发离开确认。响应式桌面/窄屏使用同一组件，内容区独立滚动，操作区固定，输入与按钮具备至少 48px 触控高度以及 hover/pressed/focus/error/disabled 状态。
-- 新增生产 Playwright 配置、受控 Vite 测试生命周期和 2 条端到端用例，覆盖四步完整创建、整数分金额、服务端编号详情、必填错误与草稿放弃；Windows 子进程能在测试结束后正常回收。`orderCreationReducer` 另增加越界草稿步骤恢复回归。
-- 2026-07-22 验证：Node 全量 111/111 通过，生产 Playwright 2/2 通过，Vite 6.4.3 构建成功；构建后已恢复受版本控制的阶段 1 APK。本任务未访问远端 D1、未部署 Pages、未启动 Android 模拟器。
+- 新增生产 Playwright 配置和受控 Vite 测试生命周期；Task 8 复核又补入固定“保存草稿”和 5xx 未知结果确认用例。当前 3 条端到端用例覆盖四步完整创建、整数分金额、服务端编号详情、必填错误、显式保存/放弃草稿和同 operationId 结果确认；Windows 子进程能在测试结束后正常回收。
+- `orderCreationReducer` 支持越界步骤恢复，并在加密草稿中恢复 pending operationId/confirming 状态；网络、5xx 或畸形响应不再允许生成新 operation 盲目重建。
 - 阶段 2 Task 6 已完成：Android `test` source set 直接把仓库根 `contracts/` 作为资源目录，`OrderCreationContractTest` 从唯一 `order-creation-v1.json` 读取必填字段、合法用例和整数分，不复制 fixture；canonical 表单会 trim 后构造仅含 16 个客户端可写字段的 JSON，禁止携带 ID/公司/角色/状态/版本/日期时间。
 - 新增 `OrderCreationModels.kt`：包含 metadata/default/options/staff、表单、创建 input/command、operation state 和 metadata envelope；decimal 文本在纯 Kotlin 边界精确转整数分，拒绝负数、三位小数、非法文本和超过 JavaScript/JSON 安全整数上限的金额，避免 Android 与服务端数值能力不一致。
 - 新增 `OrderCreateApi`、`OrderCreateHttpTransport` 和 `HttpUrlConnectionOrderCreateApi`：统一 Bearer 调用 metadata、POST create 与 operation query；UTF-8 operationId 被编码为单一路径段。201/200 只接受既有严格 `OrderDetail` 核心字段，400 field errors、401、403、409 pending/冲突、5xx、IOException、畸形响应和 `CancellationException` 均有稳定映射，创建与只读接口复用同一详情解析器。
@@ -568,7 +568,15 @@ cd E:\codex\chengxu\android-client
 - `RoomOrderCache` 新增按服务端 `OrderSummary` 单条 upsert 能力；新增 `OrderCreationLocalStore`/`OrderCreationSummaryStore` 边界和 `DefaultOrderCreationRepository`，UI 后续只经仓库观察/保存/放弃草稿、加载 metadata、创建和确认未知结果，不直接访问 DAO/HTTP。
 - 仓库默认拒绝：无会话返回 Unauthorized、离线不发请求、未为当前 company+username+token 成功加载 `canCreate=true` metadata 时拒绝 create。服务端成功详情必须匹配当前会话企业，随后写加密详情、摘要并删除创建草稿；UnknownResult 保留草稿，同 operation 查询成功后再执行相同落库流程；401 清除缓存能力并调用现有 `SessionInvalidator`。
 - TDD RED 同时精确失败于仓库/本地接口和 DAO 创建草稿方法不存在；GREEN 后仓库聚焦 8/8 通过，Android 测试源码包含“两个创建草稿只留最新、未来编辑草稿保留、损坏密文删除”场景并成功编译。2026-07-22 Android JVM 全量为 25 个 suite、127/127 测试、0 失败/错误/跳过，`:app:compileDebugAndroidTestKotlin` 成功；按约定未启动模拟器、未运行 Room 连接式测试，也未更新阶段 APK。
-- 下一步：执行阶段 2 Task 8，完成 `CreateOrderViewModel`、品牌化四步 Compose UI、Navigation 3 双入口、生产 DI 与 Android 测试源码/Lint 门禁。
+- 阶段 2 Task 8 已完成：新增会话级 `CreateOrderViewModel` 和四步 Compose UI，覆盖 metadata/default、逐步校验、整数分、500ms 自动保存、显式保存、前后步/后台立即落草稿、离开三选项、离线编辑/在线提交、权限禁用、提交锁和字段错误映射。
+- Android 对请求发出后的网络、5xx、畸形响应及 409 pending 统一保留原 operationId，立即写入加密草稿并显示“确认提交结果”；重启恢复同一确认状态。成功后仓库先写 Room 详情/摘要并删草稿，ViewModel 再重置为服务端默认的新表单。
+- 新增 `CreateOrderScreen`/组件：客户车辆、保险事故、维修费用、确认提交字段顺序与网页一致；预计交车同时提供服务端建议和自定义文本；固定底栏含上一步、保存草稿、下一步/提交，字段、选项和动作覆盖错误/加载/禁用/按下/焦点，内容滚动并使用 IME inset。
+- `AppNavDisplay` 已用真实创建页替换 `StageScreen(CREATE)`；工作台“新增工单”和五栏中间“新增”共享同一会话 ViewModel。离线可从中间入口继续本机草稿，最终提交禁用；成功切换“工单”栈并 push 服务端 ID 详情。
+- `MainActivity` 生产装配单一 `DefaultOrderCreationRepository`、`HttpUrlConnectionOrderCreateApi`、既有 `EncryptedOrderStore`、`RoomOrderCache` 和共享 `SessionInvalidator`；退出/失效仍沿既有清理生命周期删除敏感缓存。
+- Task 8 复核同步增强网页端：固定“保存草稿”、加密恢复 pending operationId、5xx 进入结果确认；没有改变字段、编号、权限或服务端规则。最终全量统计与提交号见本节后续提交记录。
+- 2026-07-22 提交前完整门禁：Node 111/111、生产 Playwright 3/3、Vite 6.4.3 构建均通过；Android 为 26 个 JVM suite、139/139 测试、0 失败/错误/跳过，Android 测试 Kotlin 源码编译、`lintDebug` 和 `assembleDebug` 均成功。Lint XML 为 0 Fatal、0 Error、11 Warning（均为既有版本/清单/KTX提示）。
+- 本轮构建 APK 位于 `E:\codex\chengxu\android-client\app\build\outputs\apk\debug\app-debug.apk`，19,800,096 bytes，SHA-256 `FAB85D361C0E48C8F82E40BF98CA3113383D35F766310A8EDDB5B1798ADBBB84`；Task 10 前不覆盖发布目录的阶段 1 APK。本轮未启动模拟器、未执行连接式 Compose/Room/KeyStore 测试。
+- 下一步：执行阶段 2 Task 9，补齐双端 canonical fixture 断言并从 clean 状态执行 Node/Playwright/Vite 与 Android 全量发布门禁，然后更新真机清单。
 
 ## 工作纪律
 
