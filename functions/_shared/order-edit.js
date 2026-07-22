@@ -235,10 +235,7 @@ export async function handleEditOrderCommand({ env, session, orderId, payload })
 
   const latest = await readSafeOrder(env, companyId, cleanText(orderId));
   const operationAfterBatch = await findOperation(env, key);
-  const orderWasUpdated = latest
-    && Number(latest.version) === expectedVersion + 1
-    && latest.updated_at === updatedAt
-    && diffEditableFields(toEditableOrder(latest), command.order).length === 0;
+  const orderWasUpdated = isExactEditResult(latest, expectedVersion, updatedAt, command.order);
   if (orderWasUpdated) {
     if (operationAfterBatch?.state === 'completed') {
       return replayCompletedOperation(operationAfterBatch);
@@ -258,15 +255,54 @@ export async function handleEditOrderCommand({ env, session, orderId, payload })
   if (operationAfterBatch?.state === 'completed') {
     return json({ error: 'OPERATION_RESULT_INCONSISTENT' }, { status: 500 });
   }
-  const conflictBody = latest && isOrdinaryStatus(latest.status)
+
+  try {
+    await cleanupFailedEditAudit(env, {
+      auditEventId,
+      companyId,
+      orderId: cleanText(orderId),
+      expectedVersion,
+      updatedAt,
+      order: command.order,
+    });
+  } catch {
+    return json({ error: 'AUDIT_SENTINEL_CLEANUP_FAILED' }, { status: 500 });
+  }
+
+  const reconciled = await readSafeOrder(env, companyId, cleanText(orderId));
+  const operationAfterCleanup = await findOperation(env, key);
+  if (isExactEditResult(reconciled, expectedVersion, updatedAt, command.order)) {
+    if (operationAfterCleanup?.state === 'completed') {
+      return replayCompletedOperation(operationAfterCleanup);
+    }
+    const recovered = await storeTerminalOperationResult(
+      env,
+      key,
+      claim.leaseToken,
+      200,
+      responseBody,
+    );
+    if (recovered.stored) return json(responseBody);
+    const completed = await findOperation(env, key);
+    if (completed?.state === 'completed') return replayCompletedOperation(completed);
+    return json({ error: 'OPERATION_RESULT_INCONSISTENT' }, { status: 500 });
+  }
+  if (operationAfterCleanup?.state === 'completed') {
+    return json({ error: 'OPERATION_RESULT_INCONSISTENT' }, { status: 500 });
+  }
+  if (await hasEditAuditSentinel(env, auditEventId, cleanText(orderId))) {
+    return json({ error: 'AUDIT_SENTINEL_CLEANUP_FAILED' }, { status: 500 });
+  }
+
+  const conflictBody = reconciled && isOrdinaryStatus(reconciled.status)
     ? {
       error: 'ORDER_VERSION_CONFLICT',
-      order: toOrderDetail(latest),
-      conflictingFields: diffEditableFields(toEditableOrder(latest), command.order),
+      order: toOrderDetail(reconciled),
+      conflictingFields: diffEditableFields(toEditableOrder(reconciled), command.order),
     }
     : {
       error: 'ORDER_NOT_EDITABLE',
-      ...(latest ? { order: toOrderDetail(latest) } : {}),
+      ...(reconciled ? { order: toOrderDetail(reconciled) } : {}),
     };
   const stored = await storeTerminalOperationResult(env, key, claim.leaseToken, 409, conflictBody);
   if (!stored.stored) return json({ error: 'OPERATION_IN_PROGRESS' }, { status: 409 });
@@ -301,6 +337,53 @@ async function readSafeOrder(env, companyId, orderId) {
     SELECT * FROM repair_orders
     WHERE id = ? AND company_id = ? AND voided = 0
   `).bind(orderId, companyId).first();
+}
+
+function isExactEditResult(row, expectedVersion, updatedAt, order) {
+  return Boolean(row)
+    && Number(row.version) === expectedVersion + 1
+    && row.updated_at === updatedAt
+    && diffEditableFields(toEditableOrder(row), order).length === 0
+    && Math.round((Number(row.amount) || 0) * 100) === order.amountCents;
+}
+
+async function cleanupFailedEditAudit(env, {
+  auditEventId, companyId, orderId, expectedVersion, updatedAt, order,
+}) {
+  await env.DB.prepare(`
+    DELETE FROM operation_logs
+    WHERE event_id = ? AND action = 'update_order'
+      AND target_type = 'repair_order' AND target_id = ?
+      AND NOT EXISTS (
+        SELECT 1 FROM repair_orders AS completed_order
+        WHERE completed_order.company_id = ? AND completed_order.id = ?
+          AND completed_order.version = ? AND completed_order.updated_at = ?
+          AND completed_order.customer = ? AND completed_order.phone = ?
+          AND completed_order.plate = ? AND completed_order.car = ?
+          AND completed_order.vin = ? AND completed_order.staff = ?
+          AND completed_order.insurance_expiry = ? AND completed_order.insurer = ?
+          AND completed_order.type = ? AND completed_order.accident_type = ?
+          AND completed_order.claim_no = ? AND completed_order.record = ?
+          AND completed_order.labor = ? AND completed_order.material = ?
+          AND completed_order.amount = ? AND completed_order.delivery = ?
+          AND completed_order.remark = ?
+      )
+  `).bind(
+    auditEventId, orderId, companyId, orderId, expectedVersion + 1, updatedAt,
+    order.customer, order.phone, order.plate, order.car, order.vin, order.staff,
+    order.insuranceExpiry, order.insurer, order.type, order.accidentType,
+    order.claimNo, order.record, order.laborCents / 100, order.materialCents / 100,
+    order.amountCents / 100, order.delivery, order.remark,
+  ).run();
+}
+
+async function hasEditAuditSentinel(env, auditEventId, orderId) {
+  const row = await env.DB.prepare(`
+    SELECT event_id FROM operation_logs
+    WHERE event_id = ? AND action = 'update_order'
+      AND target_type = 'repair_order' AND target_id = ?
+  `).bind(auditEventId, orderId).first();
+  return Boolean(row);
 }
 
 async function readEditDictionaries(env, companyId) {

@@ -615,6 +615,7 @@ cd E:\codex\chengxu\android-client
 - Task 2 独立复核返修已完成：编辑现强制请求显式包含全部 16 个字段，删除任一可选或必填字段都会 `VALIDATION_FAILED`，不再用空串/metadata 默认值补齐缺失快照。completed operation 的 canonical hash 在读取可变工单/能力/权限/字典前解析；因此同 hash 的稳定 409 在后续作废、结算、能力关闭、repair 撤销或字典变化后仍原样回放，不同完整 hash 仍返回 `OPERATION_ID_REUSED`，未完成命令仍执行全部授权和业务校验。
 - 审计哨兵 event ID 不再直接使用 actor-scoped operationId，而是对 `[company, actor, action, operationId]` 做稳定 SHA-256，避免 `operation_logs.event_id` 全局唯一索引被其他 actor 的同 UUID 占用。三个 batch 语句均绑定 scoped 哨兵；completion 还要求目标工单已达到 `expectedVersion + 1`、本次 `updated_at` 及全部 16 个提交值。批次后 reconciliation 正确处理命令自有哨兵已存在的 `[0,1,1]`，已更新工单不会误报冲突；更新未发生时 completion 不能成功，稳定冲突不会误报处理中。
 - 测试 fake D1 已从无条件三语句成功改为逐条解释订单/租约/哨兵/后置条件，并覆盖 foreign raw eventId collision、`[0,1,1]`、伪报告 `[1,0,1]`、只伪造版本/时间但字段未写入、终态跨可变状态 replay 和 16 字段逐项缺失。返修 focused 25/25、Node 全量 137/137、Vite 6.4.3 构建通过；批准设计未要求员工只能编辑本人负责工单，因此继续使用“管理员或具备 repair 权限员工”的既定规则。本轮仍无远端 D1、部署、能力开关、模拟器或 APK 更新，构建清理的既有 APK 已按相同 HEAD blob 恢复。
+- Task 2 第三轮复核修复了 D1 batch `[1,0,0]` 遗留命令审计哨兵的问题。失败更新现在先按派生 event ID、`update_order`、`repair_order` 和目标工单精确补偿删除；删除 SQL 以完整版本、时间戳及 17 个数据库编辑值作为成功后置条件保护，不会删除外部碰撞行或并发成功审计。补偿后会重读工单与 operation：并发精确成功恢复为 200，哨兵仍存在或补偿异常则返回 `AUDIT_SENTINEL_CLEANUP_FAILED` 500 且不存储虚假终态 409。focused RED 分别观测到哨兵计数 `1 !== 0`、错误 409 和并发成功误报 409；实现后新增/更新的 4 个回归用例与完整编辑端点 15/15 通过。最终全量门禁结果见 Task 2 报告；本轮仍未部署、访问远端 D1、启用能力、启动模拟器、更新 APK 或 push。
 
 ## 工作纪律
 

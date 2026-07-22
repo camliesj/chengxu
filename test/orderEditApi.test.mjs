@@ -150,7 +150,14 @@ test('a pre-existing command-owned sentinel permits [0,1,1] recovery without a f
 
 test('completion refuses [1,0,1] without the order postcondition and stores a stable conflict', async () => {
   const payload = validPayload();
+  const foreignAudit = {
+    event_id: operationId,
+    action: 'update_order',
+    target_type: 'repair_order',
+    target_id: 'RO-1',
+  };
   const env = environment({
+    auditRows: [foreignAudit],
     blockOrderUpdate: true,
     reportedBatchChanges: [1, 0, 1],
   });
@@ -166,6 +173,64 @@ test('completion refuses [1,0,1] without the order postcondition and stores a st
   assert.equal(env.state.row.version, payload.expectedVersion);
   assert.equal(env.state.operation.state, 'completed');
   assert.equal(env.state.operation.http_status, 409);
+  const scopedAuditId = await expectedAuditEventId();
+  assert.equal(env.state.auditRows.filter((row) => row.event_id === scopedAuditId).length, 0);
+  assert.equal(env.state.auditRows.filter((row) => row.event_id === operationId).length, 1);
+});
+
+test('a failed retry removes a previously stranded command-owned sentinel', async () => {
+  const payload = validPayload();
+  const scopedAuditId = await expectedAuditEventId();
+  const env = environment({
+    auditRows: [{
+      event_id: scopedAuditId,
+      action: 'update_order',
+      target_type: 'repair_order',
+      target_id: 'RO-1',
+    }],
+    blockOrderUpdate: true,
+  });
+
+  const response = await patchOrder({ request: request(payload), env, params: { id: 'RO-1' } });
+
+  assert.equal(response.status, 409);
+  assert.deepEqual(env.state.actualBatchChanges, [0, 0, 0]);
+  assert.equal(env.state.auditRows.filter((row) => row.event_id === scopedAuditId).length, 0);
+  assert.equal(env.state.operation.http_status, 409);
+});
+
+test('audit cleanup failure never stores or claims a terminal conflict', async () => {
+  const payload = validPayload();
+  const scopedAuditId = await expectedAuditEventId();
+  const env = environment({
+    blockOrderUpdate: true,
+    blockAuditCleanup: true,
+  });
+
+  const response = await patchOrder({ request: request(payload), env, params: { id: 'RO-1' } });
+
+  assert.equal(response.status, 500);
+  assert.deepEqual(await response.json(), { error: 'AUDIT_SENTINEL_CLEANUP_FAILED' });
+  assert.equal(env.state.auditRows.filter((row) => row.event_id === scopedAuditId).length, 1);
+  assert.equal(env.state.operation.state, 'started');
+  assert.equal(env.state.operation.http_status, 0);
+});
+
+test('audit cleanup preserves a concurrent exact success and recovers operation completion', async () => {
+  const payload = validPayload();
+  const scopedAuditId = await expectedAuditEventId();
+  const env = environment({
+    blockOrderUpdate: true,
+    completeOrderBeforeAuditCleanup: true,
+  });
+
+  const response = await patchOrder({ request: request(payload), env, params: { id: 'RO-1' } });
+
+  assert.equal(response.status, 200);
+  assert.equal(env.state.auditRows.filter((row) => row.event_id === scopedAuditId).length, 1);
+  assert.equal(env.state.row.version, payload.expectedVersion + 1);
+  assert.equal(env.state.operation.state, 'completed');
+  assert.equal(env.state.operation.http_status, 200);
 });
 
 test('completion also requires the submitted edit values, not only version and timestamp', async () => {
@@ -354,6 +419,8 @@ function environment({
   blockOrderUpdate = false,
   reportedBatchChanges = null,
   spoofVersionTimestamp = false,
+  blockAuditCleanup = false,
+  completeOrderBeforeAuditCleanup = false,
 } = {}) {
   const calls = [];
   const operations = suppliedOperations || new Map();
@@ -372,6 +439,8 @@ function environment({
     reportedBatchChanges,
     actualBatchChanges: [],
     spoofVersionTimestamp,
+    blockAuditCleanup,
+    completeOrderBeforeAuditCleanup,
   };
   if (state.operation) operations.set(operationKey(session, operationId), state.operation);
 
@@ -539,6 +608,14 @@ function environment({
             ? { ...state.row }
             : null;
         }
+        if (sql.includes('FROM operation_logs')) {
+          return state.auditRows.find((row) => (
+            row.event_id === values[0]
+            && row.action === 'update_order'
+            && row.target_type === 'repair_order'
+            && row.target_id === values[1]
+          )) || null;
+        }
         throw new Error(`Unexpected first SQL: ${sql}`);
       },
       async all() {
@@ -547,6 +624,29 @@ function environment({
         throw new Error(`Unexpected all SQL: ${sql}`);
       },
       async run() {
+        if (sql.includes('DELETE FROM operation_logs')) {
+          if (state.completeOrderBeforeAuditCleanup && state.row) {
+            state.row = applyCompletionValues(state.row, values.slice(6));
+            state.row.version = values[4];
+            state.row.updated_at = values[5];
+          }
+          const orderCompleted = state.row
+            && state.row.company_id === values[2]
+            && state.row.id === values[3]
+            && state.row.version === values[4]
+            && state.row.updated_at === values[5]
+            && rowMatchesCompletionValues(state.row, values.slice(6));
+          if (state.blockAuditCleanup || orderCompleted) return { meta: { changes: 0 } };
+          const index = state.auditRows.findIndex((row) => (
+            row.event_id === values[0]
+            && row.action === 'update_order'
+            && row.target_type === 'repair_order'
+            && row.target_id === values[1]
+          ));
+          if (index < 0) return { meta: { changes: 0 } };
+          state.auditRows.splice(index, 1);
+          return { meta: { changes: 1 } };
+        }
         if (sql.includes('INSERT OR IGNORE INTO order_operations')) {
           const key = values.slice(0, 4).join('|');
           if (operations.has(key)) return { meta: { changes: 0 } };
@@ -580,6 +680,16 @@ function environment({
         }
         throw new Error(`Unexpected run SQL: ${sql}`);
       },
+    };
+  }
+
+  function applyCompletionValues(row, values) {
+    return {
+      ...row,
+      customer: values[0], phone: values[1], plate: values[2], car: values[3], vin: values[4],
+      staff: values[5], insurance_expiry: values[6], insurer: values[7], type: values[8],
+      accident_type: values[9], claim_no: values[10], record: values[11], labor: values[12],
+      material: values[13], amount: values[14], delivery: values[15], remark: values[16],
     };
   }
 
