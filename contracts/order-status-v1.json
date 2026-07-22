@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "targets": [
+    "在修中",
+    "已完工",
+    "待结算"
+  ],
+  "transitions": {
+    "staff": [
+      { "from": "在修中", "to": "已完工" },
+      { "from": "已完工", "to": "待结算" }
+    ],
+    "admin": [
+      { "from": "在修中", "to": "已完工" },
+      { "from": "已完工", "to": "待结算" },
+      { "from": "已完工", "to": "在修中" },
+      { "from": "待结算", "to": "已完工" }
+    ]
+  },
+  "allowedCases": [
+    { "name": "staff-repairing-to-completed", "role": "staff", "from": "在修中", "to": "已完工" },
+    { "name": "staff-completed-to-pending-settlement", "role": "staff", "from": "已完工", "to": "待结算" },
+    { "name": "admin-repairing-to-completed", "role": "admin", "from": "在修中", "to": "已完工" },
+    { "name": "admin-completed-to-pending-settlement", "role": "admin", "from": "已完工", "to": "待结算" },
+    { "name": "admin-completed-to-repairing", "role": "admin", "from": "已完工", "to": "在修中" },
+    { "name": "admin-pending-settlement-to-completed", "role": "admin", "from": "待结算", "to": "已完工" }
+  ],
+  "forbiddenCases": [
+    { "name": "staff-cannot-jump-forward", "role": "staff", "from": "在修中", "to": "待结算" },
+    { "name": "staff-cannot-step-backward", "role": "staff", "from": "已完工", "to": "在修中" },
+    { "name": "staff-cannot-jump-backward", "role": "staff", "from": "待结算", "to": "在修中" },
+    { "name": "staff-cannot-settle", "role": "staff", "from": "待结算", "to": "已结算" },
+    { "name": "staff-cannot-reverse-settled", "role": "staff", "from": "已结算", "to": "待结算" },
+    { "name": "admin-cannot-jump-forward", "role": "admin", "from": "在修中", "to": "待结算" },
+    { "name": "admin-cannot-jump-backward", "role": "admin", "from": "待结算", "to": "在修中" },
+    { "name": "admin-cannot-settle-through-ordinary-command", "role": "admin", "from": "待结算", "to": "已结算" },
+    { "name": "admin-cannot-reverse-settled-through-ordinary-command", "role": "admin", "from": "已结算", "to": "待结算" },
+    { "name": "staff-cannot-repeat-status", "role": "staff", "from": "在修中", "to": "在修中" },
+    { "name": "admin-cannot-repeat-status", "role": "admin", "from": "已完工", "to": "已完工" }
+  ]
+}

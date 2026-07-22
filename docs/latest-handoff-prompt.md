@@ -606,6 +606,8 @@ cd E:\codex\chengxu\android-client
 - 用户已复核并确认阶段 3 正式设计。任务级 TDD 实施计划已生成：`docs/superpowers/plans/2026-07-22-unified-order-edit-status.md`，共 13 个任务，按 A 共享编辑服务、B 双端编辑、C 普通状态流转、D clean 门禁/生产部署/APK 四批推进。
 - 计划显式补入 Android 完整详情装配：现有严格 `OrderReadApi` 和 Room 详情表会通过 `OrderDetailRepository` / `OrderDetailViewModel` 接入详情页，编辑不会从缺少手机号、VIN、负责人等字段的摘要构造提交。
 - 当前仍未修改阶段 3 功能代码、未访问或部署生产、未启用 `EDIT_ORDER` / `ADVANCE_ORDER_STATUS`。下一步由用户选择 subagent-driven 或当前会话 inline execution 后，从 Task 1 的 fixture RED 开始执行。
+- 阶段 3 Task 1 已完成 canonical 编辑与普通状态契约锁定：新增版本 1 的 `contracts/order-edit-v1.json` 与 `contracts/order-status-v1.json`。编辑字段顺序固定为 `customer, phone, plate, car, vin, staff, insuranceExpiry, insurer, type, accidentType, claimNo, record, laborCents, materialCents, delivery, remark`，并复用阶段 2 metadata，覆盖两组合法完整快照、必填/长度/日期/枚举/整数分错误、禁止系统字段和精确冲突字段。普通状态目标只含“在修中 / 已完工 / 待结算”，员工仅相邻前进，管理员可相邻前进或回退；“已结算”不属于普通状态命令目标。
+- Task 1 新增 `ORDINARY_ORDER_STATUSES` 与 `allowedStatusTargets(role, from)` canonical helper，保留既有权限行为。TDD RED 精确失败于两个 fixture 和新 export 不存在；GREEN 聚焦测试 12/12、Node 全量 120/120 通过。本任务没有 D1 migration、API/界面/数据库生产行为变更、远端访问、部署或能力开关操作，也未推送隔离分支。
 
 ## 工作纪律
 

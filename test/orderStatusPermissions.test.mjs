@@ -4,12 +4,47 @@ import { readFile } from 'node:fs/promises';
 
 import {
   EMPLOYEE_EDITABLE_STATUSES,
+  ORDINARY_ORDER_STATUSES,
+  allowedStatusTargets,
   canEmployeeSetOrderStatus,
   canTransitionOrderStatus,
 } from '../shared/orderStatusPermissions.js';
 import { validateSettlementPermission } from '../functions/api/orders.js';
 
 const appSource = await readFile(new URL('../src/App.jsx', import.meta.url), 'utf8');
+const statusContract = JSON.parse(await readFile(
+  new URL('../contracts/order-status-v1.json', import.meta.url),
+  'utf8',
+));
+
+test('canonical ordinary status contract locks targets and staff edges', () => {
+  assert.equal(statusContract.version, 1);
+  assert.deepEqual(statusContract.targets, ORDINARY_ORDER_STATUSES);
+  assert.deepEqual(statusContract.transitions.staff, [
+    { from: '在修中', to: '已完工' },
+    { from: '已完工', to: '待结算' },
+  ]);
+  assert.equal(statusContract.targets.includes('已结算'), false);
+});
+
+test('canonical helpers match every allowed and forbidden status fixture', () => {
+  for (const transition of statusContract.allowedCases) {
+    assert.equal(
+      canTransitionOrderStatus(transition.role, transition.from, transition.to),
+      true,
+      transition.name,
+    );
+    assert.ok(allowedStatusTargets(transition.role, transition.from).includes(transition.to));
+  }
+  for (const transition of statusContract.forbiddenCases) {
+    assert.equal(
+      canTransitionOrderStatus(transition.role, transition.from, transition.to),
+      false,
+      transition.name,
+    );
+    assert.equal(allowedStatusTargets(transition.role, transition.from).includes(transition.to), false);
+  }
+});
 
 test('employees can move work orders through every pre-settlement status', () => {
   assert.deepEqual(EMPLOYEE_EDITABLE_STATUSES, ['在修中', '已完工', '待结算']);

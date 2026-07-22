@@ -1,0 +1,396 @@
+{
+  "version": 1,
+  "fields": [
+    "customer",
+    "phone",
+    "plate",
+    "car",
+    "vin",
+    "staff",
+    "insuranceExpiry",
+    "insurer",
+    "type",
+    "accidentType",
+    "claimNo",
+    "record",
+    "laborCents",
+    "materialCents",
+    "delivery",
+    "remark"
+  ],
+  "metadata": {
+    "requiredFields": [
+      "customer",
+      "phone",
+      "plate",
+      "car",
+      "insuranceExpiry",
+      "record"
+    ],
+    "defaults": {
+      "insurer": "人保财险",
+      "type": "标的车",
+      "accidentType": "喷漆维修（无换件）",
+      "delivery": "待确认",
+      "laborCents": 0,
+      "materialCents": 0,
+      "remark": ""
+    },
+    "options": {
+      "insurers": [
+        "人保财险",
+        "平安财险",
+        "太平洋财险"
+      ],
+      "vehicleTypes": [
+        "标的车",
+        "三者车"
+      ],
+      "accidentTypes": [
+        "喷漆维修（无换件）",
+        "钣喷维修（有换件）",
+        "机电维修保养",
+        "数据修复"
+      ],
+      "deliverySuggestions": [
+        "待确认",
+        "今日交车",
+        "明日交车"
+      ]
+    },
+    "maxLengths": {
+      "customer": 80,
+      "phone": 40,
+      "plate": 24,
+      "car": 120,
+      "vin": 64,
+      "staff": 80,
+      "claimNo": 120,
+      "record": 2000,
+      "remark": 2000
+    }
+  },
+  "forbiddenFields": [
+    "id",
+    "companyId",
+    "company_id",
+    "role",
+    "status",
+    "version",
+    "date",
+    "time",
+    "createdAt",
+    "created_at",
+    "updatedAt",
+    "updated_at",
+    "settledAt",
+    "settled_at",
+    "settledBy",
+    "settled_by",
+    "settlementDate",
+    "settlement_date",
+    "receiptStatus",
+    "receipt_status",
+    "receiptNo",
+    "receipt_no",
+    "receiptDate",
+    "receipt_date",
+    "voidedAt",
+    "voided_at",
+    "voidedBy",
+    "voided_by",
+    "isVoid",
+    "is_void"
+  ],
+  "validCases": [
+    {
+      "name": "trimmed-full-snapshot",
+      "input": {
+        "customer": "  张先生  ",
+        "phone": " 13800000000 ",
+        "plate": " 鄂K12345 ",
+        "car": " 示例车型 ",
+        "vin": " LHG00000000000001 ",
+        "staff": " 王师傅 ",
+        "insuranceExpiry": "2027-07-22",
+        "insurer": "人保财险",
+        "type": "标的车",
+        "accidentType": "喷漆维修（无换件）",
+        "claimNo": " CL20260722001 ",
+        "record": " 前保险杠喷漆 ",
+        "laborCents": 30000,
+        "materialCents": 12000,
+        "delivery": "明日交车",
+        "remark": " 完工后联系客户 "
+      },
+      "expected": {
+        "customer": "张先生",
+        "phone": "13800000000",
+        "plate": "鄂K12345",
+        "car": "示例车型",
+        "vin": "LHG00000000000001",
+        "staff": "王师傅",
+        "insuranceExpiry": "2027-07-22",
+        "insurer": "人保财险",
+        "type": "标的车",
+        "accidentType": "喷漆维修（无换件）",
+        "claimNo": "CL20260722001",
+        "record": "前保险杠喷漆",
+        "laborCents": 30000,
+        "materialCents": 12000,
+        "delivery": "明日交车",
+        "remark": "完工后联系客户",
+        "amountCents": 42000
+      }
+    },
+    {
+      "name": "empty-optional-fields-and-zero-money",
+      "input": {
+        "customer": "李女士",
+        "phone": "13900000000",
+        "plate": "蒙K54321",
+        "car": "大众迈腾",
+        "vin": "",
+        "staff": "",
+        "insuranceExpiry": "2028-01-31",
+        "insurer": "平安财险",
+        "type": "三者车",
+        "accidentType": "机电维修保养",
+        "claimNo": "",
+        "record": "更换机油和机滤",
+        "laborCents": 0,
+        "materialCents": 0,
+        "delivery": "待确认",
+        "remark": ""
+      },
+      "expected": {
+        "customer": "李女士",
+        "phone": "13900000000",
+        "plate": "蒙K54321",
+        "car": "大众迈腾",
+        "vin": "",
+        "staff": "",
+        "insuranceExpiry": "2028-01-31",
+        "insurer": "平安财险",
+        "type": "三者车",
+        "accidentType": "机电维修保养",
+        "claimNo": "",
+        "record": "更换机油和机滤",
+        "laborCents": 0,
+        "materialCents": 0,
+        "delivery": "待确认",
+        "remark": "",
+        "amountCents": 0
+      }
+    }
+  ],
+  "invalidCases": [
+    {
+      "name": "missing-required-fields",
+      "input": {
+        "customer": " ",
+        "phone": "",
+        "plate": "",
+        "car": "",
+        "vin": "",
+        "staff": "",
+        "insuranceExpiry": "",
+        "insurer": "人保财险",
+        "type": "标的车",
+        "accidentType": "喷漆维修（无换件）",
+        "claimNo": "",
+        "record": " ",
+        "laborCents": 0,
+        "materialCents": 0,
+        "delivery": "待确认",
+        "remark": ""
+      },
+      "fieldErrors": {
+        "customer": "order.customer.required",
+        "phone": "order.phone.required",
+        "plate": "order.plate.required",
+        "car": "order.car.required",
+        "insuranceExpiry": "order.insuranceExpiry.required",
+        "record": "order.record.required"
+      }
+    },
+    {
+      "name": "too-long-fields",
+      "input": {
+        "customer": "这是一个超过八十个字符限制的客户名称用于验证编辑契约会稳定返回字段过长错误而不是静默截断任何用户输入内容并且客户端服务端安卓端都遵守同一规则且不能擅自缩短原始内容",
+        "phone": "13800000000",
+        "plate": "鄂K12345",
+        "car": "示例车型",
+        "vin": "",
+        "staff": "王师傅",
+        "insuranceExpiry": "2027-07-22",
+        "insurer": "人保财险",
+        "type": "标的车",
+        "accidentType": "喷漆维修（无换件）",
+        "claimNo": "",
+        "record": "前保险杠喷漆",
+        "laborCents": 30000,
+        "materialCents": 12000,
+        "delivery": "明日交车",
+        "remark": ""
+      },
+      "fieldErrors": {
+        "customer": "order.customer.too_long"
+      }
+    },
+    {
+      "name": "invalid-date",
+      "input": {
+        "customer": "张先生",
+        "phone": "13800000000",
+        "plate": "鄂K12345",
+        "car": "示例车型",
+        "vin": "",
+        "staff": "王师傅",
+        "insuranceExpiry": "2027-02-30",
+        "insurer": "人保财险",
+        "type": "标的车",
+        "accidentType": "喷漆维修（无换件）",
+        "claimNo": "",
+        "record": "前保险杠喷漆",
+        "laborCents": 30000,
+        "materialCents": 12000,
+        "delivery": "明日交车",
+        "remark": ""
+      },
+      "fieldErrors": {
+        "insuranceExpiry": "order.insuranceExpiry.invalid_date"
+      }
+    },
+    {
+      "name": "invalid-options",
+      "input": {
+        "customer": "张先生",
+        "phone": "13800000000",
+        "plate": "鄂K12345",
+        "car": "示例车型",
+        "vin": "",
+        "staff": "王师傅",
+        "insuranceExpiry": "2027-07-22",
+        "insurer": "未知保险公司",
+        "type": "未知车辆类型",
+        "accidentType": "未知事故类型",
+        "claimNo": "",
+        "record": "前保险杠喷漆",
+        "laborCents": 30000,
+        "materialCents": 12000,
+        "delivery": "自定义交车安排",
+        "remark": ""
+      },
+      "fieldErrors": {
+        "insurer": "order.insurer.invalid_option",
+        "type": "order.type.invalid_option",
+        "accidentType": "order.accidentType.invalid_option"
+      }
+    },
+    {
+      "name": "invalid-money",
+      "input": {
+        "customer": "张先生",
+        "phone": "13800000000",
+        "plate": "鄂K12345",
+        "car": "示例车型",
+        "vin": "",
+        "staff": "王师傅",
+        "insuranceExpiry": "2027-07-22",
+        "insurer": "人保财险",
+        "type": "标的车",
+        "accidentType": "喷漆维修（无换件）",
+        "claimNo": "",
+        "record": "前保险杠喷漆",
+        "laborCents": -1,
+        "materialCents": 1.5,
+        "delivery": "明日交车",
+        "remark": ""
+      },
+      "fieldErrors": {
+        "laborCents": "order.laborCents.non_negative_integer",
+        "materialCents": "order.materialCents.non_negative_integer"
+      }
+    }
+  ],
+  "forbiddenFieldCase": {
+    "values": {
+      "id": "ORDER-ATTACK",
+      "companyId": "other-company",
+      "company_id": "other-company",
+      "role": "admin",
+      "status": "已结算",
+      "version": 999,
+      "date": "2099-01-01",
+      "time": "23:59",
+      "createdAt": "2099-01-01T00:00:00.000Z",
+      "created_at": "2099-01-01T00:00:00.000Z",
+      "updatedAt": "2099-01-01T00:00:00.000Z",
+      "updated_at": "2099-01-01T00:00:00.000Z",
+      "settledAt": "2099-01-01T00:00:00.000Z",
+      "settled_at": "2099-01-01T00:00:00.000Z",
+      "settledBy": "attacker",
+      "settled_by": "attacker",
+      "settlementDate": "2099-01-01",
+      "settlement_date": "2099-01-01",
+      "receiptStatus": "已到账",
+      "receipt_status": "已到账",
+      "receiptNo": "ATTACK",
+      "receipt_no": "ATTACK",
+      "receiptDate": "2099-01-01",
+      "receipt_date": "2099-01-01",
+      "voidedAt": "2099-01-01T00:00:00.000Z",
+      "voided_at": "2099-01-01T00:00:00.000Z",
+      "voidedBy": "attacker",
+      "voided_by": "attacker",
+      "isVoid": true,
+      "is_void": 1
+    }
+  },
+  "conflictCases": [
+    {
+      "name": "record-and-labor-changed",
+      "serverOrder": {
+        "customer": "张先生",
+        "phone": "13800000000",
+        "plate": "鄂K12345",
+        "car": "示例车型",
+        "vin": "LHG00000000000001",
+        "staff": "王师傅",
+        "insuranceExpiry": "2027-07-22",
+        "insurer": "人保财险",
+        "type": "标的车",
+        "accidentType": "喷漆维修（无换件）",
+        "claimNo": "CL20260722001",
+        "record": "前保险杠局部修复",
+        "laborCents": 25000,
+        "materialCents": 12000,
+        "delivery": "明日交车",
+        "remark": "完工后联系客户"
+      },
+      "input": {
+        "customer": "张先生",
+        "phone": "13800000000",
+        "plate": "鄂K12345",
+        "car": "示例车型",
+        "vin": "LHG00000000000001",
+        "staff": "王师傅",
+        "insuranceExpiry": "2027-07-22",
+        "insurer": "人保财险",
+        "type": "标的车",
+        "accidentType": "喷漆维修（无换件）",
+        "claimNo": "CL20260722001",
+        "record": "前保险杠喷漆",
+        "laborCents": 30000,
+        "materialCents": 12000,
+        "delivery": "明日交车",
+        "remark": "完工后联系客户"
+      },
+      "conflictingFields": [
+        "record",
+        "laborCents"
+      ]
+    }
+  ]
+}
