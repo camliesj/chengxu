@@ -1,5 +1,7 @@
 import { hasPermission } from './auth.js';
 
+export { beginOperation, completeOperation, findOperation } from './order-command-operation.js';
+
 export const BUSINESS_CAPABILITIES = [
   'VIEW_ORDERS',
   'CREATE_ORDER',
@@ -55,44 +57,6 @@ export async function readCapabilities(env, session) {
   return BUSINESS_CAPABILITIES.filter(
     (capability) => enabled.has(capability) && roleAllowsCapability(session, capability),
   );
-}
-
-export async function findOperation(env, key) {
-  return env.DB.prepare(`
-    SELECT state, http_status, response_json, request_hash, target_id
-    FROM order_operations
-    WHERE company_id = ? AND actor = ? AND action = ? AND operation_id = ?
-  `).bind(key.companyId, key.actor, key.action, key.operationId).first();
-}
-
-export async function beginOperation(env, key, requestHash, targetId = '') {
-  return env.DB.prepare(`
-    INSERT OR IGNORE INTO order_operations
-      (company_id, actor, action, operation_id, target_id, request_hash, state)
-    VALUES (?, ?, ?, ?, ?, ?, 'started')
-  `).bind(
-    key.companyId,
-    key.actor,
-    key.action,
-    key.operationId,
-    targetId,
-    requestHash,
-  ).run();
-}
-
-export async function completeOperation(env, key, httpStatus, response) {
-  return env.DB.prepare(`
-    UPDATE order_operations
-    SET state = 'completed', http_status = ?, response_json = ?, updated_at = CURRENT_TIMESTAMP
-    WHERE company_id = ? AND actor = ? AND action = ? AND operation_id = ?
-  `).bind(
-    httpStatus,
-    JSON.stringify(response),
-    key.companyId,
-    key.actor,
-    key.action,
-    key.operationId,
-  ).run();
 }
 
 function validateCursor(value) {

@@ -1,4 +1,5 @@
 import { json, sha256Hex } from './auth.js';
+import { claimOperation, findOperation } from './order-command-operation.js';
 import { readCapabilities } from './order-foundation.js';
 
 const REQUIRED_FIELDS = ['customer', 'phone', 'plate', 'car', 'insuranceExpiry', 'record'];
@@ -144,8 +145,8 @@ export async function handleCreateOrderCommand({ env, session, payload }) {
 
   const key = createOperationKey(session, operationId);
   const requestHash = await sha256Hex(JSON.stringify(normalized.value));
-  const claim = await claimCreateOperation(env, key, requestHash);
-  if (claim.response) return claim.response;
+  const claim = await claimOperation(env, key, requestHash, '');
+  if (claim.kind === 'response') return claim.response;
 
   let targetId = claim.operation.target_id;
   const now = new Date();
@@ -238,7 +239,7 @@ export async function handleCreateOrderCommand({ env, session, payload }) {
 
 export async function readCreateOrderOperation({ env, session, operationId }) {
   if (!isUuid(operationId)) return json({ error: 'OPERATION_NOT_FOUND' }, { status: 404 });
-  const operation = await findCreateOperation(env, createOperationKey(session, operationId));
+  const operation = await findOperation(env, createOperationKey(session, operationId));
   if (!operation) return json({ error: 'OPERATION_NOT_FOUND' }, { status: 404 });
   if (operation.state === 'completed') {
     const response = parseStoredResponse(operation.response_json);
@@ -290,84 +291,6 @@ function createOperationKey(session, operationId) {
     action: 'create_order',
     operationId,
   };
-}
-
-async function findCreateOperation(env, key) {
-  return env.DB.prepare(`
-    SELECT state, http_status, response_json, request_hash, target_id, lease_token, lease_until
-    FROM order_operations
-    WHERE company_id = ? AND actor = ? AND action = ? AND operation_id = ?
-  `).bind(key.companyId, key.actor, key.action, key.operationId).first();
-}
-
-async function claimCreateOperation(env, key, requestHash) {
-  let operation = await findCreateOperation(env, key);
-  if (operation) {
-    const resolved = resolveExistingOperation(operation, requestHash);
-    if (resolved) return { response: resolved };
-  }
-
-  const leaseToken = crypto.randomUUID();
-  if (!operation) {
-    await env.DB.prepare(`
-      INSERT OR IGNORE INTO order_operations
-        (company_id, actor, action, operation_id, target_id, request_hash, state, lease_token, lease_until)
-      VALUES (?, ?, ?, ?, ?, ?, 'started', ?, datetime('now', '+30 seconds'))
-    `).bind(
-      key.companyId,
-      key.actor,
-      key.action,
-      key.operationId,
-      '',
-      requestHash,
-      leaseToken,
-    ).run();
-  } else {
-    await env.DB.prepare(`
-      UPDATE order_operations
-      SET state = 'started', lease_token = ?, lease_until = datetime('now', '+30 seconds'),
-        updated_at = CURRENT_TIMESTAMP
-      WHERE company_id = ? AND actor = ? AND action = ? AND operation_id = ?
-        AND request_hash = ? AND state IN ('started', 'failed')
-        AND (lease_until = '' OR lease_until <= CURRENT_TIMESTAMP)
-    `).bind(
-      leaseToken,
-      key.companyId,
-      key.actor,
-      key.action,
-      key.operationId,
-      requestHash,
-    ).run();
-  }
-  operation = await findCreateOperation(env, key);
-  if (!operation) return { response: json({ error: 'OPERATION_START_FAILED' }, { status: 500 }) };
-  if (operation.request_hash !== requestHash) {
-    return { response: json({ error: 'OPERATION_ID_REUSED' }, { status: 409 }) };
-  }
-  if (operation.state === 'completed') {
-    return { response: replayOperation(operation) };
-  }
-  if (operation.lease_token !== leaseToken) {
-    return { response: json({ error: 'OPERATION_IN_PROGRESS' }, { status: 409 }) };
-  }
-  return { operation, leaseToken };
-}
-
-function resolveExistingOperation(operation, requestHash) {
-  if (operation.request_hash !== requestHash) {
-    return json({ error: 'OPERATION_ID_REUSED' }, { status: 409 });
-  }
-  if (operation.state === 'completed') return replayOperation(operation);
-  if (!leaseExpired(operation.lease_until)) {
-    return json({ error: 'OPERATION_IN_PROGRESS' }, { status: 409 });
-  }
-  return null;
-}
-
-function replayOperation(operation) {
-  const response = parseStoredResponse(operation.response_json);
-  if (!response) return json({ error: 'OPERATION_RESULT_INVALID' }, { status: 500 });
-  return json(response, { status: Number(operation.http_status) || 200 });
 }
 
 async function allocateOrderNumber(env, monthKey) {
@@ -493,11 +416,6 @@ function decimalToCents(value) {
 
 function isUuid(value) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(value);
-}
-
-function leaseExpired(value) {
-  const timestamp = Date.parse(String(value || '').replace(' ', 'T') + (String(value || '').includes('Z') ? '' : 'Z'));
-  return !Number.isFinite(timestamp) || timestamp <= Date.now();
 }
 
 function parseStoredResponse(value) {

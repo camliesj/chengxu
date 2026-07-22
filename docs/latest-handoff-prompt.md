@@ -608,6 +608,10 @@ cd E:\codex\chengxu\android-client
 - 当前仍未修改阶段 3 功能代码、未访问或部署生产、未启用 `EDIT_ORDER` / `ADVANCE_ORDER_STATUS`。下一步由用户选择 subagent-driven 或当前会话 inline execution 后，从 Task 1 的 fixture RED 开始执行。
 - 阶段 3 Task 1 已完成 canonical 编辑与普通状态契约锁定：新增版本 1 的 `contracts/order-edit-v1.json` 与 `contracts/order-status-v1.json`。编辑字段顺序固定为 `customer, phone, plate, car, vin, staff, insuranceExpiry, insurer, type, accidentType, claimNo, record, laborCents, materialCents, delivery, remark`，并复用阶段 2 metadata，覆盖两组合法完整快照、必填/长度/日期/枚举/整数分错误、禁止系统字段和精确冲突字段。普通状态目标只含“在修中 / 已完工 / 待结算”，员工仅相邻前进，管理员可相邻前进或回退；“已结算”不属于普通状态命令目标。
 - Task 1 新增 `ORDINARY_ORDER_STATUSES` 与 `allowedStatusTargets(role, from)` canonical helper，保留既有权限行为。TDD RED 精确失败于两个 fixture 和新 export 不存在；GREEN 聚焦测试 12/12、Node 全量 120/120 通过。本任务没有 D1 migration、API/界面/数据库生产行为变更、远端访问、部署或能力开关操作，也未推送隔离分支。
+- 阶段 3 Task 2 已完成共享 operation lease 与服务端编辑命令：新增 `functions/_shared/order-command-operation.js`，集中提供 claim、完成结果重放、终态结果存储与 actor/company/action 隔离查询；阶段 2 创建服务已迁移到该唯一 30 秒租约实现，`order-foundation.js` 只保留兼容 re-export，创建编号预留、原 HTTP 状态与 `create_order` 行为不变。
+- 新增 canonical `normalizeEditOrderCommand`、`diffEditableFields`、认证 `PATCH /api/orders/:id` 与 `GET /api/order-operations/edit-order/:operationId`。编辑只接受 16 字段完整快照、UUID operationId 和正整数 expectedVersion；服务端忽略受保护字段，重新计算整数分总额，强制公司/工单/版本/未作废/普通状态谓词，并在 D1 batch 中按“唯一审计哨兵 -> version + 1 更新 -> operation completed”顺序校验三个 changes。
+- 编辑授权覆盖企业 `EDIT_ORDER`、管理员或 repair 员工、企业隔离及普通未结算状态。版本前置条件未命中会读取最新安全详情，把 `ORDER_VERSION_CONFLICT`、精确 `conflictingFields` 和原 409 HTTP 状态稳定存入 operation；同 hash 重放不重复更新/审计，不同 hash 返回 `OPERATION_ID_REUSED`，有效租约返回处理中，过期租约可接管。编辑审计只记录真实变化，手机号/VIN before/after 固定脱敏为 `[REDACTED]`。
+- TDD 证据：纯逻辑先因 `order-edit.js` 不存在 RED；端点先因 PATCH/查询路由不存在 RED；operation 查询顶层 completed 状态与审计脱敏均分别做过可观察失败再恢复 GREEN。最终任务包 focused suite 19/19、Node 全量 131/131 通过，Vite 6.4.3 生产构建成功。构建清理的阶段 2 APK 已按 HEAD blob `b3cf945a0861bffcaddd8034ae25a7474fc76c6b` 恢复。本任务没有 D1 migration、远端 D1 写入、Pages 部署、能力开关变更、Android 模拟器或 APK 更新，也未 push。
 
 ## 工作纪律
 

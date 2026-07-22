@@ -19,6 +19,13 @@ const FIELD_LABELS = {
 };
 
 const MONEY_FIELDS = new Set(['labor', 'material', 'amount']);
+const EDIT_FIELD_LABELS = {
+  customer: '客户名称', phone: '手机号', plate: '车牌号', car: '车型', vin: '车架号',
+  staff: '业务员', insuranceExpiry: '保险到期日', insurer: '保险公司', type: '车辆类型',
+  accidentType: '事故类型', claimNo: '案件号', record: '维修项目', laborCents: '工时费',
+  materialCents: '材料费', delivery: '预计交车', remark: '接待备注',
+};
+const SENSITIVE_EDIT_FIELDS = new Set(['phone', 'vin']);
 const PROTECTED_ARCHIVE_FIELDS = [
   'status',
   'payment_method',
@@ -89,4 +96,28 @@ export function buildOrderAuditEvent(existing, next) {
   ));
   if (changes.length > 4) details.push(`另有 ${changes.length - 4} 项变化`);
   return { action: 'update_order', summary: `编辑工单：${details.join('；')}`, changes };
+}
+
+export function buildOrderEditAuditEvent(existing, submitted, changedFields) {
+  const changes = changedFields.map((field) => ({
+    field,
+    label: EDIT_FIELD_LABELS[field] || field,
+    before: SENSITIVE_EDIT_FIELDS.has(field) ? '[REDACTED]' : editableValue(existing, field),
+    after: SENSITIVE_EDIT_FIELDS.has(field) ? '[REDACTED]' : submitted[field] ?? '',
+  }));
+  if (changes.length === 0) return null;
+  return {
+    action: 'update_order',
+    summary: `编辑工单：${changes.map((change) => change.label).join('、')}`,
+    changes,
+  };
+}
+
+function editableValue(row, field) {
+  const databaseFields = {
+    insuranceExpiry: 'insurance_expiry', accidentType: 'accident_type', claimNo: 'claim_no',
+  };
+  if (field === 'laborCents') return Math.round((Number(row?.labor) || 0) * 100);
+  if (field === 'materialCents') return Math.round((Number(row?.material) || 0) * 100);
+  return row?.[databaseFields[field] || field] ?? '';
 }

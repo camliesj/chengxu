@@ -1,4 +1,5 @@
 import { json, requireSession } from '../../../_shared/auth.js';
+import { handleEditOrderCommand } from '../../../_shared/order-edit.js';
 import { readCapabilities } from '../../../_shared/order-foundation.js';
 import { toMobileOrder } from '../../orders.js';
 
@@ -14,5 +15,17 @@ export async function onRequestGet({ request, env, params }) {
     order: toMobileOrder(order),
     serverTime: new Date().toISOString(),
     capabilities: await readCapabilities(env, session),
+  });
+}
+
+export async function onRequestPatch(context) {
+  const { session, error } = await requireSession(context.request, context.env);
+  if (error) return error;
+  const payload = await context.request.json().catch(() => ({}));
+  return handleEditOrderCommand({
+    env: context.env,
+    session,
+    orderId: context.params.id,
+    payload,
   });
 }
