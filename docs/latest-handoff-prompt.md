@@ -591,6 +591,19 @@ cd E:\codex\chengxu\android-client
 - 阶段 2 发布 APK 已更新为 `E:\codex\chengxu\dist\releases\android\autoservice-android-debug-0.1.0.apk`，19,655,322 bytes，SHA-256 `053072B540EEE5FE5A6917DC6BC0D7CC3399A8A53DFF09A4A6BF15C2CCB8DC53`。它与 `android-client\app\build\outputs\apk\debug\app-debug.apk` 哈希一致；Build Tools 35.0.0 `apksigner verify --verbose` 通过，`Verified using v2 scheme: true`，1 个 Debug 签名者。
 - 阶段 2 的 10 个计划任务现已全部完成。下一步先由用户按 `docs/android-client.md` 在真实手机验证登录、双入口四步创建、离线加密草稿、未知结果恢复、服务端编号、列表/详情与网页同步；验收前保留阶段 1/2 D1 备份。若真实创建异常，优先把两家企业 `CREATE_ORDER` 设回 0，再沿同一 operationId 排查，禁止客户端本地补造正式编号。
 
+### 阶段 3：Web 与 Android 统一订单编辑和普通状态流转（设计已批准）
+
+- 用户确认下一阶段采用“一份统一设计、分批交付”：先完成编辑基础与双端编辑体验，再完成普通状态流转，最后统一部署并生成 APK。正式设计见 `docs/superpowers/specs/2026-07-22-unified-order-edit-status-design.md`。
+- 新增统一 `PATCH /api/orders/:id` 编辑命令和 `POST /api/orders/:id/status` 普通状态命令；旧网页编辑分支必须调用同一共享服务。两个命令都要求 `operationId + expectedVersion`，复用现有 operation 租约、结果查询、D1 乐观锁和唯一审计事件。
+- 编辑采用与新增一致的 16 字段完整快照、metadata、整数分、校验和错误 key；禁止修改 ID、企业、状态、版本、日期时间、结算、回执或作废字段。只允许编辑未结算、未作废工单。
+- 员工只能 `在修中 -> 已完工 -> 待结算` 相邻向前；管理员可在三个普通状态间相邻前进或回退。普通状态接口不能产生 `已结算`，结算/返结算/作废/历史修正/回执均不在阶段 3。
+- `EDIT_ORDER` 与 `ADVANCE_ORDER_STATUS` 独立启停。Android 编辑复用四步表单，网页和 Android 均支持加密编辑草稿；离线可编辑/保存但不能提交。状态操作必须在线并显式确认，只有请求后结果未知才用原 operation ID 保存加密待确认信封。
+- 409 冲突返回最新安全详情。编辑界面展示服务器与本地差异，只能放弃或显式“基于最新版本继续编辑”；状态冲突要求重新选择。任何冲突都不能静默覆盖或自动重放。
+- 现有 Android `order_drafts` 已具备 `baseOrderId`、`expectedVersion` 和加密 payload；创建草稿、每工单编辑草稿和状态待确认信封通过 local ID namespace 隔离，因此本阶段不升级 Room。现有 D1 `version`、`order_operations` 租约与 operation log 唯一 event ID 足够使用，本阶段也不新增 D1 migration。
+- 交付分四批：A 共享编辑契约/服务；B 网页与 Android 编辑体验；C 普通状态服务与双端交互；D 生产部署、依次启用两个能力和最终 APK。每批更新本交接文档、提交并推送；最终继续执行 Node、Playwright、Vite、Android JVM、Android 测试源码编译、Lint 和 APK 构建，不启动模拟器。
+- 生产部署前即使没有 migration 仍导出完整 D1 备份。因无专用生产测试企业，自动冒烟只验证认证、能力、非法请求、隔离和业务计数不变，不自动编辑或推进真实业务工单；真实写入闭环由用户在网页和最终 APK 上手工验收。
+- 当前只完成并批准设计，尚未生成阶段 3 任务级实施计划，也未修改功能代码、部署生产或开启 `EDIT_ORDER` / `ADVANCE_ORDER_STATUS`。下一步应在用户复核本设计文档后使用 writing-plans 生成详细 TDD 实施计划。
+
 ## 工作纪律
 
 每次重要改动后必须：
