@@ -88,3 +88,15 @@ Status: original implementation committed as `a442ebf`; independent review repai
 - Vite 6.4.3 production build succeeded with 64 modules transformed.
 - The build-cleaned APK was restored byte-for-byte; working-copy and HEAD blobs both equal `b3cf945a0861bffcaddd8034ae25a7474fc76c6b`.
 - `git diff --check` and the single commit attempt are recorded after this update.
+
+## Fourth Review: Preserve Ambiguous Prior Sentinel
+
+- Cleanup provenance now comes from the current batch result: compensation runs only when the audit statement reports `changes === 1` and the order is not the exact submitted result.
+- A scoped sentinel with audit `changes === 0` is never deleted automatically. If the order and operation do not reconcile to success, the command returns `OPERATION_RECONCILIATION_REQUIRED` 500 and leaves the operation non-terminal.
+- This conservative boundary is required because the current schema records no marker that distinguishes a failed-insert sentinel from the valid audit of an earlier `[1,1,0]` update whose order was subsequently advanced by another command.
+- RED reproduced the higher-version prior-audit scenario and observed 409 instead of the required 500. Focused boundary GREEN passed 6/6, including prior `[0,1,1]` success, new `[1,0,0]` cleanup, cleanup failure, concurrent exact success, and ordinary no-sentinel version conflict.
+- Required focused suite: 28/28 passed.
+- Full Node suite: 140/140 passed, 0 failed/skipped.
+- Vite 6.4.3 production build succeeded with 64 modules transformed.
+- The build-cleaned APK was restored byte-for-byte; working-copy and HEAD blobs both equal `b3cf945a0861bffcaddd8034ae25a7474fc76c6b`.
+- No push, deployment, remote D1 access, capability change, emulator, or APK update occurred.

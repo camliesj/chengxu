@@ -256,17 +256,20 @@ export async function handleEditOrderCommand({ env, session, orderId, payload })
     return json({ error: 'OPERATION_RESULT_INCONSISTENT' }, { status: 500 });
   }
 
-  try {
-    await cleanupFailedEditAudit(env, {
-      auditEventId,
-      companyId,
-      orderId: cleanText(orderId),
-      expectedVersion,
-      updatedAt,
-      order: command.order,
-    });
-  } catch {
-    return json({ error: 'AUDIT_SENTINEL_CLEANUP_FAILED' }, { status: 500 });
+  const auditInsertedByThisBatch = changes(batch[0]) === 1;
+  if (auditInsertedByThisBatch) {
+    try {
+      await cleanupFailedEditAudit(env, {
+        auditEventId,
+        companyId,
+        orderId: cleanText(orderId),
+        expectedVersion,
+        updatedAt,
+        order: command.order,
+      });
+    } catch {
+      return json({ error: 'AUDIT_SENTINEL_CLEANUP_FAILED' }, { status: 500 });
+    }
   }
 
   const reconciled = await readSafeOrder(env, companyId, cleanText(orderId));
@@ -291,7 +294,10 @@ export async function handleEditOrderCommand({ env, session, orderId, payload })
     return json({ error: 'OPERATION_RESULT_INCONSISTENT' }, { status: 500 });
   }
   if (await hasEditAuditSentinel(env, auditEventId, cleanText(orderId))) {
-    return json({ error: 'AUDIT_SENTINEL_CLEANUP_FAILED' }, { status: 500 });
+    const error = auditInsertedByThisBatch
+      ? 'AUDIT_SENTINEL_CLEANUP_FAILED'
+      : 'OPERATION_RECONCILIATION_REQUIRED';
+    return json({ error }, { status: 500 });
   }
 
   const conflictBody = reconciled && isOrdinaryStatus(reconciled.status)

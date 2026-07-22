@@ -178,25 +178,32 @@ test('completion refuses [1,0,1] without the order postcondition and stores a st
   assert.equal(env.state.auditRows.filter((row) => row.event_id === operationId).length, 1);
 });
 
-test('a failed retry removes a previously stranded command-owned sentinel', async () => {
+test('a retry preserves a prior command audit after the order advances beyond its exact result', async () => {
   const payload = validPayload();
   const scopedAuditId = await expectedAuditEventId();
+  const advancedRow = databaseRow();
+  advancedRow.version = payload.expectedVersion + 2;
+  advancedRow.updated_at = '2026-07-22 15:00:00';
+  advancedRow.record = 'advanced by another command';
   const env = environment({
+    row: advancedRow,
     auditRows: [{
       event_id: scopedAuditId,
       action: 'update_order',
       target_type: 'repair_order',
       target_id: 'RO-1',
     }],
-    blockOrderUpdate: true,
   });
 
   const response = await patchOrder({ request: request(payload), env, params: { id: 'RO-1' } });
 
-  assert.equal(response.status, 409);
+  assert.equal(response.status, 500);
+  assert.deepEqual(await response.json(), { error: 'OPERATION_RECONCILIATION_REQUIRED' });
   assert.deepEqual(env.state.actualBatchChanges, [0, 0, 0]);
-  assert.equal(env.state.auditRows.filter((row) => row.event_id === scopedAuditId).length, 0);
-  assert.equal(env.state.operation.http_status, 409);
+  assert.equal(env.state.auditRows.filter((row) => row.event_id === scopedAuditId).length, 1);
+  assert.equal(env.state.row.version, payload.expectedVersion + 2);
+  assert.equal(env.state.operation.state, 'started');
+  assert.equal(env.state.operation.http_status, 0);
 });
 
 test('audit cleanup failure never stores or claims a terminal conflict', async () => {
