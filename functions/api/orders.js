@@ -395,8 +395,10 @@ async function legacyUpsertExistingOrder({ env, session, payload, existing, orde
     if (!existing || existing.status !== '已结算') return json({ error: 'ARCHIVE_EDIT_SETTLED_ONLY' }, { status: 400 });
     order = protectArchiveEdit(order, existing);
   }
-  const requiredCapability = legacyWriteCapability(existing, order, mode);
-  if (!(await readCapabilities(env, session)).includes(requiredCapability)) {
+  const mutation = legacyWriteRequirements(existing, order, mode, session);
+  if (mutation.error) return json({ error: mutation.error }, { status: 400 });
+  const enabledCapabilities = await readCapabilities(env, session);
+  if (mutation.capabilities.some((capability) => !enabledCapabilities.includes(capability))) {
     return json({ error: 'CAPABILITY_DISABLED' }, { status: 403 });
   }
   const validationError = validateOrder(order, existing);
@@ -436,27 +438,59 @@ async function legacyUpsertExistingOrder({ env, session, payload, existing, orde
   return json({ order: toOrder(order) });
 }
 
-function legacyWriteCapability(existing, order, mode) {
-  if (mode === 'archive_edit') return 'EDIT_ORDER';
-  if (order.status !== existing.status) {
-    if (order.status === '已结算') return 'SETTLE_ORDER';
-    if (existing.status === '已结算') return 'REVERSE_SETTLEMENT';
-    return 'ADVANCE_ORDER_STATUS';
-  }
-  const receiptFields = [
+function legacyWriteRequirements(existing, order, mode, session) {
+  const normalizedExisting = normalizeOrder(toOrder(existing), session);
+  const changed = (fields) => fields.some(
+    (field) => String(order[field] ?? '') !== String(normalizedExisting[field] ?? ''),
+  );
+  const ordinaryChanged = changed([
+    'customer', 'phone', 'plate', 'car', 'vin', 'staff', 'insurance_expiry',
+    'insurer', 'type', 'accident_type', 'claim_no', 'record', 'labor', 'material',
+    'delivery', 'remark',
+  ]);
+  const statusChanged = order.status !== normalizedExisting.status;
+  const receiptChanged = changed([
     'settlement_receipt_key', 'settlement_receipt_name', 'settlement_receipt_type',
     'settlement_receipt_size', 'settlement_receipt_uploaded_at',
-  ];
-  if (receiptFields.some((field) => String(order[field] ?? '') !== String(existing[field] ?? ''))) {
-    return 'MAINTAIN_RECEIPT';
+  ]);
+  const settlementChanged = changed([
+    'payment_method', 'settlement_date', 'settlement_time', 'settlement_remark',
+  ]);
+  const voidChanged = changed(['voided', 'voided_at', 'void_reason']);
+  const maintenanceChanged = statusChanged || receiptChanged || settlementChanged || voidChanged;
+
+  if (mode === 'archive_edit') {
+    if (maintenanceChanged) return { error: 'MIXED_LEGACY_MUTATIONS', capabilities: [] };
+    return { capabilities: ['EDIT_ORDER'] };
   }
-  const settlementFields = ['payment_method', 'settlement_date', 'settlement_time', 'settlement_remark'];
-  if (settlementFields.some((field) => String(order[field] ?? '') !== String(existing[field] ?? ''))) {
-    return 'SETTLE_ORDER';
+  if (ordinaryChanged && maintenanceChanged) {
+    return { error: 'MIXED_LEGACY_MUTATIONS', capabilities: [] };
   }
-  if (Number(order.voided) !== Number(existing.voided)
-      || order.voided_at !== existing.voided_at || order.void_reason !== existing.void_reason) {
-    return 'VOID_ORDER';
+  if (voidChanged && (statusChanged || receiptChanged || settlementChanged)) {
+    return { error: 'MIXED_LEGACY_MUTATIONS', capabilities: [] };
   }
-  return 'EDIT_ORDER';
+
+  const capabilities = new Set();
+  let statusCapability = '';
+  if (statusChanged) {
+    if (order.status === '已结算') statusCapability = 'SETTLE_ORDER';
+    else if (normalizedExisting.status === '已结算') statusCapability = 'REVERSE_SETTLEMENT';
+    else statusCapability = 'ADVANCE_ORDER_STATUS';
+    capabilities.add(statusCapability);
+  }
+  if (settlementChanged) {
+    if (statusCapability === 'ADVANCE_ORDER_STATUS') {
+      return { error: 'MIXED_LEGACY_MUTATIONS', capabilities: [] };
+    }
+    capabilities.add(statusCapability || 'SETTLE_ORDER');
+  }
+  if (receiptChanged) {
+    if (statusCapability === 'ADVANCE_ORDER_STATUS') {
+      return { error: 'MIXED_LEGACY_MUTATIONS', capabilities: [] };
+    }
+    capabilities.add('MAINTAIN_RECEIPT');
+  }
+  if (voidChanged) capabilities.add('VOID_ORDER');
+  if (ordinaryChanged || capabilities.size === 0) capabilities.add('EDIT_ORDER');
+  return { capabilities: [...capabilities] };
 }

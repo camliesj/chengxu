@@ -137,6 +137,88 @@ test('legacy status and receipt maintenance fail closed without their independen
   }
 });
 
+test('legacy UPSERT rejects mixed ordinary and maintenance mutations before writes', async () => {
+  const cases = [
+    {
+      name: 'status plus void',
+      row: databaseRow(),
+      capabilities: ['ADVANCE_ORDER_STATUS', 'VOID_ORDER'],
+      mutate: (order) => ({ ...order, status: '\u5df2\u5b8c\u5de5', voided: 1, voidedAt: '2026-07-22 11:00:00' }),
+    },
+    {
+      name: 'receipt plus customer and labor',
+      row: databaseRow({ status: '\u5df2\u7ed3\u7b97' }),
+      capabilities: ['MAINTAIN_RECEIPT', 'EDIT_ORDER'],
+      mutate: (order) => ({
+        ...order,
+        settlementReceiptKey: 'receipts/tongda/new.png',
+        customer: 'mixed-change-customer',
+        labor: Number(order.labor) + 1,
+      }),
+    },
+    {
+      name: 'reverse settlement plus ordinary edit',
+      row: databaseRow({ status: '\u5df2\u7ed3\u7b97' }),
+      capabilities: ['REVERSE_SETTLEMENT', 'EDIT_ORDER'],
+      mutate: (order) => ({ ...order, status: '\u5f85\u7ed3\u7b97', remark: 'mixed reverse edit' }),
+    },
+    {
+      name: 'status advance plus ordinary edit',
+      row: databaseRow(),
+      capabilities: ['ADVANCE_ORDER_STATUS', 'EDIT_ORDER'],
+      mutate: (order) => ({ ...order, status: '\u5df2\u5b8c\u5de5', phone: '13800009999' }),
+    },
+  ];
+
+  for (const item of cases) {
+    const env = legacyMaintenanceEnvironment({ row: item.row, capabilities: item.capabilities });
+    const response = await legacyOrdersApi.onRequestPost({
+      request: legacyPostRequest({ eventId: operationId, order: item.mutate(legacyOrder(item.row)) }), env,
+    });
+    assert.equal(response.status, 400, item.name);
+    assert.deepEqual(await response.json(), { error: 'MIXED_LEGACY_MUTATIONS' }, item.name);
+    assert.equal(env.state.upserts, 0, item.name);
+    assert.equal(env.state.audits.length, 0, item.name);
+  }
+});
+
+test('legacy settlement plus receipt requires every independent capability before writes', async () => {
+  const row = databaseRow({ status: '\u5f85\u7ed3\u7b97' });
+  const order = {
+    ...legacyOrder(row),
+    status: '\u5df2\u7ed3\u7b97',
+    paymentMethod: '\u73b0\u91d1',
+    settlementDate: '2026-07-22',
+    settlementTime: '11:30',
+    settlementReceiptKey: 'receipts/tongda/settlement.png',
+    settlementReceiptName: 'settlement.png',
+    settlementReceiptType: 'image/png',
+    settlementReceiptSize: 128,
+    settlementReceiptUploadedAt: '2026-07-22 11:29:00',
+  };
+
+  for (const capabilities of [['SETTLE_ORDER'], ['MAINTAIN_RECEIPT']]) {
+    const missingCapability = legacyMaintenanceEnvironment({ row, capabilities });
+    const denied = await legacyOrdersApi.onRequestPost({
+      request: legacyPostRequest({ eventId: operationId, order }), env: missingCapability,
+    });
+    assert.equal(denied.status, 403);
+    assert.deepEqual(await denied.json(), { error: 'CAPABILITY_DISABLED' });
+    assert.equal(missingCapability.state.upserts, 0);
+    assert.equal(missingCapability.state.audits.length, 0);
+  }
+
+  const allowed = legacyMaintenanceEnvironment({
+    row, capabilities: ['SETTLE_ORDER', 'MAINTAIN_RECEIPT'],
+  });
+  const accepted = await legacyOrdersApi.onRequestPost({
+    request: legacyPostRequest({ eventId: operationId, order }), env: allowed,
+  });
+  assert.equal(accepted.status, 200);
+  assert.equal(allowed.state.upserts, 1);
+  assert.equal(allowed.state.audits.length, 1);
+});
+
 test('PATCH requires authentication and hides cross-company or voided targets', async () => {
   const unauthorized = await patchOrder({
     request: request(validPayload(), false), env: environment({ session: null }), params: { id: 'RO-1' },

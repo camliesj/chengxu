@@ -630,6 +630,7 @@ cd E:\codex\chengxu\android-client
 - 能力状态改为 `orderCapabilityState` 可执行 reducer/helper，以 company + actor + token 和 requestId 双重绑定；请求开始、首次/刷新失败、身份/企业切换、logout 都 fail closed 清空能力，旧 session 或旧手动刷新结果在写入 orders/capabilities 前被拒绝。相关 helper 覆盖 stale session、stale request、failure 与 logout。
 - 企业写能力现端到端独立：legacy 普通状态/结算/返结算/档案/回执维护分支分别要求相应 capability；receipt POST/DELETE 在 COS 前强制 `MAINTAIN_RECEIPT`；void endpoint 在写入前强制 `VOID_ORDER`。结算弹窗即使具备 `SETTLE_ORDER`，没有 `MAINTAIN_RECEIPT` 也不会获得上传 handler/文件入口；已有回执仍可按结算能力完成结算。
 - 复核 TDD RED 依次观察到 `undefined !== 4`、`ReferenceError: eventId is not defined`、缺失 capability state 模块、4 个越权响应状态和缺失独立 upload helper；返修后 focused 38/38、Node 全量 153/153、Vite 6.4.3 构建成功（65 modules）。仍无生产/远端 D1、部署、能力开关、模拟器或 push。
+- 第二轮复核移除了 legacy UPSERT 的单 capability 优先级短路：服务端现基于 existing 与规范化 incoming 的真实差异同时分类 16 个普通字段、状态/结算/返结算、回执与作废变更。普通字段与任一维护变更、作废与其他维护变更、普通状态推进与结算/回执变更均在权限查询、UPSERT 和审计之前稳定返回 `400 MIXED_LEGACY_MUTATIONS`；合法结算+回执组合必须同时具备 `SETTLE_ORDER` 与 `MAINTAIN_RECEIPT`，缺任一项均在零副作用下返回 403。
 
 ## 工作纪律
 
