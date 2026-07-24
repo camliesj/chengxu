@@ -15,6 +15,7 @@ import DesktopUpdatePanel from './components/DesktopUpdatePanel.jsx';
 import DesktopUpdatePrompt from './components/DesktopUpdatePrompt.jsx';
 import NetworkStatusBar from './components/NetworkStatusBar.jsx';
 import OrderCreationWizard from './components/OrderCreationWizard.jsx';
+import OrderEditWizard from './components/OrderEditWizard.jsx';
 import { printCurrentDocument, saveBytes } from './platform/files.js';
 import { isTauriRuntime } from './platform/runtime.js';
 import {
@@ -25,6 +26,7 @@ import {
 } from './platform/updater.js';
 import { useNetworkStatus } from './platform/useNetworkStatus.js';
 import { createOrderCommand } from './orderCreationApi.js';
+import { editOrderCommand } from './orderEditApi.js';
 import { createBrowserOrderCreationDraftStore } from './orderCreationDraftStore.js';
 import { legacyOrderToCreatePayload } from './orderCreationLogic.js';
 import { createUpdateProgress } from './updateLogic.js';
@@ -1242,6 +1244,19 @@ function App() {
     return result;
   }
 
+  async function editOrderFromWizard(orderId, payload) {
+    setOrdersCloudState({ loading: true, error: '' });
+    const result = await editOrderCommand(orderId, payload, accessSession);
+    if (result.kind === 'success') {
+      setOrders((currentOrders) => upsertRecord(currentOrders, result.value.order));
+      setOrdersCloudState({ loading: false, error: '' });
+      setLastRefreshAt(currentTimeLabel());
+      return result;
+    }
+    setOrdersCloudState({ loading: false, error: result.kind === 'networkUnavailable' ? '网络不可用，编辑尚未提交' : '' });
+    return result;
+  }
+
   function syncCustomerVehicleFromOrder(order) {
     const existing = companyCustomerVehicles.find((vehicle) => (
       vehicle.plate === order.plate || (vehicle.plate === order.plate && vehicle.phone === order.phone)
@@ -1642,6 +1657,7 @@ function App() {
             company={currentCompany}
             session={accessSession}
             onCreateOrder={createOrderFromWizard}
+            onEditOrder={editOrderFromWizard}
             createRequest={createRequest}
             onCreateHandled={() => setCreateRequest(0)}
             focusRequest={receptionFocus}
@@ -2660,6 +2676,7 @@ function RepairReception({
   company,
   session,
   onCreateOrder,
+  onEditOrder,
   createRequest,
   onCreateHandled,
   focusRequest,
@@ -2995,20 +3012,31 @@ function RepairReception({
         />
       ) : null}
 
-      {workOrderModal.kind === 'edit' ? (
-        <WorkOrderFormDialog
-          draft={draft}
-          mode={workOrderModal.kind}
-          canSettleOrder={canSettleOrder}
-          insurerOptions={insurerOptions}
-          staffOptions={staffOptions}
-          onChange={setDraft}
-          onClose={() => {
-            setDraft(createOrderDraft(selected));
-            closeWorkOrderModal();
+      {workOrderModal.kind === 'edit' && modalOrder ? (
+        <OrderEditWizard
+          detail={modalOrder}
+          metadata={{
+            requiredFields: ['customer', 'phone', 'plate', 'car', 'insuranceExpiry', 'record'],
+            defaults: {},
+            options: {
+              insurers: insurerOptions,
+              staff: staffOptions.map((name) => ({ name, title: '' })),
+              vehicleTypes: vehicleTypeOptions,
+              accidentTypes: accidentTypeOptions,
+            },
           }}
-          onSubmit={saveDraft}
-          cloudReadOnly={cloudReadOnly}
+          session={session}
+          companyId={company.id}
+          actor={orderCreationActor(session)}
+          isOffline={cloudReadOnly}
+          canEdit={canEditOrder && modalOrder.status !== REPAIR_STATUS.settled}
+          onEdit={(payload) => onEditOrder(modalOrder.id, payload)}
+          onUpdated={(nextOrder) => {
+            setSelectedId(nextOrder.id);
+            setDraft(createOrderDraft(nextOrder));
+            setWorkOrderModal(openRepairModal('detail', nextOrder.id));
+          }}
+          onClose={() => { setDraft(createOrderDraft(selected)); closeWorkOrderModal(); }}
         />
       ) : null}
 

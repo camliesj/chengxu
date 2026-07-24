@@ -635,6 +635,10 @@ cd E:\codex\chengxu\android-client
 - 新增 `orderEditApi`：PATCH 与 edit operation 查询将 success、400 field errors、401、403、404、409 conflict/not-editable/pending/reused、网络、5xx 和 malformed JSON 映射为稳定 kind；AbortError 原样传播，未知结果保持 confirming 而不静默重试。
 - 新增每工单 `EncryptedOrderEditDraftStore`：草稿使用非导出 AES-GCM key、随机 12-byte IV 和 `edit:actor:company:order` AAD；fields、base snapshot、expectedVersion 与 metadata snapshot 都只存在密文中。损坏/未知版本记录会删除；同一 actor/company 的编辑草稿可批量删除但不会影响创建草稿，创建草稿也不会误读取 edit namespace。
 - TDD：初始草稿测试因 `orderEditDraftStore.js` 缺失 RED；实现后 Task 4 focused 13/13 通过。本任务尚未触及编辑 UI、生产/远端 D1、部署、能力开关、Android 模拟器或 APK。
+- 阶段 3 Task 5 已把普通未结算工单编辑接入四步 `OrderEditWizard`：创建和编辑复用同一 `ORDER_FORM_STEPS` 展示顺序，但拥有独立 reducer、operationId 与加密草稿 namespace。编辑由 `EDIT_ORDER` 控制，状态字段不再出现在普通编辑表单，只能在后续专用状态命令中修改。
+- 编辑向导支持 500ms 脏草稿自动保存、显式保存和三选一离开确认；离线时可编辑/保存但禁止提交。PATCH 成功后以服务器返回工单替换列表与详情并删除草稿；网络/5xx/未知响应保存同 operationId 后进入确认状态，通过 edit operation 查询恢复，避免自动重放。
+- 409 仅展示 base/server/local 差异并提供“返回最新详情”或“基于最新版本继续编辑”。rebase 只替换 base snapshot 与 expectedVersion，不发请求；下一次提交产生新的 UUID，冲突 operationId 不会复用。
+- Playwright RED 先观察到普通编辑向导未连接；GREEN 覆盖 capability 隐藏入口、四步无 status 控件、200 服务器 version 回写和 409 显式 rebase 无第二 PATCH。创建 E2E 同步改为提供 capability 信封，网页完整回归 7/7 通过。本任务无生产/远端 D1、部署、能力开关、模拟器或 APK 更新。
 
 ## 工作纪律
 

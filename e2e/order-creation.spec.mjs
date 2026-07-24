@@ -49,7 +49,9 @@ test.beforeEach(async ({ page }) => {
     });
 
     if (path === '/api/health') return json({ ok: true });
-    if (path === '/api/orders' && method === 'GET') return json({ orders: [] });
+    if (path === '/api/orders' && method === 'GET') return json({
+      orders: [], capabilities: ['VIEW_ORDERS', 'CREATE_ORDER'], serverTime: '2026-07-22T09:30:00.000Z',
+    });
     if (path === '/api/insurance-policies' && method === 'GET') return json({ policies: [] });
     if (path === '/api/customer-vehicles' && method === 'GET') return json({ vehicles: [] });
     if (path === '/api/dictionaries' && method === 'GET') return json({ dictionaries: [] });

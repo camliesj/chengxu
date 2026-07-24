@@ -12,7 +12,8 @@ import {
 } from '../orderCreationApi.js';
 import { createBrowserOrderCreationDraftStore } from '../orderCreationDraftStore.js';
 
-const STEPS = ['客户与车辆', '保险与事故', '维修与费用', '确认提交'];
+export const ORDER_FORM_STEPS = ['客户与车辆', '保险与事故', '维修与费用', '确认提交'];
+const STEPS = ORDER_FORM_STEPS;
 const ERROR_TEXT = {
   'order.customer.required': '请输入客户姓名',
   'order.phone.required': '请输入手机号',
