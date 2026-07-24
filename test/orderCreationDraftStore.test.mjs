@@ -33,6 +33,19 @@ test('drafts are isolated, replace the previous value and can be deleted', async
   assert.equal(await store.load('worker', 'tongda'), null);
 });
 
+test('creation draft keys remain actor-company scoped and ignore edit namespace records', async () => {
+  const storage = memoryStorage();
+  const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+  const store = new EncryptedOrderCreationDraftStore({ storage, keyProvider: async () => key });
+
+  storage.records.set('edit:worker:tongda:RO1', { version: 1, ciphertext: 'edit-record' });
+  await store.save('worker', 'tongda', { fields: { customer: '创建草稿' } });
+
+  assert.equal(storage.records.has('worker:tongda'), true);
+  await store.delete('worker', 'tongda');
+  assert.equal(storage.records.has('edit:worker:tongda:RO1'), true);
+});
+
 test('damaged ciphertext is removed without leaking content', async () => {
   const storage = memoryStorage();
   const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);

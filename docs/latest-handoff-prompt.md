@@ -631,6 +631,10 @@ cd E:\codex\chengxu\android-client
 - 企业写能力现端到端独立：legacy 普通状态/结算/返结算/档案/回执维护分支分别要求相应 capability；receipt POST/DELETE 在 COS 前强制 `MAINTAIN_RECEIPT`；void endpoint 在写入前强制 `VOID_ORDER`。结算弹窗即使具备 `SETTLE_ORDER`，没有 `MAINTAIN_RECEIPT` 也不会获得上传 handler/文件入口；已有回执仍可按结算能力完成结算。
 - 复核 TDD RED 依次观察到 `undefined !== 4`、`ReferenceError: eventId is not defined`、缺失 capability state 模块、4 个越权响应状态和缺失独立 upload helper；返修后 focused 38/38、Node 全量 153/153、Vite 6.4.3 构建成功（65 modules）。仍无生产/远端 D1、部署、能力开关、模拟器或 push。
 - 第二轮复核移除了 legacy UPSERT 的单 capability 优先级短路：服务端现基于 existing 与规范化 incoming 的真实差异同时分类 16 个普通字段、状态/结算/返结算、回执与作废变更。普通字段与任一维护变更、作废与其他维护变更、普通状态推进与结算/回执变更均在权限查询、UPSERT 和审计之前稳定返回 `400 MIXED_LEGACY_MUTATIONS`；合法结算+回执组合必须同时具备 `SETTLE_ORDER` 与 `MAINTAIN_RECEIPT`，缺任一项均在零副作用下返回 403。
+- 阶段 3 Task 4 已完成网页编辑的数据与安全基础：新增纯 `orderEditLogic`，从完整详情创建不可变 16 字段 base snapshot 与 expectedVersion，复用创建表单的四步校验/整数分转换，并明确管理 `idle / submitting / confirming / conflict`、服务端 field errors、最新详情与显式 rebase。编辑 payload 只包含 canonical 16 字段、UUID operationId 和 expectedVersion，不携带状态等服务器字段。
+- 新增 `orderEditApi`：PATCH 与 edit operation 查询将 success、400 field errors、401、403、404、409 conflict/not-editable/pending/reused、网络、5xx 和 malformed JSON 映射为稳定 kind；AbortError 原样传播，未知结果保持 confirming 而不静默重试。
+- 新增每工单 `EncryptedOrderEditDraftStore`：草稿使用非导出 AES-GCM key、随机 12-byte IV 和 `edit:actor:company:order` AAD；fields、base snapshot、expectedVersion 与 metadata snapshot 都只存在密文中。损坏/未知版本记录会删除；同一 actor/company 的编辑草稿可批量删除但不会影响创建草稿，创建草稿也不会误读取 edit namespace。
+- TDD：初始草稿测试因 `orderEditDraftStore.js` 缺失 RED；实现后 Task 4 focused 13/13 通过。本任务尚未触及编辑 UI、生产/远端 D1、部署、能力开关、Android 模拟器或 APK。
 
 ## 工作纪律
 
