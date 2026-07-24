@@ -2,6 +2,7 @@ package com.chengxu.autoservice.core.orders
 
 import com.chengxu.autoservice.core.orders.model.BusinessCapability
 import com.chengxu.autoservice.core.orders.model.OrderDetail
+import com.chengxu.autoservice.core.orders.model.OrderDetailEnvelope
 import com.chengxu.autoservice.core.orders.model.OrderPage
 import com.chengxu.autoservice.core.orders.model.ReceiptMetadata
 import kotlinx.coroutines.CancellationException
@@ -43,7 +44,7 @@ class HttpUrlConnectionOrderReadApi(
     override suspend fun fetchDetail(
         token: String,
         orderId: String,
-    ): OrderReadResult<OrderDetail> = execute(
+    ): OrderReadResult<OrderDetailEnvelope> = execute(
         "$ordersUrl/${encodeUrlComponent(orderId)}",
         token,
         ::mapDetail,
@@ -85,8 +86,16 @@ class HttpUrlConnectionOrderReadApi(
         )
     }
 
-    private fun mapDetail(body: String): OrderDetail? {
-        return parseOrderDetailEnvelope(body, json, currentYear())
+    private fun mapDetail(body: String): OrderDetailEnvelope? {
+        val envelope = json.parseToJsonElement(body).jsonObject
+        return parseOrderDetailEnvelope(body, json, currentYear())?.let { order ->
+            OrderDetailEnvelope(
+                order = order,
+                capabilities = envelope.stringArray("capabilities")
+                    .mapNotNull(::businessCapabilityOrNull).toSet(),
+                serverTime = envelope.string("serverTime"),
+            )
+        }
     }
 }
 

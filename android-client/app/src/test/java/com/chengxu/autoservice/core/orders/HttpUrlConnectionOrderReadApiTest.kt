@@ -79,7 +79,7 @@ class HttpUrlConnectionOrderReadApiTest {
         val result = api(transport).fetchDetail("token", "RO/蒙 A") as OrderReadResult.Success
 
         assertEquals("https://chengxu.pages.dev/api/orders/RO%2F%E8%92%99%20A", transport.url)
-        val detail = result.value
+        val detail = result.value.order
         assertEquals("15000000000", detail.phone)
         assertEquals("VIN-001", detail.vin)
         assertEquals("CL-001", detail.claimNo)
@@ -88,6 +88,8 @@ class HttpUrlConnectionOrderReadApiTest {
         assertEquals("receipt.png", detail.receipt?.name)
         assertEquals(128L, detail.receipt?.sizeBytes)
         assertEquals(9L, detail.summary.version)
+        assertEquals(setOf(BusinessCapability.VIEW_ORDERS), result.value.capabilities)
+        assertEquals("2026-07-20T10:30:00.000Z", result.value.serverTime)
     }
 
     @Test
@@ -103,12 +105,12 @@ class HttpUrlConnectionOrderReadApiTest {
         val result = api(RecordingTransport(OrdersHttpResponse(200, minimal)))
             .fetchDetail("token", "RO-2") as OrderReadResult.Success
 
-        assertEquals("", result.value.phone)
-        assertEquals(0L, result.value.laborCents)
-        assertEquals(0L, result.value.materialCents)
-        assertNull(result.value.receipt)
-        assertFalse(result.value.voided)
-        assertEquals("", result.value.summary.plate)
+        assertEquals("", result.value.order.phone)
+        assertEquals(0L, result.value.order.laborCents)
+        assertEquals(0L, result.value.order.materialCents)
+        assertNull(result.value.order.receipt)
+        assertFalse(result.value.order.voided)
+        assertEquals("", result.value.order.summary.plate)
     }
 
     @Test

@@ -1,6 +1,6 @@
 package com.chengxu.autoservice.core.orders
 
-import com.chengxu.autoservice.core.orders.model.OrderDetail
+import com.chengxu.autoservice.core.orders.model.OrderDetailEnvelope
 import com.chengxu.autoservice.core.orders.model.OrderPage
 import com.chengxu.autoservice.core.orders.model.OrderScope
 
@@ -32,5 +32,5 @@ sealed interface OrderReadResult<out T> {
 
 interface OrderReadApi {
     suspend fun fetchPage(token: String, query: OrderPageQuery): OrderReadResult<OrderPage>
-    suspend fun fetchDetail(token: String, orderId: String): OrderReadResult<OrderDetail>
+    suspend fun fetchDetail(token: String, orderId: String): OrderReadResult<OrderDetailEnvelope>
 }

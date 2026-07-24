@@ -642,6 +642,13 @@ cd E:\codex\chengxu\android-client
 
 ## 工作纪律
 
+### 阶段 3 Task 6：Android 编辑契约、详情信封与 HTTP API（已完成）
+
+- Android 现在从唯一的根 `contracts/order-edit-v1.json` 读取编辑字段 fixture。`OrderEditCommand` 只序列化 16 个 canonical 可编辑字段、`operationId` 与正整数 `expectedVersion`；状态、公司、结算和其他服务端字段均不会进入 PATCH 请求。
+- `OrderReadApi.fetchDetail` 已升级为 `OrderDetailEnvelope`，在保留既有严格订单/company/version 解析的同时，提供服务端 `capabilities` 与 `serverTime`；详情路径继续按 UTF-8 单一路径段编码。
+- 新增 `OrderEditApi`、可替换的 HTTP transport 和 `HttpUrlConnectionOrderEditApi`：支持 `PATCH /api/orders/:id` 与 `GET /api/order-operations/edit-order/:operationId`。覆盖 Bearer、400 field errors、401/403/404、409 最新详情与冲突字段、处理中/幂等 ID 复用、5xx、IO、畸形响应、取消传播和请求前版本校验；请求一经发出后，IO/5xx/畸形/处理中均保留 operationId 并映射为 `UnknownResult`，避免盲目重试。
+- TDD 证据：`OrderEditContractTest` 首次因 `toEditCommand` 缺失而 RED；HTTP API 测试首次因 transport/API 缺失而 RED。实现后，Task 6 聚焦 JVM 测试与详情读取测试均通过；未启动 Android 模拟器，未访问远端 D1，未部署 Pages，也尚未生成新的 APK。
+
 每次重要改动后必须：
 
 1. 提交 Git；

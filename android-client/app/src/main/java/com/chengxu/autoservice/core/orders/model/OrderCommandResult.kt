@@ -5,7 +5,12 @@ sealed interface OrderCommandResult<out T> {
     data class ValidationFailure(val fieldErrors: Map<String, String>) : OrderCommandResult<Nothing>
     data object Unauthorized : OrderCommandResult<Nothing>
     data object Forbidden : OrderCommandResult<Nothing>
-    data class Conflict(val latest: OrderDetail?) : OrderCommandResult<Nothing>
+    data object NotFound : OrderCommandResult<Nothing>
+    data object OperationIdReused : OrderCommandResult<Nothing>
+    data class Conflict(
+        val latest: OrderDetail?,
+        val conflictingFields: Set<String> = emptySet(),
+    ) : OrderCommandResult<Nothing>
     data class UnknownResult(val operationId: String) : OrderCommandResult<Nothing>
     data object NetworkUnavailable : OrderCommandResult<Nothing>
     data object ServerFailure : OrderCommandResult<Nothing>
