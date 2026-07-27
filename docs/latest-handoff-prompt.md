@@ -708,7 +708,14 @@ cd E:\codex\chengxu\android-client
 - 已完成的 Task 11 聚焦门禁：`HttpUrlConnectionOrderStatusApiTest`、`OrderStatusRepositoryTest`、`OrderStatusViewModelTest` 与 `OrderStateMachineTest`；`:app:compileDebugAndroidTestKotlin`、`:app:lintDebug` 均通过。下一步为阶段 3 Task 12：跨端合同门禁与干净候选 APK 构建。
 - 任务完成后额外执行完整无设备门禁：`:app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:lintDebug :app:assembleDebug`，结果 `BUILD SUCCESSFUL`。已刷新可安装 APK：`dist/releases/android/autoservice-android-debug-0.1.0.apk`（19,909,645 bytes，SHA-256 `03300EE0DF56B318D285DCF5D1239877D4F511D9562B8B708C34390AF2AC35F4`）。
 
-### 阶段 3 Task 12：跨端合同门禁（进行中检查点）
+### 阶段 3 Task 12：跨端合同门禁与干净候选构建（已完成）
+
+- 已完成跨端漂移门禁：网页普通状态流只能调用 `changeOrderStatusCommand`，旧编辑入口必须委派至 `handleEditOrderCommand`；Android 草稿同时锁定 `edit:<orderId>` 与 `status:<orderId>` namespace，编辑/状态字段和状态目录分别与根合同一致。
+- 消除服务端重复状态目录：`functions/api/orders.js` 改为共享 `ORDINARY_ORDER_STATUSES`，`functions/_shared/order-status.js` 仅重新导出该常量，避免 API 与权限矩阵再次漂移。
+- 全量无设备验证通过：Node `npm.cmd test` 180/180、Playwright `npm.cmd run test:web-ui` 10/10、`npm.cmd run build` 成功；Android 执行 clean、JVM 单测、Android 测试源码编译、Lint 和 debug APK 构建，共 69 个任务，`BUILD SUCCESSFUL`。未启动模拟器、未运行 connected 测试、未访问远程 D1/Pages、未开启生产能力。
+- 本任务的候选 APK 只保留在 Android 构建目录；根目录 `dist/releases/android/autoservice-android-debug-0.1.0.apk` 已还原为既有 Task 11 交付物，未被 Task 12 替换。已补充 `docs/android-client.md` 的编辑/状态真机验收清单。下一步为阶段 3 Task 13：独立执行生产发布、能力开关和发布后真机验收。
+
+- 历史检查点：
 
 - 新增 `test/orderMutationContractGate.test.mjs`，通过源级门禁锁定：网页普通状态不得回落到旧 `upsertOrder`，旧普通编辑必须委派给 `handleEditOrderCommand`，Android 加密草稿必须同时保留 `edit:<orderId>` 与 `status:<orderId>` namespace，Android 编辑/状态命名与两份根合同一致。
 - 初始 RED 发现 `functions/api/orders.js` 重复定义普通状态数组；现已改为使用 `shared/orderStatusPermissions.js` 的 `ORDINARY_ORDER_STATUSES`。`functions/_shared/order-status.js` 同时对外重导出该常量，防止服务端状态目录再次漂移。
