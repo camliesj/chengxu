@@ -797,6 +797,13 @@ cd E:\codex\chengxu\android-client
 - 新增 `functions/api/insurance-policies/[id].js`，只转发既有的 `onRequestDelete`；新增回归测试锁定参数化路由注册。全量 Node 测试为 183/183，生产网页构建成功。
 - 远端 D1 migration 与 Pages 部署仍未执行，必须先获用户明确授权；部署后优先验证保险删除的 200、409 版本冲突和 401 会话失效。
 
+### Android 结算、返结算与日期输入跨端一致化（设计已确认，待规格审阅）
+
+- 用户已确认结算功能包：管理员结算、返结算、到账回执截图、所有业务日期的点按选择器，以及工单详情标题栏编辑动作与整体 UI 的统一。
+- 正式规格：`docs/superpowers/specs/2026-07-27-unified-settlement-mobile-design.md`。结算必须由 `SETTLE_ORDER` 与 `MAINTAIN_RECEIPT` 同时放行并上传 JPG/PNG/WebP 回执截图（最大 12 MiB）；返结算由 `REVERSE_SETTLEMENT` 放行。
+- 对照网页后已明确：返结算将付款方式恢复为“待确认”、清空结算日期/时间/备注，但保留既有回执引用；Android 不申请相机权限，只使用系统相册/图片选择器。网页打印不移植；作废和已结算档案编辑列为下一独立核心业务包。
+- 规格自检已完成：无占位项、统一命令合同复用现有 `order_operations` 与 `repair_orders.version`，不需要新的 D1 或 Room migration。用户审阅该规格后，再写入实施计划并开始 TDD 实现。
+
 ### Android 工单新增、编辑与状态页刷新修复（待真机验收）
 
 - 用户反馈“新增工单界面用不了、没有编辑功能”后，已定位到 Navigation 3 的 `NavDisplay` 保留 `NavEntry` 内容闭包；新增、详情、编辑和状态确认页面仍读取首次进入页面时的旧 UI state。
