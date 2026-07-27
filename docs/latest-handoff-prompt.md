@@ -715,6 +715,16 @@ cd E:\codex\chengxu\android-client
 - 全量无设备验证通过：Node `npm.cmd test` 180/180、Playwright `npm.cmd run test:web-ui` 10/10、`npm.cmd run build` 成功；Android 执行 clean、JVM 单测、Android 测试源码编译、Lint 和 debug APK 构建，共 69 个任务，`BUILD SUCCESSFUL`。未启动模拟器、未运行 connected 测试、未访问远程 D1/Pages、未开启生产能力。
 - 本任务的候选 APK 只保留在 Android 构建目录；根目录 `dist/releases/android/autoservice-android-debug-0.1.0.apk` 已还原为既有 Task 11 交付物，未被 Task 12 替换。已补充 `docs/android-client.md` 的编辑/状态真机验收清单。下一步为阶段 3 Task 13：独立执行生产发布、能力开关和发布后真机验收。
 
+### 阶段 3 Task 13：生产发布、独立能力开启与最终 APK（已完成，待真机业务验收）
+
+- 已部署 Cloudflare Pages 生产版本：`https://chengxu.pages.dev`（本次部署 URL：`https://ee123fd8.chengxu.pages.dev`）。正式域名的未认证详情、编辑、状态及两类 operation 查询均复核为 `401`。
+- 发布前 D1 备份已保存到已忽略路径 `E:\codex\chengxu\tmp\d1-backups\pre-android-stage-3.sql`：102,009 bytes，SHA-256 `BB6214150832327F24123BC57905FF5BF1455FE20F203899D4C2AA74803317AA`。远程迁移状态为无待执行项。
+- 生产基线和最终复核：工单总数 10（通达 9、鑫齐恒 1）、`order_operations` 0、`operation_logs` 105；短期 smoke 会话已从 0 创建并清理回 0。整个发布与能力验证没有创建/编辑真实工单、操作记录或审计记录。
+- 已分两步为通达和鑫齐恒开启 `EDIT_ORDER`，再开启 `ADVANCE_ORDER_STATUS`。最终两家企业均精确为 `VIEW_ORDERS + CREATE_ORDER + EDIT_ORDER + ADVANCE_ORDER_STATUS`；没有开启结算、反结算、作废、回执、档案管理或导出能力。两家临时 `repair` 会话的非真实 UUID 编辑/状态请求均为 `404`，且最终能力数为 8。
+- 回滚命令（仅在发布异常时执行）：对两家企业分别 upsert `EDIT_ORDER=0`；状态单独回滚时仅 upsert `ADVANCE_ORDER_STATUS=0`，不得改变其他 capability。完整的编辑/状态真机验收清单见 `docs/android-client.md`。
+- 最终 Debug APK：`dist/releases/android/autoservice-android-debug-0.1.0.apk`，19,802,837 bytes，SHA-256 `EFEA13C36419B42E7803C72323FBBC90D94D19E6AC3CB01D19A85FC56AF6C9F7`；已与构建源 APK 校验一致，Build Tools 35.0.0 `apksigner verify --verbose` 显示 v2 签名为 true。该包仅供 API 26+ 真机测试，不是生产签名发布包。
+- 发布前完整门禁继承 Task 12：Node 180/180、Playwright 10/10、Vite 构建成功、Android clean/JVM/Android 测试源码/Lint/debug APK 共 69 tasks `BUILD SUCCESSFUL`；Task 13 额外 `:app:assembleDebug` 成功。全程未启动 Android 模拟器或运行 connected 测试。生产真实工单编辑/状态成功仍须由用户按真机和网页清单人工确认。
+
 - 历史检查点：
 
 - 新增 `test/orderMutationContractGate.test.mjs`，通过源级门禁锁定：网页普通状态不得回落到旧 `upsertOrder`，旧普通编辑必须委派给 `handleEditOrderCommand`，Android 加密草稿必须同时保留 `edit:<orderId>` 与 `status:<orderId>` namespace，Android 编辑/状态命名与两份根合同一致。
