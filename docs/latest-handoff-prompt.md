@@ -780,3 +780,4 @@ cd E:\codex\chengxu\android-client
 - Task 1 已完成：新增 `CustomerVehiclesApi` 与 `HttpUrlConnectionCustomerVehiclesApi`，只允许 `GET /api/customer-vehicles` 并携带 Bearer；严格要求每项具有非空 id/companyId，映射 401、网络、畸形响应与取消传播。TDD RED 因缺少合同/客户端失败，GREEN 聚焦 JVM 测试通过。下一步 Task 2：加密缓存与会话隔离仓储。
 - Task 2 已完成：`customer_vehicles` 复用既有 Room v2 表，以企业+记录 ID 隔离并整包加密；新增只读仓储，在线刷新、离线缓存、跨企业响应拒绝、401 清缓存后失效会话均已由 JVM 测试覆盖。下一步 Task 3：将“客户车辆”只读标签和详情页接入档案导航。
 - 客户车辆只读档案已完成：档案页新增“维修历史 / 客户车辆”标签，车辆支持本地关键词检索与详情查看，但没有新建、编辑或删除入口；主应用、会话级 ViewModel 与 Navigation 3 已接线。验证通过 `:app:testDebugUnitTest`、`:app:compileDebugAndroidTestKotlin`、`:app:assembleDebug`。本轮 APK 待复制到 `dist/releases/android/` 并校验签名后提交；后续真实设备重点检查：切换标签、无网查看缓存、401 自动返回登录、详情返回。
+- 保险档案跨端一致化 Task 1：新增本地 D1 migration `0012_unified_insurance_policies.sql`，保险 API 已增加版本字段、保存与删除的 operationId 幂等处理、版本冲突返回和删除处理；尚未执行远端 D1 migration 或部署，网页与 Android 客户端迁移仍待完成。Node 合同测试通过。
