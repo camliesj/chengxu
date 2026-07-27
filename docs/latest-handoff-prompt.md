@@ -693,3 +693,8 @@ cd E:\codex\chengxu\android-client
 - 维修接待的侧栏与完整详情弹窗均只显示当前角色的相邻普通状态动作；普通状态不再调用 legacy `upsertOrder`，结算/返结算继续保持旧的专用流程。
 - TDD 证据：交通模块的初始 RED 因 `orderStatusApi.js` 不存在失败；状态 UI 初始 RED 因无相邻状态按钮失败。现在 focused Node 2/2 通过，Playwright 覆盖员工单步前进、双击单请求、409 最新状态和原 operation ID 查询恢复，3/3 通过。本任务无 D1 migration、无远程 D1/Pages、无能力开关、无模拟器或 APK 更新。
 - 下一步：阶段 3 Task 11，Android 普通状态 API、加密待确认信封和全屏确认界面。
+
+### 阶段 3 Task 11：Android 普通状态工作流（进行中检查点）
+
+- 已按 TDD 完成状态 HTTP API 基础：新增 `OrderStatusCommand`、待确认信封模型、`OrderStatusApi` 与 `HttpUrlConnectionOrderStatusApi`。专用写入固定为 `POST /api/orders/:id/status`，查询固定为 `GET /api/order-operations/change-order-status/:operationId`；请求带 Bearer、operationId、expectedVersion 与目标普通状态，SETTLED 在客户端前置拒绝。
+- `HttpUrlConnectionOrderStatusApiTest` 的初始 RED 精确失败于新模型/API/transport 尚不存在；GREEN 聚焦 JVM 测试覆盖路径编码、JSON、授权、400/401/403/404/409、5xx、IO、completed/pending 与取消传播。本检查点未改 Room schema、未启动模拟器、未访问远程 D1/Pages，也尚未接入状态仓储或 UI。
