@@ -88,7 +88,7 @@ Commit: `feat(android): add history orders api`
 - Consumes: `HistoryOrdersApi`, `SessionRepository`, `NetworkMonitor`, `SessionInvalidator`, `OrderDao`。
 - Produces: `HistoryOrdersRepository.snapshot: StateFlow<HistoryOrdersSnapshot>`；`refresh()` 与 `loadNextPage()`；`RoomOrderCache.observeHistory(companyId)`、`replaceHistory(companyId, rows)`、`appendHistory(companyId, rows)`。
 
-- [ ] **Step 1: 写失败的仓库与 DAO 测试。**
+- [x] **Step 1: 写失败的仓库与 DAO 测试。**
 
 ```kotlin
 repository.refresh()
@@ -100,13 +100,13 @@ assertEquals(listOf("H-1", "H-2"), repository.snapshot.value.orders.map { it.id 
 
 覆盖缓存先显示、离线零 HTTP、首刷替换、后页按 `companyId + orderId` 去重、外来 company 摘要不落库、网络/5xx/畸形结果保留缓存、并发刷新去重、401 按“清缓存后失效会话”顺序执行、账号或企业切换清理及取消传播。DAO 测试锁定 `HISTORY` 与 `CURRENT` 不互删。
 
-- [ ] **Step 2: 运行聚焦测试确认 RED。**
+- [x] **Step 2: 运行聚焦测试确认 RED。**
 
 Run: `cd android-client; .\gradlew.bat :app:testDebugUnitTest --tests "*HistoryOrdersRepositoryTest" --tests "*OrderDaoTest"`
 
 Expected: FAIL，原因是历史缓存接口及仓库尚不存在。
 
-- [ ] **Step 3: 实现范围感知的缓存和仓库。**
+- [x] **Step 3: 实现范围感知的缓存和仓库。**
 
 ```kotlin
 data class HistoryOrdersSnapshot(
@@ -119,13 +119,13 @@ data class HistoryOrdersSnapshot(
 
 为 DAO 增加仅删除当前企业 `scope = 'HISTORY'` 的事务查询；首刷替换历史 scope，后页只 upsert 历史 scope。仓库只在 `ConnectionState.Online` 调用 API，验证每个 `OrderSummary.companyId == session.companyId` 后才写入；无下一页、刷新中或分页中不重复请求。401 调用已有清理/失效边界，不自行保留旧会话状态。
 
-- [ ] **Step 4: 运行聚焦测试确认 GREEN。**
+- [x] **Step 4: 运行聚焦测试确认 GREEN。**
 
 Run: `cd android-client; .\gradlew.bat :app:testDebugUnitTest --tests "*HistoryOrdersRepositoryTest" --tests "*OrderDaoTest"`
 
 Expected: PASS。
 
-- [ ] **Step 5: 检查差异并提交推送。**
+- [x] **Step 5: 检查差异并提交推送。**
 
 Run: `git diff --check`
 

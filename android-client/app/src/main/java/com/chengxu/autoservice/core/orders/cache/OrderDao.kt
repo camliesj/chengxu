@@ -27,12 +27,25 @@ interface OrderDao {
     @Query("DELETE FROM order_summaries WHERE companyId = :companyId")
     suspend fun deleteByCompany(companyId: String)
 
+    @Query("DELETE FROM order_summaries WHERE companyId = :companyId AND scope = :scope")
+    suspend fun deleteByCompanyAndScope(companyId: String, scope: String)
+
     @Query("DELETE FROM order_summaries")
     suspend fun clearAll()
 
     @Transaction
     suspend fun replaceCompany(companyId: String, orders: List<OrderSummaryEntity>) {
         deleteByCompany(companyId)
+        insertAll(orders)
+    }
+
+    @Transaction
+    suspend fun replaceCompanyScope(
+        companyId: String,
+        scope: String,
+        orders: List<OrderSummaryEntity>,
+    ) {
+        deleteByCompanyAndScope(companyId, scope)
         insertAll(orders)
     }
 }

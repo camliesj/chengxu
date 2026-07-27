@@ -744,4 +744,6 @@ cd E:\codex\chengxu\android-client
 - 本批不新增 D1 migration、不访问远程 D1/Pages、不改变生产能力开关；最终仅运行无设备 Node/Android 门禁并生成 Debug APK，不启动模拟器或 connected 测试。
 - 实施计划：`docs/superpowers/plans/2026-07-27-android-archive-history-read.md`。按历史 HTTP 合同、企业隔离缓存与分页仓库、只读 Compose 档案页、应用装配与最终无设备交付四个可独立验收任务执行。
 - Task 1 已完成：新增 `HistoryOrdersApi` 与 `HttpUrlConnectionHistoryOrdersApi`，固定读取 `GET /api/orders?scope=history` 并可附加 URL 编码 cursor；200 映射摘要与 `nextCursor`，401/网络/畸形响应和取消语义与现有读取 API 一致。TDD RED 先因类型不存在失败，GREEN 聚焦 JVM 测试通过；未启动模拟器、未访问远程环境。
-- 下一步：按既有用户选择的当前会话内联方式执行 Task 2——企业隔离历史缓存与分页仓库；不创建子代理或 worktree。
+- Task 2 已完成：新增独立 `HistoryOrdersRepository` 与 `HistoryOrderCache`；首屏缓存优先、在线首刷与加载更多使用同一互斥锁，离线不请求，外来企业或非已结算摘要视为畸形响应且不落库，401 严格按清缓存再失效会话执行。`RoomOrderCache` 现支持仅观察/替换/追加当前企业 `HISTORY` scope，替换历史不会删除同企业当前工单；没有 Room migration。
+- TDD RED 先因仓库边界不存在失败；GREEN 聚焦 JVM（历史仓库、历史 HTTP、受影响当前仓库）与 `:app:compileDebugAndroidTestKotlin` 均通过。未启动模拟器、未运行 connected 测试、未访问远程环境。
+- 下一步：按既有用户选择的当前会话内联方式执行 Task 3——只读 Compose 历史档案 ViewModel 与页面；不创建子代理或 worktree。

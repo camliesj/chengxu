@@ -351,6 +351,10 @@ class CachedOrdersRepositoryTest {
             inserted = inserted.filterNot { it.companyId == companyId }
         }
 
+        override suspend fun deleteByCompanyAndScope(companyId: String, scope: String) {
+            inserted = inserted.filterNot { it.companyId == companyId && it.scope == scope }
+        }
+
         override suspend fun clearAll() {
             inserted = emptyList()
         }

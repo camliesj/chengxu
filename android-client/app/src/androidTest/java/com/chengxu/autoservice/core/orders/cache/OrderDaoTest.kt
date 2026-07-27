@@ -77,6 +77,31 @@ class OrderDaoTest {
     }
 
     @Test
+    fun replaceHistoryScopeKeepsCurrentRowsForTheSameCompany() = runTest {
+        dao.insertAll(
+            listOf(
+                entity("A-current", "tongda", "2026-07-18", "08:00", scope = "CURRENT"),
+                entity("A-history-old", "tongda", "2026-07-17", "09:00", scope = "HISTORY"),
+            ),
+        )
+
+        dao.replaceCompanyScope(
+            companyId = "tongda",
+            scope = "HISTORY",
+            orders = listOf(entity("A-history-new", "tongda", "2026-07-18", "10:00", scope = "HISTORY")),
+        )
+
+        assertEquals(
+            listOf("A-current"),
+            dao.observeByCompanyAndScope("tongda", "CURRENT").first().map { it.orderId },
+        )
+        assertEquals(
+            listOf("A-history-new"),
+            dao.observeByCompanyAndScope("tongda", "HISTORY").first().map { it.orderId },
+        )
+    }
+
+    @Test
     fun clearAllRemovesEveryCompany() = runTest {
         dao.replaceCompany("tongda", listOf(entity("A-1", "tongda", "2026-07-16", "08:00")))
         dao.replaceCompany("xinqiheng", listOf(entity("B-1", "xinqiheng", "2026-07-17", "09:00")))
