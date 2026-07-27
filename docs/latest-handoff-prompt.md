@@ -770,3 +770,9 @@ cd E:\codex\chengxu\android-client
 - `AppNavDisplay` 现用 `rememberUpdatedState` 为工单、档案、筛选回调和离线状态提供最新引用；当前 Entry 内点击筛选后立即使用新的 `OrdersUiState` / `HistoryRecordsUiState` 重组，不再依赖切换标签重建页面。
 - 新增 `AppNavDisplayTest`。旧实现连接式测试精确失败：选择“在修中”后仍能找到旧的 `orders-card-O-PENDING`；修复后同一测试在 API 35 模拟器通过，当前页面只保留筛选后的卡片。
 - 本轮 Android 门禁 `:app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:lintDebug :app:assembleDebug` 为 `BUILD SUCCESSFUL`（68 tasks）；已生成 Debug APK 20,107,478 bytes，SHA-256 `786CC0B882E452AD894675E1D582DE2BE72175D596D3C7B95C5409C84EC91AD3`，v2 签名有效。
+
+### 阶段 4 第二批：客户车辆只读档案（规格待审阅）
+
+- 用户已确认优先实现方案 1：在“档案”内新增客户车辆只读查询，暂不做保险档案或管理员修正。
+- 规格已提交：`docs/superpowers/specs/2026-07-27-android-customer-vehicle-archive-design.md`。固定使用既有 `GET /api/customer-vehicles` 与服务端 `customers` 权限，复用 Room v2 加密 `customer_vehicles` 表；不新增 D1/Room migration，不调用 POST，不改变网页端或生产能力开关。
+- 待用户审阅规格后，编写逐任务实施计划；通过计划审阅后再开始 TDD 实现。完成每项任务仍须更新本交接文件、提交并推送。
