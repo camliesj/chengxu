@@ -736,3 +736,10 @@ cd E:\codex\chengxu\android-client
 - 新增 `test/orderMutationContractGate.test.mjs`，通过源级门禁锁定：网页普通状态不得回落到旧 `upsertOrder`，旧普通编辑必须委派给 `handleEditOrderCommand`，Android 加密草稿必须同时保留 `edit:<orderId>` 与 `status:<orderId>` namespace，Android 编辑/状态命名与两份根合同一致。
 - 初始 RED 发现 `functions/api/orders.js` 重复定义普通状态数组；现已改为使用 `shared/orderStatusPermissions.js` 的 `ORDINARY_ORDER_STATUSES`。`functions/_shared/order-status.js` 同时对外重导出该常量，防止服务端状态目录再次漂移。
 - 聚焦 Node 门禁为 15/15 通过。未执行远程 D1/Pages、未启动模拟器；下一步是 Web 全量门禁和 Android clean 无设备构建。
+
+### 阶段 4 第一批：Android 已结算历史档案中心（设计已批准，待计划）
+
+- 用户已确认采用分批方案：本批只将 Android“档案”标签从占位页升级为当前企业的已结算工单只读查询；员工与管理员均可查询、筛选、分页及查看详情，不实现客户车辆、保险档案、管理员修正或任何历史写入。
+- 已批准规格：`docs/superpowers/specs/2026-07-27-android-archive-history-read-design.md`。复用认证会话、`scope=history` 订单读取、现有企业隔离 Room 摘要/加密详情缓存与详情路由；离线不请求，401 复用共享会话失效与客户缓存清理。
+- 本批不新增 D1 migration、不访问远程 D1/Pages、不改变生产能力开关；最终仅运行无设备 Node/Android 门禁并生成 Debug APK，不启动模拟器或 connected 测试。
+- 下一步：用户审阅并确认该规格后，生成阶段 4 第一批任务级实施计划；计划确认后继续当前会话内联执行。
