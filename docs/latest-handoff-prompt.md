@@ -796,3 +796,11 @@ cd E:\codex\chengxu\android-client
 - 复核部署路径时发现网页与 Android 的删除请求使用 `/api/insurance-policies/:id`，但此前只有集合路由文件，Cloudflare Pages 无法将参数化删除请求分派到 `onRequestDelete`。
 - 新增 `functions/api/insurance-policies/[id].js`，只转发既有的 `onRequestDelete`；新增回归测试锁定参数化路由注册。全量 Node 测试为 183/183，生产网页构建成功。
 - 远端 D1 migration 与 Pages 部署仍未执行，必须先获用户明确授权；部署后优先验证保险删除的 200、409 版本冲突和 401 会话失效。
+
+### 保险档案生产发布（已完成，待有权限真机业务验收）
+
+- 用户已授权发布。远端 `chengxu-db` 已成功应用 `0012_unified_insurance_policies.sql`；随后用 Wrangler 确认没有待执行迁移，且只读查询确认 `insurance_policies` 与 `insurance_policy_operations` 均存在。核验过程 `rows_written: 0`，未创建或修改真实业务数据。
+- Pages 已发布到生产分支；本次部署 URL 为 `https://098b4a3a.chengxu.pages.dev`，正式域名为 `https://chengxu.pages.dev`。发布前重新运行 `npm.cmd run build`，确保没有把本地 APK 归档目录上传到 Pages。
+- 生产只读烟测：未认证 `GET /api/insurance-policies` 和 `DELETE /api/insurance-policies/route-probe` 均返回 `401 {"error":"UNAUTHORIZED"}`，确认认证门禁及参数化删除路由均生效；200 与 409 需要具备 `insurance` 权限的真机/网页登录会话人工验收，避免探测时改变生产业务数据。
+- 发布后已重新归档 Debug APK，SHA-256 `A2FF2E9171EB2FDFED3BFEDFC10B298969DBBE82C727EA496615090BB48DC535`，Build Tools 35.0.0 `apksigner` 确认 v2 签名有效。
+- 下一步：以有 `insurance` 权限的真实账号在网页和 Android 真机验证新增、编辑、冲突和删除，重点确认两个端的 200 成功及 409 冲突提示一致；Debug APK 仅供 API 26+ 真机测试，非生产签名发布包。
