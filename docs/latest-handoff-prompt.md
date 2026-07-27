@@ -797,6 +797,14 @@ cd E:\codex\chengxu\android-client
 - 新增 `functions/api/insurance-policies/[id].js`，只转发既有的 `onRequestDelete`；新增回归测试锁定参数化路由注册。全量 Node 测试为 183/183，生产网页构建成功。
 - 远端 D1 migration 与 Pages 部署仍未执行，必须先获用户明确授权；部署后优先验证保险删除的 200、409 版本冲突和 401 会话失效。
 
+### Android 工单新增、编辑与状态页刷新修复（待真机验收）
+
+- 用户反馈“新增工单界面用不了、没有编辑功能”后，已定位到 Navigation 3 的 `NavDisplay` 保留 `NavEntry` 内容闭包；新增、详情、编辑和状态确认页面仍读取首次进入页面时的旧 UI state。
+- `AppNavDisplay` 现对 `CreateOrderUiState`、`OrderDetailUiState`、`EditOrderUiState`、`OrderStatusUiState` 使用 `rememberUpdatedState`。工单详情同时读取最新工单列表，因此详情异步加载后可及时显示 `EDIT_ORDER` 权限下的“编辑”入口；状态确认页也能显示加载结果并启用允许的提交。
+- 新增 `AppNavDisplayTest` 回归用例：新增表单输入会渲染新字段值、编辑表单输入会渲染新字段值、详情异步加载编辑权限后显示编辑按钮、状态确认异步加载后启用确认按钮。Android 测试按用户要求仅编译、不启动模拟器或 connected tests。
+- 本次不修改 D1/Room 数据库结构，也不触碰已发布的 Pages 服务端。最终无设备门禁：Node `npm.cmd test` 183/183、`npm.cmd run build`、Android `:app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:lintDebug :app:assembleDebug` 均为 `BUILD SUCCESSFUL`；未启动模拟器或 connected tests。
+- 已重新归档 `dist/releases/android/autoservice-android-debug-0.1.0.apk`，20,037,197 bytes，SHA-256 `5707C2BA9DAF303DD85A0AB048D92D4143AD8B54026D38EB4AC1867FE87965D1`；Build Tools 35.0.0 `apksigner verify --verbose` 确认 v2 签名有效。
+
 ### 保险档案生产发布（已完成，待有权限真机业务验收）
 
 - 用户已授权发布。远端 `chengxu-db` 已成功应用 `0012_unified_insurance_policies.sql`；随后用 Wrangler 确认没有待执行迁移，且只读查询确认 `insurance_policies` 与 `insurance_policy_operations` 均存在。核验过程 `rows_written: 0`，未创建或修改真实业务数据。

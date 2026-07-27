@@ -137,6 +137,10 @@ fun AppNavDisplay(
     val currentInsurancePoliciesConfirmDelete by rememberUpdatedState(onInsurancePoliciesConfirmDelete)
     val currentInsurancePoliciesDismissDelete by rememberUpdatedState(onInsurancePoliciesDismissDelete)
     val currentInsurancePoliciesEdit by rememberUpdatedState(onInsurancePoliciesEdit)
+    val currentCreateState by rememberUpdatedState(createState)
+    val currentDetailState by rememberUpdatedState(detailState)
+    val currentEditState by rememberUpdatedState(editState)
+    val currentStatusState by rememberUpdatedState(statusState)
     val currentIsOffline by rememberUpdatedState(isOffline)
 
     NavDisplay(
@@ -168,7 +172,7 @@ fun AppNavDisplay(
                         },
                     )
                     AppRoute.CreateOrder -> CreateOrderScreen(
-                        state = createState,
+                        state = currentCreateState,
                         onUpdate = onCreateUpdate,
                         onNext = onCreateNext,
                         onBack = onCreateBack,
@@ -207,11 +211,11 @@ fun AppNavDisplay(
                         ProfileScreen(session = it, offline = isOffline, onLogout = onLogout)
                     } ?: ShellPlaceholder(title = RootTab.PROFILE.label)
                     is AppRoute.OrderDetail -> OrderDetailScreen(
-                        order = ordersState.allOrders.firstOrNull { order -> order.id == entry.orderId },
+                        order = currentOrdersState.allOrders.firstOrNull { order -> order.id == entry.orderId },
                         onBack = navigationState::pop,
-                        canEdit = detailState.canEdit,
+                        canEdit = currentDetailState.canEdit,
                         onEdit = { onEditOrder(entry.orderId) },
-                        statusTargets = availableStatusTargets(detailState, profileSession),
+                        statusTargets = availableStatusTargets(currentDetailState, profileSession),
                         onChangeStatus = { target -> navigationState.push(AppRoute.ChangeOrderStatus(entry.orderId, target.wireValue)) },
                     )
                     is AppRoute.HistoryOrderDetail -> OrderDetailScreen(
@@ -238,7 +242,7 @@ fun AppNavDisplay(
                         onBack = navigationState::pop,
                     )
                     is AppRoute.EditOrder -> EditOrderScreen(
-                        state = editState,
+                        state = currentEditState,
                         onUpdate = onEditUpdate,
                         onNext = onEditNext,
                         onBack = onEditBack,
@@ -249,7 +253,7 @@ fun AppNavDisplay(
                         onRebase = onEditRebase,
                     )
                     is AppRoute.ChangeOrderStatus -> OrderStatusConfirmScreen(
-                        state = statusState,
+                        state = currentStatusState,
                         onBack = navigationState::pop,
                         onConfirm = onStatusConfirm,
                         onConfirmUnknown = onStatusConfirmUnknown,
