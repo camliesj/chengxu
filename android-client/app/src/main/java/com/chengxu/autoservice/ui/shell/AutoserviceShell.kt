@@ -39,6 +39,8 @@ import com.chengxu.autoservice.ui.orders.OrdersUiState
 import com.chengxu.autoservice.ui.edit.EditOrderField
 import com.chengxu.autoservice.ui.edit.EditOrderUiState
 import com.chengxu.autoservice.ui.status.OrderStatusUiState
+import com.chengxu.autoservice.ui.records.HistoryRecordsUiState
+import com.chengxu.autoservice.ui.records.HistoryTimeFilter
 
 @Composable
 fun AutoserviceShell(
@@ -53,6 +55,12 @@ fun AutoserviceShell(
     onOrdersFilterSelected: (OrderStatusFilter) -> Unit = {},
     onOrdersClearFilters: () -> Unit = {},
     onOrdersRefresh: () -> Unit = {},
+    historyRecordsState: HistoryRecordsUiState = HistoryRecordsUiState(loading = false),
+    onHistoryRecordsQueryChange: (String) -> Unit = {},
+    onHistoryRecordsTimeFilterChange: (HistoryTimeFilter) -> Unit = {},
+    onHistoryRecordsClearFilters: () -> Unit = {},
+    onHistoryRecordsRefresh: () -> Unit = {},
+    onHistoryRecordsLoadMore: () -> Unit = {},
     createState: CreateOrderUiState = CreateOrderUiState(),
     onCreateUpdate: (CreateOrderField, String) -> Unit = { _, _ -> },
     onCreateNext: () -> Unit = {},
@@ -110,6 +118,12 @@ fun AutoserviceShell(
             onOrdersFilterSelected = onOrdersFilterSelected,
             onOrdersClearFilters = onOrdersClearFilters,
             onOrdersRefresh = onOrdersRefresh,
+            historyRecordsState = historyRecordsState,
+            onHistoryRecordsQueryChange = onHistoryRecordsQueryChange,
+            onHistoryRecordsTimeFilterChange = onHistoryRecordsTimeFilterChange,
+            onHistoryRecordsClearFilters = onHistoryRecordsClearFilters,
+            onHistoryRecordsRefresh = onHistoryRecordsRefresh,
+            onHistoryRecordsLoadMore = onHistoryRecordsLoadMore,
             createState = createState,
             onCreateUpdate = onCreateUpdate,
             onCreateNext = onCreateNext,

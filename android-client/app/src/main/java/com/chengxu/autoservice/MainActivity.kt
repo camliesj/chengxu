@@ -24,6 +24,8 @@ import com.chengxu.autoservice.core.orders.HttpUrlConnectionOrderEditApi
 import com.chengxu.autoservice.core.orders.HttpUrlConnectionOrderReadApi
 import com.chengxu.autoservice.core.orders.HttpUrlConnectionOrderStatusApi
 import com.chengxu.autoservice.core.orders.HttpUrlConnectionOrdersApi
+import com.chengxu.autoservice.core.orders.HttpUrlConnectionHistoryOrdersApi
+import com.chengxu.autoservice.core.orders.HistoryOrdersRepository
 import com.chengxu.autoservice.core.orders.SessionInvalidator
 import com.chengxu.autoservice.core.orders.cache.AutoserviceDatabase
 import com.chengxu.autoservice.core.orders.cache.EncryptedOrderStore
@@ -70,6 +72,14 @@ class MainActivity : ComponentActivity() {
             orderCache = orderCache,
             sessionInvalidator = sessionInvalidator,
         )
+        val historyOrdersRepository = HistoryOrdersRepository(
+            applicationScope = lifecycleScope,
+            sessionRepository = authenticationRepository,
+            networkMonitor = networkMonitor,
+            historyOrdersApi = HttpUrlConnectionHistoryOrdersApi(BuildConfig.API_ORIGIN),
+            historyOrderCache = orderCache,
+            sessionInvalidator = sessionInvalidator,
+        )
         val orderCreationRepository = DefaultOrderCreationRepository(
             sessionRepository = authenticationRepository,
             networkMonitor = networkMonitor,
@@ -110,6 +120,7 @@ class MainActivity : ComponentActivity() {
                 authenticationRepository = authenticationRepository,
                 networkMonitor = networkMonitor,
                 ordersRepository = ordersRepository,
+                historyOrdersRepository = historyOrdersRepository,
                 orderCreationRepository = orderCreationRepository,
                 orderDetailRepository = orderDetailRepository,
                 orderEditRepository = orderEditRepository,

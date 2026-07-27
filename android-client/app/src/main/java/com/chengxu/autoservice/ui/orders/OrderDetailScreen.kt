@@ -40,6 +40,7 @@ fun OrderDetailScreen(
     onEdit: () -> Unit = {},
     statusTargets: List<OrderStatus> = emptyList(),
     onChangeStatus: (OrderStatus) -> Unit = {},
+    readOnly: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -70,7 +71,7 @@ fun OrderDetailScreen(
                 style = MaterialTheme.typography.titleLarge,
                 color = AutoserviceColors.Ink,
             )
-            if (canEdit && order != null) {
+            if (!readOnly && canEdit && order != null) {
                 BrandButton(
                     onClick = onEdit,
                     modifier = Modifier.testTag("edit-order"),
@@ -89,7 +90,7 @@ fun OrderDetailScreen(
         } else {
             OrderDetailContent(
                 order = order,
-                statusTargets = statusTargets,
+                statusTargets = if (readOnly) emptyList() else statusTargets,
                 onChangeStatus = onChangeStatus,
                 modifier = Modifier.weight(1f),
             )

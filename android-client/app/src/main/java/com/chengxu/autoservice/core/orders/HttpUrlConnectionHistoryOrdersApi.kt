@@ -8,7 +8,6 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 import java.io.IOException
 import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
 import java.time.LocalDate
 
 class HttpUrlConnectionHistoryOrdersApi(
@@ -39,7 +38,7 @@ class HttpUrlConnectionHistoryOrdersApi(
         append("?scope=history")
         cursor?.takeIf(String::isNotBlank)?.let {
             append("&cursor=")
-            append(URLEncoder.encode(it, StandardCharsets.UTF_8))
+            append(URLEncoder.encode(it, "UTF-8"))
         }
     }
 

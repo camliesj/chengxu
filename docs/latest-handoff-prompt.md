@@ -737,7 +737,7 @@ cd E:\codex\chengxu\android-client
 - 初始 RED 发现 `functions/api/orders.js` 重复定义普通状态数组；现已改为使用 `shared/orderStatusPermissions.js` 的 `ORDINARY_ORDER_STATUSES`。`functions/_shared/order-status.js` 同时对外重导出该常量，防止服务端状态目录再次漂移。
 - 聚焦 Node 门禁为 15/15 通过。未执行远程 D1/Pages、未启动模拟器；下一步是 Web 全量门禁和 Android clean 无设备构建。
 
-### 阶段 4 第一批：Android 已结算历史档案中心（设计与计划已确认，待实施）
+### 阶段 4 第一批：Android 已结算历史档案中心（已完成，待真机验收）
 
 - 用户已确认采用分批方案：本批只将 Android“档案”标签从占位页升级为当前企业的已结算工单只读查询；员工与管理员均可查询、筛选、分页及查看详情，不实现客户车辆、保险档案、管理员修正或任何历史写入。
 - 已批准规格：`docs/superpowers/specs/2026-07-27-android-archive-history-read-design.md`。复用认证会话、`scope=history` 订单读取、现有企业隔离 Room 摘要/加密详情缓存与详情路由；离线不请求，401 复用共享会话失效与客户缓存清理。
@@ -748,4 +748,9 @@ cd E:\codex\chengxu\android-client
 - TDD RED 先因仓库边界不存在失败；GREEN 聚焦 JVM（历史仓库、历史 HTTP、受影响当前仓库）与 `:app:compileDebugAndroidTestKotlin` 均通过。未启动模拟器、未运行 connected 测试、未访问远程环境。
 - Task 3 已完成：新增 `HistoryOrdersDataSource` 以使 UI 不依赖具体仓库，`HistoryRecordsViewModel` 支持关键词与“全部时间/近 30 天/更早记录”筛选、重新同步与加载更多；`HistoryRecordsScreen` 使用品牌组件展示只读提示、查询、筛选、同步/空状态、历史卡片和加载更多。页面不含编辑、状态、结算等写入交互。
 - TDD RED 先因新的 records 类型和页面不存在失败；GREEN 聚焦 JVM 与 Compose 测试源码编译通过。期间的组件签名与测试调度器问题已按现有项目模式修正；未启动模拟器、未运行 connected 测试。
-- 下一步：按既有用户选择的当前会话内联方式执行 Task 4——生产装配、历史详情只读门禁、完整无设备验证与 APK 交付；不创建子代理或 worktree。
+- Task 4 已完成：`MainActivity` 现装配 history API/repository；认证会话根创建 `HistoryRecordsViewModel`，并经 Shell 与 Navigation 3 把状态、筛选、刷新和分页回调接入“档案”标签。`AppRoute.HistoryOrderDetail` 将历史卡片详情与当前工单详情分流，历史路由不触发当前详情读取或状态恢复。
+- 历史详情显式传入 `readOnly=true`：即使传入编辑能力和可用状态目标，编辑按钮与全部状态写入入口也会被组件本身屏蔽；常规“工单”详情的编辑/状态能力保持原有行为。Android 测试源码覆盖档案根页、历史卡片进入详情及只读门禁。
+- 最终无设备验证：Node `npm.cmd test` 180/180 通过、`npm.cmd run build` 成功；Android `:app:testDebugUnitTest`、`:app:compileDebugAndroidTestKotlin`、`:app:lintDebug`、`:app:assembleDebug` 均成功。Lint 修复了 history cursor 使用 API 33 `URLEncoder` 重载的问题，改为 API 26 可用的 UTF-8 字符串重载；最终 0 error、12 条既有非阻断 warning。未启动模拟器或 connected 测试。
+- Debug APK 已归档为 `dist/releases/android/autoservice-android-debug-0.1.0.apk`：19,944,686 bytes，SHA-256 `5314BAA6B770B28196EAE977726D2F28B31899894E51AD8EA82DB8577455C731`；Build Tools 35.0.0 `apksigner verify --verbose` 确认 v2 签名为 true。仅供 API 26+ 真机测试，不是生产签名发布包。
+- 真机验收：登录任一企业后打开“档案”，验证只出现已结算记录；验证关键词、近 30 天/更早记录筛选、在线加载更多、离线缓存可读且不触发同步；进入历史详情后确认没有编辑或状态变更入口；切换企业、登出或 401 后确认历史缓存不串企业且被清除。
+- 下一步：等待真机验收反馈；后续档案扩展（客户车辆、保险、管理员修正）须另行设计与授权，不在本批范围内。

@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -111,6 +112,24 @@ class OrderDetailScreenTest {
             .assertHeightIsAtLeast(48.dp)
             .performClick()
         assertEquals(1, statusCalls)
+    }
+
+    @Test
+    fun historyReadOnlyDetailSuppressesEditAndStatusEvenWhenCapabilitiesAreProvided() {
+        composeRule.setContent {
+            AutoserviceTheme {
+                OrderDetailScreen(
+                    order = order(),
+                    onBack = {},
+                    readOnly = true,
+                    canEdit = true,
+                    statusTargets = listOf(OrderStatus.COMPLETED),
+                )
+            }
+        }
+
+        composeRule.onAllNodesWithTag("edit-order").assertCountEquals(0)
+        composeRule.onAllNodesWithTag("change-status-COMPLETED").assertCountEquals(0)
     }
 
     private fun order() = OrderDisplayModel(

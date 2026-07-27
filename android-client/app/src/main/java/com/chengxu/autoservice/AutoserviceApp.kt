@@ -45,6 +45,7 @@ import com.chengxu.autoservice.core.orders.OrderCreationRepository
 import com.chengxu.autoservice.core.orders.OrderDetailRepository
 import com.chengxu.autoservice.core.orders.OrderEditRepository
 import com.chengxu.autoservice.core.orders.OrderStatusRepository
+import com.chengxu.autoservice.core.orders.HistoryOrdersDataSource
 import com.chengxu.autoservice.navigation.AppRoute
 import com.chengxu.autoservice.navigation.AppNavigationState
 import com.chengxu.autoservice.navigation.RootTab
@@ -59,6 +60,7 @@ import com.chengxu.autoservice.ui.edit.EditOrderViewModel
 import com.chengxu.autoservice.ui.orders.OrderDetailViewModel
 import com.chengxu.autoservice.ui.workbench.WorkbenchViewModel
 import com.chengxu.autoservice.ui.status.OrderStatusViewModel
+import com.chengxu.autoservice.ui.records.HistoryRecordsViewModel
 import kotlinx.coroutines.launch
 
 @Composable
@@ -66,6 +68,7 @@ fun AutoserviceApp(
     authenticationRepository: AuthenticationRepository,
     networkMonitor: NetworkMonitor,
     ordersRepository: OrdersRepository,
+    historyOrdersRepository: HistoryOrdersDataSource,
     orderCreationRepository: OrderCreationRepository,
     orderDetailRepository: OrderDetailRepository,
     orderEditRepository: OrderEditRepository,
@@ -92,6 +95,7 @@ fun AutoserviceApp(
                     authenticationRepository = authenticationRepository,
                     networkMonitor = networkMonitor,
                     ordersRepository = ordersRepository,
+                    historyOrdersRepository = historyOrdersRepository,
                     orderCreationRepository = orderCreationRepository,
                     orderDetailRepository = orderDetailRepository,
                     orderEditRepository = orderEditRepository,
@@ -180,6 +184,7 @@ private fun AuthenticatedRoot(
     authenticationRepository: AuthenticationRepository,
     networkMonitor: NetworkMonitor,
     ordersRepository: OrdersRepository,
+    historyOrdersRepository: HistoryOrdersDataSource,
     orderCreationRepository: OrderCreationRepository,
     orderDetailRepository: OrderDetailRepository,
     orderEditRepository: OrderEditRepository,
@@ -200,6 +205,10 @@ private fun AuthenticatedRoot(
         viewModelStoreOwner = sessionViewModelStoreOwner,
         factory = ordersViewModelFactory(ordersRepository),
     )
+    val historyRecordsViewModel: HistoryRecordsViewModel = viewModel(
+        viewModelStoreOwner = sessionViewModelStoreOwner,
+        factory = historyRecordsViewModelFactory(historyOrdersRepository),
+    )
     val createOrderViewModel: CreateOrderViewModel = viewModel(
         viewModelStoreOwner = sessionViewModelStoreOwner,
         factory = createOrderViewModelFactory(orderCreationRepository, networkMonitor),
@@ -218,6 +227,7 @@ private fun AuthenticatedRoot(
     )
     val state by workbenchViewModel.uiState.collectAsStateWithLifecycle()
     val ordersState by ordersViewModel.uiState.collectAsStateWithLifecycle()
+    val historyRecordsState by historyRecordsViewModel.uiState.collectAsStateWithLifecycle()
     val createState by createOrderViewModel.uiState.collectAsStateWithLifecycle()
     val detailState by detailViewModel.uiState.collectAsStateWithLifecycle()
     val editState by editOrderViewModel.uiState.collectAsStateWithLifecycle()
@@ -279,6 +289,12 @@ private fun AuthenticatedRoot(
         onOrdersFilterSelected = ordersViewModel::selectFilter,
         onOrdersClearFilters = ordersViewModel::clearFilters,
         onOrdersRefresh = ordersViewModel::refresh,
+        historyRecordsState = historyRecordsState,
+        onHistoryRecordsQueryChange = historyRecordsViewModel::updateQuery,
+        onHistoryRecordsTimeFilterChange = historyRecordsViewModel::selectTimeFilter,
+        onHistoryRecordsClearFilters = historyRecordsViewModel::clearFilters,
+        onHistoryRecordsRefresh = historyRecordsViewModel::refresh,
+        onHistoryRecordsLoadMore = historyRecordsViewModel::loadNextPage,
         createState = createState,
         onCreateUpdate = createOrderViewModel::update,
         onCreateNext = createOrderViewModel::next,
@@ -371,6 +387,18 @@ private fun ordersViewModelFactory(
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(OrdersViewModel::class.java)) {
             return OrdersViewModel(ordersRepository) as T
+        }
+        throw IllegalArgumentException("Unsupported ViewModel class: ${modelClass.name}")
+    }
+}
+
+private fun historyRecordsViewModelFactory(
+    historyOrdersRepository: HistoryOrdersDataSource,
+): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(HistoryRecordsViewModel::class.java)) {
+            return HistoryRecordsViewModel(historyOrdersRepository) as T
         }
         throw IllegalArgumentException("Unsupported ViewModel class: ${modelClass.name}")
     }

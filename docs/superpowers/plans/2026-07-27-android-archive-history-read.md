@@ -209,7 +209,7 @@ Commit: `feat(android): add read-only history records screen`
 - Consumes: `HistoryOrdersRepository`、`HistoryRecordsViewModel`、`HistoryRecordsScreen`。
 - Produces: `AppRoute.Records` 的真实历史档案页；历史来源详情的强制只读展示。
 
-- [ ] **Step 1: 写失败的导航/详情门禁测试。**
+- [x] **Step 1: 写失败的导航/详情门禁测试。**
 
 ```kotlin
 navigationState.select(RootTab.RECORDS)
@@ -220,17 +220,17 @@ composeRule.onNodeWithTag("order-detail-edit").assertDoesNotExist()
 
 覆盖 records 根路由装配、历史卡片进入详情以及管理员/已开启能力下仍无写入入口。
 
-- [ ] **Step 2: 运行 Android 测试源码编译确认 RED。**
+- [x] **Step 2: 运行 Android 测试源码编译确认 RED。**
 
 Run: `cd android-client; .\gradlew.bat :app:compileDebugAndroidTestKotlin`
 
 Expected: FAIL，原因是 records 装配或历史只读门禁尚未接入。
 
-- [ ] **Step 3: 完成生产装配和详情门禁。**
+- [x] **Step 3: 完成生产装配和详情门禁。**
 
 在 `MainActivity` 创建历史 API/仓库；在认证会话根创建历史 ViewModel 并把状态、回调传给 `AutoserviceShell` / `AppNavDisplay`。用路由来源或显式 `readOnly` 参数使 `OrderDetailScreen` 历史进入时无条件隐藏所有写入动作，普通“工单”页的既有编辑和状态能力保持不变。
 
-- [ ] **Step 4: 运行全量无设备门禁并归档 APK。**
+- [x] **Step 4: 运行全量无设备门禁并归档 APK。**
 
 Run:
 
@@ -246,7 +246,7 @@ $env:ANDROID_HOME='E:\codex\APP\.android-build\android-sdk'
 
 复制 `app/build/outputs/apk/debug/app-debug.apk` 到发布目录，使用 Build Tools `apksigner verify --verbose` 校验，记录字节数和 SHA-256；不启动模拟器。
 
-- [ ] **Step 5: 更新交接、提交推送与最终核对。**
+- [x] **Step 5: 更新交接、提交推送与最终核对。**
 
 更新真机清单（历史筛选、分页、离线缓存、企业切换、详情只读）；执行 `git diff --check`，提交 `release(android): deliver history records read flow`，推送后确认 `HEAD == origin/codex/android-mobile-ui-atlas` 与工作区干净。
 

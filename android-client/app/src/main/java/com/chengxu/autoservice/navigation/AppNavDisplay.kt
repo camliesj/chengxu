@@ -22,13 +22,14 @@ import com.chengxu.autoservice.ui.orders.OrderDetailUiState
 import com.chengxu.autoservice.ui.orders.OrderStatusFilter
 import com.chengxu.autoservice.ui.orders.OrdersScreen
 import com.chengxu.autoservice.ui.orders.OrdersUiState
+import com.chengxu.autoservice.ui.records.HistoryRecordsScreen
+import com.chengxu.autoservice.ui.records.HistoryRecordsUiState
+import com.chengxu.autoservice.ui.records.HistoryTimeFilter
 import com.chengxu.autoservice.ui.status.OrderStatusConfirmScreen
 import com.chengxu.autoservice.ui.status.OrderStatusUiState
 import com.chengxu.autoservice.core.orders.model.BusinessCapability
 import com.chengxu.autoservice.core.orders.model.OrderStatus
 import com.chengxu.autoservice.core.orders.model.allowedOrderTransition
-import com.chengxu.autoservice.ui.stage.StageScreen
-import com.chengxu.autoservice.ui.stage.StageKind
 import com.chengxu.autoservice.ui.workbench.WorkbenchAction
 import com.chengxu.autoservice.ui.workbench.WorkbenchScreen
 import com.chengxu.autoservice.ui.workbench.WorkbenchUiState
@@ -45,6 +46,12 @@ fun AppNavDisplay(
     onOrdersFilterSelected: (OrderStatusFilter) -> Unit = {},
     onOrdersClearFilters: () -> Unit = {},
     onOrdersRefresh: () -> Unit = {},
+    historyRecordsState: HistoryRecordsUiState = HistoryRecordsUiState(loading = false),
+    onHistoryRecordsQueryChange: (String) -> Unit = {},
+    onHistoryRecordsTimeFilterChange: (HistoryTimeFilter) -> Unit = {},
+    onHistoryRecordsClearFilters: () -> Unit = {},
+    onHistoryRecordsRefresh: () -> Unit = {},
+    onHistoryRecordsLoadMore: () -> Unit = {},
     createState: CreateOrderUiState = CreateOrderUiState(),
     onCreateUpdate: (CreateOrderField, String) -> Unit = { _, _ -> },
     onCreateNext: () -> Unit = {},
@@ -115,7 +122,18 @@ fun AppNavDisplay(
                         onDiscardAndExit = onCreateDiscardAndExit,
                         onSaveAndExit = onCreateSaveAndExit,
                     )
-                    AppRoute.Records -> StageScreen(kind = StageKind.RECORDS, offline = isOffline)
+                    AppRoute.Records -> HistoryRecordsScreen(
+                        state = historyRecordsState,
+                        isOffline = isOffline,
+                        onQueryChange = onHistoryRecordsQueryChange,
+                        onTimeFilterChange = onHistoryRecordsTimeFilterChange,
+                        onClearFilters = onHistoryRecordsClearFilters,
+                        onRefresh = onHistoryRecordsRefresh,
+                        onLoadMore = onHistoryRecordsLoadMore,
+                        onOrderSelected = { orderId ->
+                            navigationState.push(AppRoute.HistoryOrderDetail(orderId))
+                        },
+                    )
                     AppRoute.Profile -> profileSession?.let {
                         ProfileScreen(session = it, offline = isOffline, onLogout = onLogout)
                     } ?: ShellPlaceholder(title = RootTab.PROFILE.label)
@@ -126,6 +144,11 @@ fun AppNavDisplay(
                         onEdit = { onEditOrder(entry.orderId) },
                         statusTargets = availableStatusTargets(detailState, profileSession),
                         onChangeStatus = { target -> navigationState.push(AppRoute.ChangeOrderStatus(entry.orderId, target.wireValue)) },
+                    )
+                    is AppRoute.HistoryOrderDetail -> OrderDetailScreen(
+                        order = historyRecordsState.allOrders.firstOrNull { order -> order.id == entry.orderId },
+                        onBack = navigationState::pop,
+                        readOnly = true,
                     )
                     is AppRoute.EditOrder -> EditOrderScreen(
                         state = editState,

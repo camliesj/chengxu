@@ -26,6 +26,8 @@ import com.chengxu.autoservice.ui.workbench.WorkbenchAction
 import com.chengxu.autoservice.ui.workbench.WorkbenchOrder
 import com.chengxu.autoservice.ui.workbench.WorkbenchSection
 import com.chengxu.autoservice.ui.workbench.WorkbenchUiState
+import com.chengxu.autoservice.ui.records.HistoryRecordsTestTags
+import com.chengxu.autoservice.ui.records.HistoryRecordsUiState
 import com.chengxu.autoservice.navigation.RootTab
 import com.chengxu.autoservice.navigation.AppNavigationState
 import org.junit.Assert.assertEquals
@@ -101,10 +103,29 @@ class AutoserviceShellTest {
         composeRule.onNodeWithText("客户与车辆").assertIsDisplayed()
     }
 
+    @Test
+    fun recordsTabShowsHistoryScreenAndOpensItsDetail() {
+        launchShell(
+            connection = ConnectionState.Online,
+            historyState = HistoryRecordsUiState(
+                loading = false,
+                allOrders = listOf(historyOrder()),
+                visibleOrders = listOf(historyOrder()),
+            ),
+        )
+
+        composeRule.onNodeWithText("档案").performClick()
+        composeRule.onNodeWithTag(HistoryRecordsTestTags.ROOT).assertIsDisplayed()
+        composeRule.onNodeWithTag("${HistoryRecordsTestTags.ORDER_CARD_PREFIX}H-1").performClick()
+        composeRule.onNodeWithText("工单详情").assertIsDisplayed()
+        composeRule.onAllNodesWithTag("edit-order").assertCountEquals(0)
+    }
+
     private fun launchShell(
         connection: ConnectionState,
         navigationState: AppNavigationState = AppNavigationState(),
         ordersState: OrdersUiState = OrdersUiState(loading = false),
+        historyState: HistoryRecordsUiState = HistoryRecordsUiState(loading = false),
         workbenchState: WorkbenchUiState? = null,
     ) {
         composeRule.setContent {
@@ -114,6 +135,7 @@ class AutoserviceShellTest {
                     navigationState = navigationState,
                     createState = CreateOrderUiState(loading = false, connection = connection),
                     ordersState = ordersState,
+                    historyRecordsState = historyState,
                     workbenchState = workbenchState,
                 )
             }
@@ -156,5 +178,23 @@ class AutoserviceShellTest {
                 amountLabel = "¥500",
             ),
         ),
+    )
+
+    private fun historyOrder() = OrderDisplayModel(
+        id = "H-1",
+        plate = "蒙A12345",
+        customer = "张先生",
+        car = "大众帕萨特",
+        type = "常规保养",
+        status = "已结算",
+        statusTone = OrderStatusTone.SUCCESS,
+        serviceSummary = "更换机油与滤芯",
+        record = "更换机油与滤芯",
+        date = "2026-07-20",
+        time = "09:30",
+        dateTimeLabel = "2026-07-20 · 09:30",
+        amountLabel = "¥500",
+        insuranceExpiry = "2026-12-31",
+        delivery = "2026-07-21",
     )
 }
