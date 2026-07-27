@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { ORDER_EDIT_FIELDS } from '../functions/_shared/order-edit.js';
 
 const contract = JSON.parse(await readFile(
   new URL('../contracts/order-edit-v1.json', import.meta.url),
@@ -29,6 +30,7 @@ test('edit contract locks version, fields, and stage 2 metadata', () => {
   assert.equal(contract.version, 1);
   assert.deepEqual(contract.fields, EDIT_FIELDS);
   assert.deepEqual(contract.metadata, creationContract.metadata);
+  assert.deepEqual(ORDER_EDIT_FIELDS, EDIT_FIELDS);
 });
 
 test('edit contract provides two canonical full snapshots', () => {

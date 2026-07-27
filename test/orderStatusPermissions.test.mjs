@@ -9,6 +9,7 @@ import {
   canEmployeeSetOrderStatus,
   canTransitionOrderStatus,
 } from '../shared/orderStatusPermissions.js';
+import { ORDINARY_ORDER_STATUSES as serverOrdinaryStatuses } from '../functions/_shared/order-status.js';
 import { validateSettlementPermission } from '../functions/api/orders.js';
 
 const appSource = await readFile(new URL('../src/App.jsx', import.meta.url), 'utf8');
@@ -20,6 +21,7 @@ const statusContract = JSON.parse(await readFile(
 test('canonical ordinary status contract locks targets and staff edges', () => {
   assert.equal(statusContract.version, 1);
   assert.deepEqual(statusContract.targets, ORDINARY_ORDER_STATUSES);
+  assert.deepEqual(serverOrdinaryStatuses, statusContract.targets);
   assert.deepEqual(statusContract.transitions.staff, [
     { from: '在修中', to: '已完工' },
     { from: '已完工', to: '待结算' },

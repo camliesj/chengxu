@@ -707,3 +707,9 @@ cd E:\codex\chengxu\android-client
 - 详情入口会检查同工单的待确认信封并查询原操作；状态矩阵 JVM 测试已补齐其余合同禁止边。新增 JVM 与 Android Compose 测试源码，未运行 connected 测试、未启动模拟器、未访问远程 D1/Pages 或生产能力开关。
 - 已完成的 Task 11 聚焦门禁：`HttpUrlConnectionOrderStatusApiTest`、`OrderStatusRepositoryTest`、`OrderStatusViewModelTest` 与 `OrderStateMachineTest`；`:app:compileDebugAndroidTestKotlin`、`:app:lintDebug` 均通过。下一步为阶段 3 Task 12：跨端合同门禁与干净候选 APK 构建。
 - 任务完成后额外执行完整无设备门禁：`:app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:lintDebug :app:assembleDebug`，结果 `BUILD SUCCESSFUL`。已刷新可安装 APK：`dist/releases/android/autoservice-android-debug-0.1.0.apk`（19,909,645 bytes，SHA-256 `03300EE0DF56B318D285DCF5D1239877D4F511D9562B8B708C34390AF2AC35F4`）。
+
+### 阶段 3 Task 12：跨端合同门禁（进行中检查点）
+
+- 新增 `test/orderMutationContractGate.test.mjs`，通过源级门禁锁定：网页普通状态不得回落到旧 `upsertOrder`，旧普通编辑必须委派给 `handleEditOrderCommand`，Android 加密草稿必须同时保留 `edit:<orderId>` 与 `status:<orderId>` namespace，Android 编辑/状态命名与两份根合同一致。
+- 初始 RED 发现 `functions/api/orders.js` 重复定义普通状态数组；现已改为使用 `shared/orderStatusPermissions.js` 的 `ORDINARY_ORDER_STATUSES`。`functions/_shared/order-status.js` 同时对外重导出该常量，防止服务端状态目录再次漂移。
+- 聚焦 Node 门禁为 15/15 通过。未执行远程 D1/Pages、未启动模拟器；下一步是 Web 全量门禁和 Android clean 无设备构建。

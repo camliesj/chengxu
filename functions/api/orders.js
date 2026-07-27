@@ -3,9 +3,9 @@ import { buildOrderAuditEvent, protectArchiveEdit, settledEditAccessError } from
 import { decodeOrderCursor, encodeOrderCursor, readCapabilities } from '../_shared/order-foundation.js';
 import { handleCreateOrderCommand, legacyCreateOrderInput } from '../_shared/order-creation.js';
 import { handleEditOrderCommand } from '../_shared/order-edit.js';
-import { canEmployeeSetOrderStatus } from '../../shared/orderStatusPermissions.js';
+import { canEmployeeSetOrderStatus, ORDINARY_ORDER_STATUSES } from '../../shared/orderStatusPermissions.js';
 
-const CURRENT_STATUSES = ['在修中', '已完工', '待结算'];
+const CURRENT_STATUSES = ORDINARY_ORDER_STATUSES;
 const DEFAULT_PAGE_LIMIT = 50;
 const MAX_PAGE_LIMIT = 100;
 

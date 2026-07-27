@@ -11,6 +11,8 @@ import { readCapabilities } from './order-foundation.js';
 import { toMobileOrder } from '../api/orders.js';
 import { ORDINARY_ORDER_STATUSES, canTransitionOrderStatus } from '../../shared/orderStatusPermissions.js';
 
+export { ORDINARY_ORDER_STATUSES };
+
 export function normalizeStatusCommand(input = {}) {
   const operationId = cleanText(input?.operationId);
   if (!isUuid(operationId)) return { value: null, error: 'OPERATION_ID_REQUIRED' };
