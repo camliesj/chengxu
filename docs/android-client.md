@@ -142,12 +142,13 @@ adb install -r E:\codex\chengxu\dist\releases\android\autoservice-android-debug-
 5. 登出、切换企业或让 history API 返回 401 后，重新进入应用确认历史缓存已经清除，不能读取前一会话或另一企业记录。
 6. 在 360dp 宽度、大字体、横屏与刘海/打孔屏上复核档案标题、搜索框、横向筛选和详情返回区均位于系统状态栏下方；所有可点击目标至少 48dp。
 
-当前归档 APK：`dist/releases/android/autoservice-android-debug-0.1.0.apk`，20,104,100 bytes，SHA-256 `B85791CC0F199A85B24C07F1544FC55943D0BCDED6EDFF7C194D2AA80616274C`；仅供 API 26+ 真机测试，使用 Debug 签名，Build Tools 35.0.0 已验证 v2 签名有效。
+当前归档 APK：`dist/releases/android/autoservice-android-debug-0.1.0.apk`，20,107,478 bytes，SHA-256 `786CC0B882E452AD894675E1D582DE2BE72175D596D3C7B95C5409C84EC91AD3`；仅供 API 26+ 真机测试，使用 Debug 签名，Build Tools 35.0.0 已验证 v2 签名有效。
 
 ## UI 响应与大字体复核
 
 1. 在“工单”和“档案”页面快速连续切换横向筛选，确认按下立即有轻微缩放反馈、选中背景与边框在抬手后立即更新，标签始终处于 48dp 控件垂直中心。
 2. 将系统字体调至至少 1.2 倍后打开“新增”，确认“上一步”和“保存草稿”始终单行显示，固定底栏不遮挡页面内容或底部五栏。
+3. 不离开“工单”或“档案”页面连续切换筛选，确认当前页的选中态、数量和下方卡片立即同时变化；若没有匹配数据，应立即显示“未找到匹配工单/档案”而非保留上一组结果。
 
 ## 正式发布前检查
 

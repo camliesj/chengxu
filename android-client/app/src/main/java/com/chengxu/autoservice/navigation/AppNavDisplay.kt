@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation3.runtime.NavEntry
@@ -81,6 +83,21 @@ fun AppNavDisplay(
     onLogout: () -> Unit = {},
     isOffline: Boolean = false,
 ) {
+    // NavDisplay retains NavEntry content between recompositions. Keep the mutable
+    // order inputs in updated state so a filter click redraws the active entry.
+    val currentOrdersState by rememberUpdatedState(ordersState)
+    val currentOrdersQueryChange by rememberUpdatedState(onOrdersQueryChange)
+    val currentOrdersFilterSelected by rememberUpdatedState(onOrdersFilterSelected)
+    val currentOrdersClearFilters by rememberUpdatedState(onOrdersClearFilters)
+    val currentOrdersRefresh by rememberUpdatedState(onOrdersRefresh)
+    val currentHistoryRecordsState by rememberUpdatedState(historyRecordsState)
+    val currentHistoryRecordsQueryChange by rememberUpdatedState(onHistoryRecordsQueryChange)
+    val currentHistoryRecordsTimeFilterChange by rememberUpdatedState(onHistoryRecordsTimeFilterChange)
+    val currentHistoryRecordsClearFilters by rememberUpdatedState(onHistoryRecordsClearFilters)
+    val currentHistoryRecordsRefresh by rememberUpdatedState(onHistoryRecordsRefresh)
+    val currentHistoryRecordsLoadMore by rememberUpdatedState(onHistoryRecordsLoadMore)
+    val currentIsOffline by rememberUpdatedState(isOffline)
+
     NavDisplay(
         backStack = navigationState.currentStack,
         modifier = modifier,
@@ -99,12 +116,12 @@ fun AppNavDisplay(
                         )
                     } ?: WorkbenchShellPlaceholder()
                     AppRoute.Orders -> OrdersScreen(
-                        state = ordersState,
-                        isOffline = isOffline,
-                        onQueryChange = onOrdersQueryChange,
-                        onFilterSelected = onOrdersFilterSelected,
-                        onClearFilters = onOrdersClearFilters,
-                        onRefresh = onOrdersRefresh,
+                        state = currentOrdersState,
+                        isOffline = currentIsOffline,
+                        onQueryChange = currentOrdersQueryChange,
+                        onFilterSelected = currentOrdersFilterSelected,
+                        onClearFilters = currentOrdersClearFilters,
+                        onRefresh = currentOrdersRefresh,
                         onOrderSelected = { orderId ->
                             navigationState.push(AppRoute.OrderDetail(orderId))
                         },
@@ -123,13 +140,13 @@ fun AppNavDisplay(
                         onSaveAndExit = onCreateSaveAndExit,
                     )
                     AppRoute.Records -> HistoryRecordsScreen(
-                        state = historyRecordsState,
-                        isOffline = isOffline,
-                        onQueryChange = onHistoryRecordsQueryChange,
-                        onTimeFilterChange = onHistoryRecordsTimeFilterChange,
-                        onClearFilters = onHistoryRecordsClearFilters,
-                        onRefresh = onHistoryRecordsRefresh,
-                        onLoadMore = onHistoryRecordsLoadMore,
+                        state = currentHistoryRecordsState,
+                        isOffline = currentIsOffline,
+                        onQueryChange = currentHistoryRecordsQueryChange,
+                        onTimeFilterChange = currentHistoryRecordsTimeFilterChange,
+                        onClearFilters = currentHistoryRecordsClearFilters,
+                        onRefresh = currentHistoryRecordsRefresh,
+                        onLoadMore = currentHistoryRecordsLoadMore,
                         onOrderSelected = { orderId ->
                             navigationState.push(AppRoute.HistoryOrderDetail(orderId))
                         },

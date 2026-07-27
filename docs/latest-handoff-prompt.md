@@ -763,3 +763,10 @@ cd E:\codex\chengxu\android-client
 - 最终门禁：Node `npm.cmd test` 180/180、`npm.cmd run build` 成功；Android `:app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:lintDebug :app:assembleDebug` 为 `BUILD SUCCESSFUL`（68 tasks）。
 - 已归档 Debug APK：`dist/releases/android/autoservice-android-debug-0.1.0.apk`，20,104,100 bytes，SHA-256 `B85791CC0F199A85B24C07F1544FC55943D0BCDED6EDFF7C194D2AA80616274C`；Build Tools 35.0.0 `apksigner verify --verbose` 确认 v2 签名有效。仅供 API 26+ 真机测试。
 - 下一步：由用户在真机复核筛选按压、快速连续切换、系统大字体与新增页底栏；收到业务验收后再继续后续功能任务。
+
+### Android 筛选即时更新修复（已完成，待真机验收）
+
+- 用户反馈筛选不是慢而是只有离页再返回才更新，且当前页筛选下没有正确的结果列表。根因已确认：Navigation 3 `NavDisplay` 会保留 `NavEntry` 内容 lambda，入口闭包捕获首次进入时的工单/档案状态，ViewModel 虽已更新但当前 Entry 不会读取新值。
+- `AppNavDisplay` 现用 `rememberUpdatedState` 为工单、档案、筛选回调和离线状态提供最新引用；当前 Entry 内点击筛选后立即使用新的 `OrdersUiState` / `HistoryRecordsUiState` 重组，不再依赖切换标签重建页面。
+- 新增 `AppNavDisplayTest`。旧实现连接式测试精确失败：选择“在修中”后仍能找到旧的 `orders-card-O-PENDING`；修复后同一测试在 API 35 模拟器通过，当前页面只保留筛选后的卡片。
+- 本轮 Android 门禁 `:app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:lintDebug :app:assembleDebug` 为 `BUILD SUCCESSFUL`（68 tasks）；已生成 Debug APK 20,107,478 bytes，SHA-256 `786CC0B882E452AD894675E1D582DE2BE72175D596D3C7B95C5409C84EC91AD3`，v2 签名有效。
