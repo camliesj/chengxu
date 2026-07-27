@@ -22,4 +22,7 @@ sealed interface AppRoute : NavKey {
 
     @Serializable
     data class OrderDetail(val orderId: String) : AppRoute
+
+    @Serializable
+    data class EditOrder(val orderId: String) : AppRoute
 }

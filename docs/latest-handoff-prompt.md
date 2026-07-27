@@ -656,6 +656,12 @@ cd E:\codex\chengxu\android-client
 - `FoundationDao` 和 `EncryptedOrderStore` 新增按 `companyId + localId` 的草稿读取/观察/删除，以及 `replaceEditDraft`。编辑草稿仅使用 `edit:<orderId>`，不会影响 `create:*` 创建草稿或 `status:*` 状态信封；草稿和详情仍只保存密文，损坏密文会按精确 localId 受控删除。
 - TDD 证据：详情/编辑仓库测试先因缺少仓库及本地接口而 RED；随后焦点 JVM 测试（详情、编辑、创建仓库）和 `:app:compileDebugAndroidTestKotlin` 均通过。未启动模拟器、未运行连接式 Android 测试，未访问远端 D1、未部署 Pages、未生成 APK。
 
+### 阶段 3 Task 8：Android 编辑界面与导航（进行中检查点）
+
+- 已新增独立的编辑 UI state/ViewModel：编辑提交使用 Task 6/7 的 canonical command，离线或没有 `EDIT_ORDER` 时不会发出请求；未知结果固定进入确认态，409 冲突保留 server/local 字段供显式 rebase，rebase 只替换 expectedVersion 而不提交。
+- 新增 `OrderDetailViewModel` 读取完整详情信封并暴露真实编辑能力；Navigation 3 已增加 `AppRoute.EditOrder`，编辑页使用稳定 test tag（提交、保存草稿、确认结果、返回详情、rebase）且冲突时展示服务器/本地值。会话级依赖注入、详情入口替换、四步字段完整复用和生命周期 flush 仍在本任务后续完成。
+- 本检查点的 `EditOrderViewModelTest`、`OrderDetailViewModelTest` 与 `AppNavigationStateTest` 已通过；未启动模拟器，尚未执行 Task 8 最终全量门禁或生成 APK。
+
 每次重要改动后必须：
 
 1. 提交 Git；

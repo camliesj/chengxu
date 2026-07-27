@@ -49,4 +49,13 @@ class AppNavigationState(initialTab: RootTab = RootTab.WORKBENCH) {
             add(AppRoute.OrderDetail(orderId))
         }
     }
+
+    fun openEditedOrder(orderId: String) {
+        activeTab = RootTab.ORDERS
+        stacks.getValue(RootTab.ORDERS).apply {
+            clear()
+            add(AppRoute.Orders)
+            add(AppRoute.OrderDetail(orderId))
+        }
+    }
 }
