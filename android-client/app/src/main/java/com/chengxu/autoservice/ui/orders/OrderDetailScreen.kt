@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -34,6 +35,8 @@ import com.chengxu.autoservice.core.designsystem.StatusTone
 fun OrderDetailScreen(
     order: OrderDisplayModel?,
     onBack: () -> Unit,
+    canEdit: Boolean = false,
+    onEdit: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -64,6 +67,13 @@ fun OrderDetailScreen(
                 style = MaterialTheme.typography.titleLarge,
                 color = AutoserviceColors.Ink,
             )
+            if (canEdit && order != null) {
+                BrandButton(
+                    onClick = onEdit,
+                    modifier = Modifier.testTag("edit-order"),
+                    tone = BrandButtonTone.SECONDARY,
+                ) { Text("编辑") }
+            }
             StatusChip(
                 text = "只读",
                 icon = BrandIconResource.Shield,

@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
@@ -67,6 +68,27 @@ class OrderDetailScreenTest {
             .performClick()
 
         assertEquals(1, backCount)
+    }
+
+    @Test
+    fun editCapabilityShowsAnAccessibleEditEntry() {
+        var editCount = 0
+        composeRule.setContent {
+            AutoserviceTheme {
+                OrderDetailScreen(
+                    order = order(),
+                    onBack = {},
+                    canEdit = true,
+                    onEdit = { editCount += 1 },
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("edit-order")
+            .assertHasClickAction()
+            .assertHeightIsAtLeast(48.dp)
+            .performClick()
+        assertEquals(1, editCount)
     }
 
     private fun order() = OrderDisplayModel(

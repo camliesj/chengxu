@@ -16,7 +16,11 @@ import com.chengxu.autoservice.core.auth.androidKeystoreSessionCipher
 import com.chengxu.autoservice.core.network.AndroidConnectivityNetworkMonitor
 import com.chengxu.autoservice.core.orders.CachedOrdersRepository
 import com.chengxu.autoservice.core.orders.DefaultOrderCreationRepository
+import com.chengxu.autoservice.core.orders.DefaultOrderDetailRepository
+import com.chengxu.autoservice.core.orders.DefaultOrderEditRepository
 import com.chengxu.autoservice.core.orders.HttpUrlConnectionOrderCreateApi
+import com.chengxu.autoservice.core.orders.HttpUrlConnectionOrderEditApi
+import com.chengxu.autoservice.core.orders.HttpUrlConnectionOrderReadApi
 import com.chengxu.autoservice.core.orders.HttpUrlConnectionOrdersApi
 import com.chengxu.autoservice.core.orders.SessionInvalidator
 import com.chengxu.autoservice.core.orders.cache.AutoserviceDatabase
@@ -72,6 +76,23 @@ class MainActivity : ComponentActivity() {
             summaryStore = orderCache,
             sessionInvalidator = sessionInvalidator,
         )
+        val orderDetailRepository = DefaultOrderDetailRepository(
+            sessionRepository = authenticationRepository,
+            networkMonitor = networkMonitor,
+            api = HttpUrlConnectionOrderReadApi(BuildConfig.API_ORIGIN),
+            localStore = encryptedOrderStore,
+            sessionInvalidator = sessionInvalidator,
+        )
+        val orderEditRepository = DefaultOrderEditRepository(
+            sessionRepository = authenticationRepository,
+            networkMonitor = networkMonitor,
+            readApi = HttpUrlConnectionOrderReadApi(BuildConfig.API_ORIGIN),
+            createApi = HttpUrlConnectionOrderCreateApi(BuildConfig.API_ORIGIN),
+            editApi = HttpUrlConnectionOrderEditApi(BuildConfig.API_ORIGIN),
+            localStore = encryptedOrderStore,
+            summaryStore = orderCache,
+            sessionInvalidator = sessionInvalidator,
+        )
 
         setContent {
             AutoserviceApp(
@@ -79,6 +100,8 @@ class MainActivity : ComponentActivity() {
                 networkMonitor = networkMonitor,
                 ordersRepository = ordersRepository,
                 orderCreationRepository = orderCreationRepository,
+                orderDetailRepository = orderDetailRepository,
+                orderEditRepository = orderEditRepository,
             )
         }
     }

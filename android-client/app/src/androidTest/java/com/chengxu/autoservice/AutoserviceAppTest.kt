@@ -25,6 +25,11 @@ import com.chengxu.autoservice.core.network.ConnectionState
 import com.chengxu.autoservice.core.network.NetworkMonitor
 import com.chengxu.autoservice.core.orders.OrderSyncState
 import com.chengxu.autoservice.core.orders.OrderCreationRepository
+import com.chengxu.autoservice.core.orders.OrderDetailRepository
+import com.chengxu.autoservice.core.orders.OrderEditRepository
+import com.chengxu.autoservice.core.orders.OrderReadFailure
+import com.chengxu.autoservice.core.orders.OrderReadResult
+import com.chengxu.autoservice.core.orders.OrderEditorData
 import com.chengxu.autoservice.core.orders.OrdersRepository
 import com.chengxu.autoservice.core.orders.OrdersSnapshot
 import com.chengxu.autoservice.core.orders.RepairOrder
@@ -36,7 +41,9 @@ import com.chengxu.autoservice.core.orders.model.OrderCreationMetadata
 import com.chengxu.autoservice.core.orders.model.OrderCreationMetadataEnvelope
 import com.chengxu.autoservice.core.orders.model.OrderCreationOptions
 import com.chengxu.autoservice.core.orders.model.OrderDetail
+import com.chengxu.autoservice.core.orders.model.OrderDetailEnvelope
 import com.chengxu.autoservice.core.orders.model.OrderDraft
+import com.chengxu.autoservice.core.orders.model.OrderEditCommand
 import com.chengxu.autoservice.core.session.AppSession
 import com.chengxu.autoservice.core.session.PermissionSnapshot
 import com.chengxu.autoservice.core.designsystem.AutoserviceTheme
@@ -135,6 +142,8 @@ class AutoserviceAppTest {
                 networkMonitor = FakeNetworkMonitor(),
                 ordersRepository = FakeOrdersRepository(),
                 orderCreationRepository = FakeOrderCreationRepository(),
+                orderDetailRepository = FakeOrderDetailRepository(),
+                orderEditRepository = FakeOrderEditRepository(),
             )
         }
     }
@@ -216,5 +225,19 @@ class AutoserviceAppTest {
             OrderCommandResult.ServerFailure
         override suspend fun confirm(operationId: String): OrderCommandResult<OrderDetail> =
             OrderCommandResult.ServerFailure
+    }
+
+    private class FakeOrderDetailRepository : OrderDetailRepository {
+        override suspend fun load(orderId: String): OrderReadResult<OrderDetailEnvelope> =
+            OrderReadResult.Failure(OrderReadFailure.NotFound)
+    }
+
+    private class FakeOrderEditRepository : OrderEditRepository {
+        override suspend fun loadEditor(orderId: String): OrderCommandResult<OrderEditorData> = OrderCommandResult.NotFound
+        override fun observeDraft(orderId: String): Flow<OrderDraft?> = flowOf(null)
+        override suspend fun saveDraft(orderId: String, draft: OrderDraft) = Unit
+        override suspend fun deleteDraft(orderId: String) = Unit
+        override suspend fun edit(orderId: String, command: OrderEditCommand): OrderCommandResult<OrderDetail> = OrderCommandResult.NotFound
+        override suspend fun confirm(operationId: String): OrderCommandResult<OrderDetail> = OrderCommandResult.NotFound
     }
 }

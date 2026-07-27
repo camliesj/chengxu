@@ -34,7 +34,10 @@ import com.chengxu.autoservice.ui.workbench.WorkbenchUiState
 import com.chengxu.autoservice.ui.create.CreateOrderField
 import com.chengxu.autoservice.ui.create.CreateOrderUiState
 import com.chengxu.autoservice.ui.orders.OrderStatusFilter
+import com.chengxu.autoservice.ui.orders.OrderDetailUiState
 import com.chengxu.autoservice.ui.orders.OrdersUiState
+import com.chengxu.autoservice.ui.edit.EditOrderField
+import com.chengxu.autoservice.ui.edit.EditOrderUiState
 
 @Composable
 fun AutoserviceShell(
@@ -60,6 +63,17 @@ fun AutoserviceShell(
     onCreateContinueEditing: () -> Unit = {},
     onCreateDiscardAndExit: () -> Unit = {},
     onCreateSaveAndExit: () -> Unit = {},
+    detailState: OrderDetailUiState = OrderDetailUiState(),
+    onEditOrder: (String) -> Unit = {},
+    editState: EditOrderUiState = EditOrderUiState(),
+    onEditUpdate: (EditOrderField, String) -> Unit = { _, _ -> },
+    onEditNext: () -> Unit = {},
+    onEditBack: () -> Unit = {},
+    onEditSubmit: () -> Unit = {},
+    onEditConfirm: () -> Unit = {},
+    onEditSaveDraft: () -> Unit = {},
+    onEditReturn: () -> Unit = {},
+    onEditRebase: () -> Unit = {},
     profileSession: AppSession? = null,
     onLogout: () -> Unit = {},
 ) {
@@ -103,6 +117,17 @@ fun AutoserviceShell(
             onCreateContinueEditing = onCreateContinueEditing,
             onCreateDiscardAndExit = onCreateDiscardAndExit,
             onCreateSaveAndExit = onCreateSaveAndExit,
+            detailState = detailState,
+            onEditOrder = onEditOrder,
+            editState = editState,
+            onEditUpdate = onEditUpdate,
+            onEditNext = onEditNext,
+            onEditBack = onEditBack,
+            onEditSubmit = onEditSubmit,
+            onEditConfirm = onEditConfirm,
+            onEditSaveDraft = onEditSaveDraft,
+            onEditReturn = onEditReturn,
+            onEditRebase = onEditRebase,
             profileSession = profileSession,
             onLogout = onLogout,
             isOffline = isOffline,

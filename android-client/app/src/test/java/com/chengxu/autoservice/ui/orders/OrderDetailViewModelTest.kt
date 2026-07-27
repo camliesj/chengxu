@@ -7,6 +7,7 @@ import com.chengxu.autoservice.core.orders.model.BusinessCapability
 import com.chengxu.autoservice.core.orders.model.OrderDetail
 import com.chengxu.autoservice.core.orders.model.OrderDetailEnvelope
 import com.chengxu.autoservice.core.orders.model.OrderSummary
+import com.chengxu.autoservice.core.orders.model.OrderStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -17,6 +18,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertFalse
 import org.junit.Before
 import org.junit.Test
 
@@ -43,6 +45,19 @@ class OrderDetailViewModelTest {
         advanceUntilIdle()
 
         assertTrue(model.uiState.value.closeRequested)
+    }
+
+    @Test
+    fun settledOrderNeverExposesTheEditEntryEvenWhenTheCompanyCapabilityIsEnabled() = runTest {
+        val settled = detail().copy(summary = detail().summary.copy(status = OrderStatus.SETTLED.wireValue))
+        val model = OrderDetailViewModel(
+            FakeRepository(OrderReadResult.Success(OrderDetailEnvelope(settled, setOf(BusinessCapability.EDIT_ORDER), "now"))),
+        )
+
+        model.open("RO-1")
+        advanceUntilIdle()
+
+        assertFalse(model.uiState.value.canEdit)
     }
 
     private class FakeRepository(private val result: OrderReadResult<OrderDetailEnvelope>) : OrderDetailRepository { override suspend fun load(orderId: String) = result }

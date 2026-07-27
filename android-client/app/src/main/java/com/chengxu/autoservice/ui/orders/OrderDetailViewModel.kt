@@ -7,6 +7,7 @@ import com.chengxu.autoservice.core.orders.OrderReadFailure
 import com.chengxu.autoservice.core.orders.OrderReadResult
 import com.chengxu.autoservice.core.orders.model.BusinessCapability
 import com.chengxu.autoservice.core.orders.model.OrderDetail
+import com.chengxu.autoservice.core.orders.model.OrderStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,7 +21,9 @@ data class OrderDetailUiState(
     val closeRequested: Boolean = false,
     val message: String? = null,
 ) {
-    val canEdit: Boolean get() = BusinessCapability.EDIT_ORDER in capabilities
+    val canEdit: Boolean
+        get() = BusinessCapability.EDIT_ORDER in capabilities &&
+            detail?.summary?.status?.let(OrderStatus::fromWire) != OrderStatus.SETTLED
 }
 
 class OrderDetailViewModel(private val repository: OrderDetailRepository) : ViewModel() {

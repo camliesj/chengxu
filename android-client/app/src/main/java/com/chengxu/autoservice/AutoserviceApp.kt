@@ -40,6 +40,9 @@ import com.chengxu.autoservice.core.designsystem.BrandIconResource
 import com.chengxu.autoservice.core.network.NetworkMonitor
 import com.chengxu.autoservice.core.orders.OrdersRepository
 import com.chengxu.autoservice.core.orders.OrderCreationRepository
+import com.chengxu.autoservice.core.orders.OrderDetailRepository
+import com.chengxu.autoservice.core.orders.OrderEditRepository
+import com.chengxu.autoservice.navigation.AppRoute
 import com.chengxu.autoservice.navigation.AppNavigationState
 import com.chengxu.autoservice.navigation.RootTab
 import com.chengxu.autoservice.ui.auth.LoginScreen
@@ -48,6 +51,9 @@ import com.chengxu.autoservice.ui.shell.AutoserviceShell
 import com.chengxu.autoservice.ui.orders.OrdersViewModel
 import com.chengxu.autoservice.ui.create.CreateOrderEvent
 import com.chengxu.autoservice.ui.create.CreateOrderViewModel
+import com.chengxu.autoservice.ui.edit.EditOrderEvent
+import com.chengxu.autoservice.ui.edit.EditOrderViewModel
+import com.chengxu.autoservice.ui.orders.OrderDetailViewModel
 import com.chengxu.autoservice.ui.workbench.WorkbenchViewModel
 import kotlinx.coroutines.launch
 
@@ -57,6 +63,8 @@ fun AutoserviceApp(
     networkMonitor: NetworkMonitor,
     ordersRepository: OrdersRepository,
     orderCreationRepository: OrderCreationRepository,
+    orderDetailRepository: OrderDetailRepository,
+    orderEditRepository: OrderEditRepository,
 ) {
     val authenticationState by authenticationRepository.state.collectAsStateWithLifecycle()
 
@@ -79,6 +87,8 @@ fun AutoserviceApp(
                 networkMonitor = networkMonitor,
                 ordersRepository = ordersRepository,
                 orderCreationRepository = orderCreationRepository,
+                orderDetailRepository = orderDetailRepository,
+                orderEditRepository = orderEditRepository,
                 authenticationState = state,
             )
         }
@@ -152,6 +162,8 @@ private fun AuthenticatedRoot(
     networkMonitor: NetworkMonitor,
     ordersRepository: OrdersRepository,
     orderCreationRepository: OrderCreationRepository,
+    orderDetailRepository: OrderDetailRepository,
+    orderEditRepository: OrderEditRepository,
     authenticationState: AuthenticationState.Authenticated,
 ) {
     val sessionViewModelStoreOwner = remember(authenticationState.session) {
@@ -172,19 +184,49 @@ private fun AuthenticatedRoot(
         viewModelStoreOwner = sessionViewModelStoreOwner,
         factory = createOrderViewModelFactory(orderCreationRepository, networkMonitor),
     )
+    val detailViewModel: OrderDetailViewModel = viewModel(
+        viewModelStoreOwner = sessionViewModelStoreOwner,
+        factory = orderDetailViewModelFactory(orderDetailRepository),
+    )
+    val editOrderViewModel: EditOrderViewModel = viewModel(
+        viewModelStoreOwner = sessionViewModelStoreOwner,
+        factory = editOrderViewModelFactory(orderEditRepository, networkMonitor),
+    )
     val state by workbenchViewModel.uiState.collectAsStateWithLifecycle()
     val ordersState by ordersViewModel.uiState.collectAsStateWithLifecycle()
     val createState by createOrderViewModel.uiState.collectAsStateWithLifecycle()
+    val detailState by detailViewModel.uiState.collectAsStateWithLifecycle()
+    val editState by editOrderViewModel.uiState.collectAsStateWithLifecycle()
     val navigationState = remember(authenticationState.session) { AppNavigationState() }
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
 
-    DisposableEffect(lifecycleOwner, createOrderViewModel) {
+    DisposableEffect(lifecycleOwner, createOrderViewModel, editOrderViewModel) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_STOP) createOrderViewModel.flushDraft()
+            if (event == Lifecycle.Event.ON_STOP) {
+                createOrderViewModel.flushDraft()
+                editOrderViewModel.flushDraft()
+            }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    LaunchedEffect(editOrderViewModel, navigationState) {
+        editOrderViewModel.events.collect { event ->
+            when (event) {
+                is EditOrderEvent.Saved -> navigationState.openEditedOrder(event.orderId)
+                EditOrderEvent.Exit -> navigationState.pop()
+            }
+        }
+    }
+
+    LaunchedEffect(navigationState.currentStack.lastOrNull()) {
+        when (val route = navigationState.currentStack.lastOrNull()) {
+            is AppRoute.OrderDetail -> detailViewModel.open(route.orderId)
+            is AppRoute.EditOrder -> editOrderViewModel.open(route.orderId)
+            else -> Unit
+        }
     }
 
     LaunchedEffect(createOrderViewModel, navigationState) {
@@ -218,6 +260,17 @@ private fun AuthenticatedRoot(
         onCreateContinueEditing = createOrderViewModel::continueEditing,
         onCreateDiscardAndExit = createOrderViewModel::discardAndExit,
         onCreateSaveAndExit = createOrderViewModel::saveAndExit,
+        detailState = detailState,
+        onEditOrder = { orderId -> navigationState.push(AppRoute.EditOrder(orderId)) },
+        editState = editState,
+        onEditUpdate = editOrderViewModel::update,
+        onEditNext = editOrderViewModel::next,
+        onEditBack = editOrderViewModel::back,
+        onEditSubmit = editOrderViewModel::submit,
+        onEditConfirm = editOrderViewModel::confirmUnknownResult,
+        onEditSaveDraft = editOrderViewModel::saveDraft,
+        onEditReturn = editOrderViewModel::returnToDetail,
+        onEditRebase = editOrderViewModel::rebaseOnLatest,
         profileSession = authenticationState.session,
         onLogout = { scope.launch { authenticationRepository.logout() } },
     )
@@ -253,6 +306,18 @@ private fun workbenchViewModelFactory(
         }
         throw IllegalArgumentException("Unsupported ViewModel class: ${modelClass.name}")
     }
+}
+
+private fun orderDetailViewModelFactory(repository: OrderDetailRepository): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST") override fun <T : ViewModel> create(modelClass: Class<T>): T =
+        if (modelClass.isAssignableFrom(OrderDetailViewModel::class.java)) OrderDetailViewModel(repository) as T
+        else throw IllegalArgumentException("Unsupported ViewModel class: ${modelClass.name}")
+}
+
+private fun editOrderViewModelFactory(repository: OrderEditRepository, networkMonitor: NetworkMonitor): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST") override fun <T : ViewModel> create(modelClass: Class<T>): T =
+        if (modelClass.isAssignableFrom(EditOrderViewModel::class.java)) EditOrderViewModel(repository, networkMonitor) { java.util.UUID.randomUUID().toString() } as T
+        else throw IllegalArgumentException("Unsupported ViewModel class: ${modelClass.name}")
 }
 
 private fun ordersViewModelFactory(

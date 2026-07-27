@@ -81,8 +81,8 @@ class DefaultOrderEditRepository(
 
     override suspend fun saveDraft(orderId: String, draft: OrderDraft) {
         val session = sessionRepository.session.value ?: return
-        require(draft.companyId == session.companyId && draft.localId == editDraftId(orderId))
-        localStore.save(session.companyId, orderId, draft)
+        require(draft.localId == editDraftId(orderId) && draft.baseOrderId == orderId)
+        localStore.save(session.companyId, orderId, draft.copy(companyId = session.companyId))
     }
 
     override suspend fun deleteDraft(orderId: String) {

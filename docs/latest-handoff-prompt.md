@@ -662,6 +662,13 @@ cd E:\codex\chengxu\android-client
 - 新增 `OrderDetailViewModel` 读取完整详情信封并暴露真实编辑能力；Navigation 3 已增加 `AppRoute.EditOrder`，编辑页使用稳定 test tag（提交、保存草稿、确认结果、返回详情、rebase）且冲突时展示服务器/本地值。会话级依赖注入、详情入口替换、四步字段完整复用和生命周期 flush 仍在本任务后续完成。
 - 本检查点的 `EditOrderViewModelTest`、`OrderDetailViewModelTest` 与 `AppNavigationStateTest` 已通过；未启动模拟器，尚未执行 Task 8 最终全量门禁或生成 APK。
 
+### 阶段 3 Task 8：Android 编辑界面与导航（已完成）
+
+- 编辑页已完整复用客户与车辆、保险与事故、维修与费用、确认提交四步字段；支持前后步、IME inset、离线编辑、500ms 自动加密草稿、显式保存和后台立即落盘。草稿保存完整 16 个可编辑字段、当前步骤、原 operationId 与 expectedVersion；恢复后不会生成新的 operationId。
+- `MainActivity` 装配真实详情和编辑仓库；`AutoserviceApp` 创建会话级详情/编辑 ViewModel，详情路由加载完整信封，编辑路由加载草稿。成功保存后回到最新详情；409 冲突显示服务端/本地差异，可显式 rebase 或删除冲突草稿返回详情；已结算工单即使企业能力开启也不显示编辑入口。
+- 最终门禁：`EditOrderViewModelTest`、`OrderDetailViewModelTest`、`AppNavigationStateTest` 通过；`:app:compileDebugAndroidTestKotlin` 与 `:app:lintDebug` 均成功。未启动模拟器、未执行连接式测试、未访问远端 D1/Pages，Task 8 不生成 APK。
+- 下一步：执行阶段 3 Task 9——服务端普通工单状态命令；生产 `EDIT_ORDER` 能力保持关闭，等待 Task 13 的独立发布门禁。
+
 每次重要改动后必须：
 
 1. 提交 Git；

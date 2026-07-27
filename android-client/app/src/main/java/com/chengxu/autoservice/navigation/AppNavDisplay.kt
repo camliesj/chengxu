@@ -18,6 +18,7 @@ import com.chengxu.autoservice.ui.edit.EditOrderUiState
 import com.chengxu.autoservice.ui.edit.EditOrderField
 import com.chengxu.autoservice.ui.profile.ProfileScreen
 import com.chengxu.autoservice.ui.orders.OrderDetailScreen
+import com.chengxu.autoservice.ui.orders.OrderDetailUiState
 import com.chengxu.autoservice.ui.orders.OrderStatusFilter
 import com.chengxu.autoservice.ui.orders.OrdersScreen
 import com.chengxu.autoservice.ui.orders.OrdersUiState
@@ -50,8 +51,12 @@ fun AppNavDisplay(
     onCreateContinueEditing: () -> Unit = {},
     onCreateDiscardAndExit: () -> Unit = {},
     onCreateSaveAndExit: () -> Unit = {},
+    detailState: OrderDetailUiState = OrderDetailUiState(),
+    onEditOrder: (String) -> Unit = {},
     editState: EditOrderUiState = EditOrderUiState(),
     onEditUpdate: (EditOrderField, String) -> Unit = { _, _ -> },
+    onEditNext: () -> Unit = {},
+    onEditBack: () -> Unit = {},
     onEditSubmit: () -> Unit = {},
     onEditConfirm: () -> Unit = {},
     onEditSaveDraft: () -> Unit = {},
@@ -109,10 +114,14 @@ fun AppNavDisplay(
                     is AppRoute.OrderDetail -> OrderDetailScreen(
                         order = ordersState.allOrders.firstOrNull { order -> order.id == entry.orderId },
                         onBack = navigationState::pop,
+                        canEdit = detailState.canEdit,
+                        onEdit = { onEditOrder(entry.orderId) },
                     )
                     is AppRoute.EditOrder -> EditOrderScreen(
                         state = editState,
                         onUpdate = onEditUpdate,
+                        onNext = onEditNext,
+                        onBack = onEditBack,
                         onSubmit = onEditSubmit,
                         onConfirm = onEditConfirm,
                         onSaveDraft = onEditSaveDraft,

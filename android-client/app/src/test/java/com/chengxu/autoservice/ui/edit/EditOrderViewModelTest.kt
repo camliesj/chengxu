@@ -19,6 +19,8 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -59,6 +61,29 @@ class EditOrderViewModelTest {
         assertTrue(model.uiState.value.message != null)
     }
 
+    @Test
+    fun savingChangedOrderPersistsEveryEditableFieldInTheEditDraft() = runTest {
+        val repository = FakeRepository()
+        val model = EditOrderViewModel(repository, online()) { "op" }
+        model.open("RO-1")
+        advanceUntilIdle()
+
+        model.update(EditOrderField.CUSTOMER, "\u65b0\u5ba2\u6237")
+        model.update(EditOrderField.INSURER, "\u65b0\u4fdd\u9669\u516c\u53f8")
+        model.update(EditOrderField.REMARK, "\u5df2\u4fdd\u5b58")
+        model.flushDraft()
+        advanceUntilIdle()
+
+        val draft = repository.savedDraft
+        assertEquals("edit:RO-1", draft?.localId)
+        val payload = Json.parseToJsonElement(draft!!.payloadJson).jsonObject
+        val fields = payload["fields"]!!.jsonObject
+        assertEquals("\u65b0\u5ba2\u6237", fields["customer"]?.toString()?.trim('"'))
+        assertEquals("\u65b0\u4fdd\u9669\u516c\u53f8", fields["insurer"]?.toString()?.trim('"'))
+        assertEquals("\u5df2\u4fdd\u5b58", fields["remark"]?.toString()?.trim('"'))
+        assertTrue(EditOrderField.entries.all { fields.containsKey(it.wireName) })
+    }
+
     private fun online() = object : NetworkMonitor { override val connection: StateFlow<ConnectionState> = MutableStateFlow(ConnectionState.Online) }
     private fun offline() = object : NetworkMonitor { override val connection: StateFlow<ConnectionState> = MutableStateFlow(ConnectionState.Offline) }
 
@@ -66,7 +91,8 @@ class EditOrderViewModelTest {
         var editCalls = 0; var editResult: OrderCommandResult<OrderDetail> = OrderCommandResult.ServerFailure
         override suspend fun loadEditor(orderId: String) = OrderCommandResult.Success(OrderEditorData(detail(), com.chengxu.autoservice.core.orders.model.OrderCreationMetadata(1, emptySet(), com.chengxu.autoservice.core.orders.model.OrderCreationDefaults(), com.chengxu.autoservice.core.orders.model.OrderCreationOptions(), emptyMap()), capabilities, "now"))
         override fun observeDraft(orderId: String): Flow<OrderDraft?> = MutableStateFlow(null)
-        override suspend fun saveDraft(orderId: String, draft: OrderDraft) = Unit
+        var savedDraft: OrderDraft? = null
+        override suspend fun saveDraft(orderId: String, draft: OrderDraft) { savedDraft = draft }
         override suspend fun deleteDraft(orderId: String) = Unit
         override suspend fun edit(orderId: String, command: com.chengxu.autoservice.core.orders.model.OrderEditCommand): OrderCommandResult<OrderDetail> { editCalls += 1; return editResult }
         override suspend fun confirm(operationId: String) = editResult
