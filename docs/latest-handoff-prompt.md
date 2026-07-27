@@ -778,3 +778,4 @@ cd E:\codex\chengxu\android-client
 - 待用户审阅规格后，编写逐任务实施计划；通过计划审阅后再开始 TDD 实现。完成每项任务仍须更新本交接文件、提交并推送。
 - 用户已审阅并确认规格；实施计划已写入 `docs/superpowers/plans/2026-07-27-android-customer-vehicle-archive.md`，按读取合同、加密缓存、只读页签和最终装配四个独立任务执行。用户此前已指定当前会话内联执行，不使用子代理；待计划审阅确认后开始 Task 1。
 - Task 1 已完成：新增 `CustomerVehiclesApi` 与 `HttpUrlConnectionCustomerVehiclesApi`，只允许 `GET /api/customer-vehicles` 并携带 Bearer；严格要求每项具有非空 id/companyId，映射 401、网络、畸形响应与取消传播。TDD RED 因缺少合同/客户端失败，GREEN 聚焦 JVM 测试通过。下一步 Task 2：加密缓存与会话隔离仓储。
+- Task 2 已完成：`customer_vehicles` 复用既有 Room v2 表，以企业+记录 ID 隔离并整包加密；新增只读仓储，在线刷新、离线缓存、跨企业响应拒绝、401 清缓存后失效会话均已由 JVM 测试覆盖。下一步 Task 3：将“客户车辆”只读标签和详情页接入档案导航。

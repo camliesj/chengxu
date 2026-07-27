@@ -57,6 +57,15 @@ interface FoundationDao {
     suspend fun upsertCursor(entity: SyncCursorEntity)
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertVehicles(rows: List<CustomerVehicleEntity>)
+    @Query("SELECT * FROM customer_vehicles WHERE companyId = :companyId ORDER BY updatedAt DESC, recordId ASC")
+    fun observeVehicles(companyId: String): Flow<List<CustomerVehicleEntity>>
+    @Query("DELETE FROM customer_vehicles WHERE companyId = :companyId AND recordId = :recordId")
+    suspend fun deleteVehicle(companyId: String, recordId: String)
+    @Transaction
+    suspend fun replaceVehicles(companyId: String, rows: List<CustomerVehicleEntity>) {
+        deleteVehiclesByCompany(companyId)
+        upsertVehicles(rows)
+    }
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertPolicies(rows: List<InsurancePolicyEntity>)
 

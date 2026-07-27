@@ -8,6 +8,8 @@ import com.chengxu.autoservice.core.orders.OrderCreationLocalStore
 import com.chengxu.autoservice.core.orders.OrderDetailLocalStore
 import com.chengxu.autoservice.core.orders.OrderEditLocalStore
 import com.chengxu.autoservice.core.orders.OrderStatusLocalStore
+import com.chengxu.autoservice.core.orders.CustomerVehicleCache
+import com.chengxu.autoservice.core.orders.CustomerVehicleRecord
 import com.chengxu.autoservice.core.security.StringCipher
 import com.chengxu.autoservice.core.orders.model.PendingStatusEnvelope
 import kotlinx.coroutines.CancellationException
@@ -18,7 +20,7 @@ import kotlinx.serialization.json.Json
 class EncryptedOrderStore(
     private val dao: FoundationDao,
     private val cipher: StringCipher,
-) : OrderCreationLocalStore, OrderEditLocalStore, OrderStatusLocalStore {
+) : OrderCreationLocalStore, OrderEditLocalStore, OrderStatusLocalStore, CustomerVehicleCache {
     override suspend fun upsertDetail(detail: OrderDetail) = dao.upsertDetail(detail.toEntity(cipher))
 
     override suspend fun getDetail(companyId: String, orderId: String): OrderDetail? {
@@ -103,12 +105,35 @@ class EncryptedOrderStore(
     override suspend fun deletePendingStatus(companyId: String, orderId: String) =
         dao.deleteDraft(companyId, statusDraftId(orderId))
 
+    override fun observeVehicles(companyId: String): Flow<List<CustomerVehicleRecord>> =
+        dao.observeVehicles(companyId).map { rows ->
+            rows.mapNotNull { entity -> entity.decryptOrDeleteVehicle() }
+        }
+
+    override suspend fun replaceVehicles(companyId: String, records: List<CustomerVehicleRecord>) {
+        require(records.all { it.companyId == companyId }) { "Customer vehicle company mismatch" }
+        val updatedAt = System.currentTimeMillis().toString()
+        dao.replaceVehicles(companyId, records.map { it.toEntity(cipher, updatedAt) })
+    }
+
+    override suspend fun clear() = dao.clearVehicles()
+
     private suspend fun OrderDraftEntity.decryptOrDelete(): OrderDraft? = try {
         toDomain(cipher)
     } catch (cancellation: CancellationException) {
         throw cancellation
     } catch (_: Exception) {
         dao.deleteDraft(companyId, localId)
+        null
+    }
+
+    private suspend fun CustomerVehicleEntity.decryptOrDeleteVehicle(): CustomerVehicleRecord? = try {
+        Json.decodeFromString<CustomerVehicleRecord>(cipher.decrypt(encryptedPayload))
+            .takeIf { it.id == recordId && it.companyId == companyId }
+    } catch (cancellation: CancellationException) {
+        throw cancellation
+    } catch (_: Exception) {
+        dao.deleteVehicle(companyId, recordId)
         null
     }
 }
@@ -132,6 +157,13 @@ private fun OrderDraftEntity.toDomain(cipher: StringCipher) = OrderDraft(
     expectedVersion = expectedVersion,
     payloadJson = cipher.decrypt(encryptedPayload),
     updatedAtMillis = updatedAtMillis,
+)
+
+private fun CustomerVehicleRecord.toEntity(cipher: StringCipher, updatedAt: String) = CustomerVehicleEntity(
+    companyId = companyId,
+    recordId = id,
+    encryptedPayload = cipher.encrypt(Json.encodeToString(this)),
+    updatedAt = updatedAt,
 )
 
 private fun OrderDetail.toEntity(cipher: StringCipher) = OrderDetailEntity(

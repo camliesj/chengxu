@@ -1,5 +1,8 @@
 package com.chengxu.autoservice.core.orders
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class CustomerVehicleRecord(
     val id: String,
     val companyId: String,
