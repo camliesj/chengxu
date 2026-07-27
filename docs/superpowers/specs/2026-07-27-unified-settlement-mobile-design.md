@@ -19,7 +19,7 @@
 
 - Android 使用 `ActivityResultContracts.PickVisualMedia` 选择单张图片。选择后先在本地预览，再以 `multipart/form-data` 调用既有 `POST /api/receipts`。
 - 成功上传只得到服务器返回的 key、名称、MIME、字节数和上传时间；结算命令引用该元数据。取消选择或上传失败不创建结算操作。
-- 工单详情和历史详情显示回执状态、文件名及上传时间；查看操作从 `GET /api/receipts?key=` 获取图片并以内存图片预览；删除使用既有 `DELETE /api/receipts`，随后以版本化命令更新工单的回执引用。
+- 工单详情和历史详情显示回执状态、文件名及上传时间；查看操作从 `GET /api/receipts?key=` 获取图片并以内存图片预览；删除先以版本化回执命令清除工单引用，再调用既有 `DELETE /api/receipts` 清理 COS 文件。补传或替换图片后也先上传，再以版本化回执命令写入新元数据，避免单独操作文件服务留下失效引用。
 - 回执上传、删除和替换均由 `MAINTAIN_RECEIPT` 独立控制；没有该权限时不显示写入口，不以角色推断替代服务端能力。
 
 ### 日期输入与详情视觉
@@ -41,9 +41,13 @@
   - 请求：`operationId`、`expectedVersion`。
   - 前置条件：认证会话、管理员角色、`REVERSE_SETTLEMENT` 能力、状态为“已结算”、版本匹配、工单未作废。
   - 成功：原子写入“待结算”、付款方式“待确认”并清空结算日期/时间/备注；保留回执字段、审计记录和幂等完成响应，返回完整 `OrderDetail`。
-- `GET /api/order-operations/:action/:operationId` 扩展支持 `settle-order` 与 `reverse-settlement`，并按公司、操作者和动作隔离结果。重复相同 `operationId` 与相同请求散列重放原结果；相同 ID 不同散列返回 `OPERATION_ID_REUSED`。
+- `POST /api/orders/:id/receipt`
+  - 请求：`operationId`、`expectedVersion`、`receipt`（上传或替换时为完整元数据，删除时为 `null`）。
+  - 前置条件：认证会话、管理员角色、`MAINTAIN_RECEIPT` 能力、版本匹配、工单未作废；非空 key 必须归属当前企业且与上传服务返回的安全元数据一致。
+  - 成功：仅原子更新 `settlement_receipt_*`、版本、审计记录和幂等完成响应，返回完整 `OrderDetail`。
+- `GET /api/order-operations/:action/:operationId` 扩展支持 `settle-order`、`reverse-settlement` 与 `update-order-receipt`，并按公司、操作者和动作隔离结果。重复相同 `operationId` 与相同请求散列重放原结果；相同 ID 不同散列返回 `OPERATION_ID_REUSED`。
 
-网页的 `SettlementDialog`、网页返结算确认和 Android 客户端都使用这些命令。旧 `POST /api/orders` 仍只服务既有普通编辑和兼容路径，不承担新的结算业务。
+网页的 `SettlementDialog`、网页返结算确认、网页回执维护和 Android 客户端都使用这些命令。旧 `POST /api/orders` 仍只服务既有普通编辑和兼容路径，不承担新的结算或回执业务。
 
 ## Android 架构
 

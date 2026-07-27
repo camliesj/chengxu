@@ -819,3 +819,10 @@ cd E:\codex\chengxu\android-client
 - 生产只读烟测：未认证 `GET /api/insurance-policies` 和 `DELETE /api/insurance-policies/route-probe` 均返回 `401 {"error":"UNAUTHORIZED"}`，确认认证门禁及参数化删除路由均生效；200 与 409 需要具备 `insurance` 权限的真机/网页登录会话人工验收，避免探测时改变生产业务数据。
 - 发布后已重新归档 Debug APK，SHA-256 `A2FF2E9171EB2FDFED3BFEDFC10B298969DBBE82C727EA496615090BB48DC535`，Build Tools 35.0.0 `apksigner` 确认 v2 签名有效。
 - 下一步：以有 `insurance` 权限的真实账号在网页和 Android 真机验证新增、编辑、冲突和删除，重点确认两个端的 200 成功及 409 冲突提示一致；Debug APK 仅供 API 26+ 真机测试，非生产签名发布包。
+
+### Android 结算、返结算与回执跨端一致化（规格与计划已确认，待内联实现）
+
+- 规格：`docs/superpowers/specs/2026-07-27-unified-settlement-mobile-design.md`；执行计划：`docs/superpowers/plans/2026-07-27-unified-settlement-mobile.md`。用户已确认规格，且要求当前会话内联执行，不使用子代理。
+- 本包补齐管理员结算、返结算、相册图片回执、结算详情、日期选择器和详情页编辑动作视觉。结算要求 `SETTLE_ORDER + MAINTAIN_RECEIPT`，返结算要求 `REVERSE_SETTLEMENT`；返结算清空结算值但保留回执引用，与网页一致。
+- 已在计划自检中补齐回执一致性：二进制图片仍由 `/api/receipts` 上传/下载/删除；新增版本化 `/api/orders/:id/receipt` 命令在上传或替换后写入元数据，并在删除 COS 文件前清空工单引用，避免失效 key。统一命令复用现有 `repair_orders.version`、结算/回执列和 `order_operations`，不新增 D1 或 Room migration。
+- 网页打印、批量导入/导出继续是端侧允许差异；Android 的作废工单和已结算档案编辑仍是下一独立核心功能包。新的 Functions 代码不得自行部署到远端 D1 或 Pages，仍须取得单独部署授权。
