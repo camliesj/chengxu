@@ -826,3 +826,9 @@ cd E:\codex\chengxu\android-client
 - 本包补齐管理员结算、返结算、相册图片回执、结算详情、日期选择器和详情页编辑动作视觉。结算要求 `SETTLE_ORDER + MAINTAIN_RECEIPT`，返结算要求 `REVERSE_SETTLEMENT`；返结算清空结算值但保留回执引用，与网页一致。
 - 已在计划自检中补齐回执一致性：二进制图片仍由 `/api/receipts` 上传/下载/删除；新增版本化 `/api/orders/:id/receipt` 命令在上传或替换后写入元数据，并在删除 COS 文件前清空工单引用，避免失效 key。统一命令复用现有 `repair_orders.version`、结算/回执列和 `order_operations`，不新增 D1 或 Room migration。
 - 网页打印、批量导入/导出继续是端侧允许差异；Android 的作废工单和已结算档案编辑仍是下一独立核心功能包。新的 Functions 代码不得自行部署到远端 D1 或 Pages，仍须取得单独部署授权。
+
+### Android 结算包 Task 1：服务端版本化合同（本地完成，待部署授权）
+
+- 新增 `POST /api/orders/:id/settlement`、`reverse-settlement` 与 `receipt`，分别使用 `settle-order`、`reverse-settlement`、`update-order-receipt` 幂等操作；复用现有 `repair_orders` 结算/回执列、`version` 和 `order_operations`，未新增 D1 migration。
+- 结算要求管理员、`repair` 权限、`SETTLE_ORDER + MAINTAIN_RECEIPT`、待结算状态、合法版本和当前企业 JPEG/PNG/WebP 回执；返结算要求 `REVERSE_SETTLEMENT`，清空结算值但保留回执。回执元数据可独立写入或清除，二进制 COS 删除由客户端在清除引用后执行。
+- 移动列表仍不返回回执 key；仅管理员且当前企业开启 `MAINTAIN_RECEIPT` 的完整详情返回该 key，用于企业隔离后的查看、替换和删除。聚焦 Node 合同与详情测试 15/15 通过；尚未部署 Pages 或远端 D1。

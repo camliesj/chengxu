@@ -86,7 +86,7 @@ export function toOrder(row) {
   };
 }
 
-export function toMobileOrder(row) {
+export function toMobileOrder(row, { includeReceiptKey = false } = {}) {
   const legacy = toOrder(row);
   const {
     settlementReceiptKey: _receiptKey,
@@ -101,6 +101,7 @@ export function toMobileOrder(row) {
     version: Number(row.version) || 1,
     updatedAt: row.updated_at || '',
     receipt: row.settlement_receipt_name ? {
+      ...(includeReceiptKey ? { key: row.settlement_receipt_key || '' } : {}),
       name: row.settlement_receipt_name,
       contentType: row.settlement_receipt_type || '',
       sizeBytes: Number(row.settlement_receipt_size) || 0,

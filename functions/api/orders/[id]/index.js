@@ -11,10 +11,11 @@ export async function onRequestGet({ request, env, params }) {
     'SELECT * FROM repair_orders WHERE id = ? AND company_id = ? AND voided = 0',
   ).bind(String(params.id || ''), session.company_id || 'tongda').first();
   if (!order) return json({ error: 'ORDER_NOT_FOUND' }, { status: 404 });
+  const capabilities = await readCapabilities(env, session);
   return json({
-    order: toMobileOrder(order),
+    order: toMobileOrder(order, { includeReceiptKey: session.role === 'admin' && capabilities.includes('MAINTAIN_RECEIPT') }),
     serverTime: new Date().toISOString(),
-    capabilities: await readCapabilities(env, session),
+    capabilities,
   });
 }
 

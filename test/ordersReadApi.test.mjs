@@ -162,6 +162,28 @@ test('detail read is company scoped and returns safe full fields', async () => {
   assert.deepEqual(query.values, ['RO/100', 'tongda']);
 });
 
+test('only a receipt-maintaining administrator receives the receipt key in a full detail response', async () => {
+  const detail = row({ id: 'RO-RECEIPT' });
+  const manager = environment({
+    detail,
+    role: 'admin',
+    capabilities: [{ capability: 'MAINTAIN_RECEIPT', enabled: 1 }],
+  });
+  const allowed = await getOrderDetail({
+    request: request('/api/orders/RO-RECEIPT'), env: manager, params: { id: 'RO-RECEIPT' },
+  });
+  assert.equal((await allowed.json()).order.receipt.key, detail.settlement_receipt_key);
+
+  const employee = environment({
+    detail,
+    capabilities: [{ capability: 'MAINTAIN_RECEIPT', enabled: 1 }],
+  });
+  const denied = await getOrderDetail({
+    request: request('/api/orders/RO-RECEIPT'), env: employee, params: { id: 'RO-RECEIPT' },
+  });
+  assert.equal('key' in (await denied.json()).order.receipt, false);
+});
+
 test('detail read returns 404 without leaking another company row', async () => {
   const env = environment({ detail: null });
   const response = await getOrderDetail({
@@ -178,10 +200,10 @@ function request(path) {
   });
 }
 
-function environment({ orders = [], detail = undefined, capabilities = [] } = {}) {
+function environment({ orders = [], detail = undefined, capabilities = [], role = 'staff' } = {}) {
   const calls = [];
   const session = {
-    token: 'test-token', role: 'staff', label: '员工', company_id: 'tongda',
+    token: 'test-token', role, label: '员工', company_id: 'tongda',
     username: 'worker', display_name: '员工', permissions: '["repair","history"]',
   };
   return {

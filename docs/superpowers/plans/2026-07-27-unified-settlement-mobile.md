@@ -46,7 +46,7 @@
 // receipt update: { operationId, expectedVersion, receipt: ReceiptMetadata | null }
 ```
 
-- [ ] **Step 1: Write failing Node contract tests**
+- [x] **Step 1: Write failing Node contract tests**
 
 ```js
 test('settlement requires both settlement and receipt capabilities, an owned image receipt, and a pending-settlement version', async () => {
@@ -69,13 +69,13 @@ test('receipt mutation requires receipt capability and clears only receipt metad
 });
 ```
 
-- [ ] **Step 2: Run the targeted test to verify RED**
+- [x] **Step 2: Run the targeted test to verify RED**
 
 Run: `node --test test/orderStatusContract.test.mjs`
 
 Expected: FAIL because settlement route/handler does not exist.
 
-- [ ] **Step 3: Implement the shared command handler**
+- [x] **Step 3: Implement the shared command handler**
 
 ```js
 const key = { companyId, actor, action: 'settle-order', operationId };
@@ -86,7 +86,7 @@ const requestHash = await sha256Hex(JSON.stringify({ orderId, expectedVersion, s
 
 Use `payment_method = '待确认'`, empty `settlement_date`, `settlement_time`, and `settlement_remark` for reverse. Do not modify `settlement_receipt_*` in the reverse update. Return `{ order, capabilities, serverTime, operation }` through `toMobileOrder`.
 
-- [ ] **Step 4: Register the six routes and operation readers**
+- [x] **Step 4: Register the six routes and operation readers**
 
 ```js
 export async function onRequestPost(context) {
@@ -98,7 +98,7 @@ export async function onRequestPost(context) {
 
 Map the three query routes to the same handler with the fixed action string. The receipt endpoint only mutates `settlement_receipt_*`; it never deletes COS content itself. Do not add a broad dynamic action route.
 
-- [ ] **Step 5: Run targeted tests to verify GREEN**
+- [x] **Step 5: Run targeted tests to verify GREEN**
 
 Run: `node --test test/orderStatusContract.test.mjs test/orderEditContract.test.mjs`
 
