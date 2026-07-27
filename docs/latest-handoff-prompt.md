@@ -725,10 +725,11 @@ cd E:\codex\chengxu\android-client
 - 最终 Debug APK：`dist/releases/android/autoservice-android-debug-0.1.0.apk`，19,802,837 bytes，SHA-256 `EFEA13C36419B42E7803C72323FBBC90D94D19E6AC3CB01D19A85FC56AF6C9F7`；已与构建源 APK 校验一致，Build Tools 35.0.0 `apksigner verify --verbose` 显示 v2 签名为 true。该包仅供 API 26+ 真机测试，不是生产签名发布包。
 - 发布前完整门禁继承 Task 12：Node 180/180、Playwright 10/10、Vite 构建成功、Android clean/JVM/Android 测试源码/Lint/debug APK 共 69 tasks `BUILD SUCCESSFUL`；Task 13 额外 `:app:assembleDebug` 成功。全程未启动 Android 模拟器或运行 connected 测试。生产真实工单编辑/状态成功仍须由用户按真机和网页清单人工确认。
 
-### Android UI 修复：全局状态栏安全区（设计已确认，待实施）
+### Android UI 修复：全局状态栏安全区（已完成，待真机视觉验收）
 
-- 真机截图确认 Android 15+ 边到边布局下，工单详情标题与返回区域覆盖系统状态栏。已确认采用根 Compose 顶部 `statusBarsPadding()`：覆盖登录、五栏和所有子路由，底部 NavigationBar 不额外增加 inset，避免双重留白。
-- 设计文件：`docs/superpowers/specs/2026-07-27-android-safe-area-design.md`。不修改数据库、线上能力或业务接口；不启动模拟器。实施后需要完整 Android 无设备门禁和新的真实手机 APK 验收。
+- 真机截图确认 Android 15+ 边到边布局下，工单详情标题与返回区域覆盖系统状态栏。现已在 `AutoserviceApp` 根 Compose 容器统一消费顶部 `statusBarsPadding()`：登录、恢复、五栏和全部子路由均从系统状态栏下方开始；底部 NavigationBar 未增加 inset，因此不会制造双重底部留白。
+- 测试先行：新增 `AutoserviceSafeAreaTest`，在实现前 `:app:compileDebugAndroidTestKotlin` 精确因缺少 `AutoserviceRootLayout` 失败；实现后测试源码编译成功。按用户“不启动模拟器”要求，Compose 测试仅编译，顶部实际几何由真机验收清单确认。
+- 最终无设备门禁 `:app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:lintDebug :app:assembleDebug --rerun-tasks` 为 `BUILD SUCCESSFUL`（68 tasks）；未启动模拟器或运行 connected 测试。新 APK 为 `dist/releases/android/autoservice-android-debug-0.1.0.apk`，19,802,837 bytes，SHA-256 `80A3B49FCD679B811D9CB9911447EE2EE24F8276257C04C050FFA033B8B05A07`，v2 签名已验证。
 
 - 历史检查点：
 

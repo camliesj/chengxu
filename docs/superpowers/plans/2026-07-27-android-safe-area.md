@@ -23,7 +23,7 @@
 
 **Files:**
 
-- Create: `android-client/app/src/test/java/com/chengxu/autoservice/AutoserviceAppSafeAreaContractTest.kt`
+- Create: `android-client/app/src/androidTest/java/com/chengxu/autoservice/AutoserviceSafeAreaTest.kt`
 - Modify: `android-client/app/src/main/java/com/chengxu/autoservice/AutoserviceApp.kt`
 - Modify: `docs/android-client.md`
 - Modify: `docs/latest-handoff-prompt.md`
@@ -34,30 +34,36 @@
 - Consumes: 根 `AutoserviceApp`、`AutoserviceColors.Canvas` 和 Material `NavigationBar` 的现有布局。
 - Produces: 所有认证前后路由统一位于状态栏下方；根 Canvas 延伸至状态栏安全区；底部五栏不额外增加 inset。
 
-- [ ] **Step 1: 写入顶部安全区 RED 合同测试**
+- [ ] **Step 1: 写入顶部安全区 RED Compose 测试**
 
-创建 `AutoserviceAppSafeAreaContractTest.kt`：
+创建 `AutoserviceSafeAreaTest.kt`：
 
 ```kotlin
 package com.chengxu.autoservice
 
-import java.nio.file.Files
-import java.nio.file.Path
-import kotlin.test.Test
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
+import androidx.compose.material3.Text
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
 
-class AutoserviceAppSafeAreaContractTest {
+@RunWith(AndroidJUnit4::class)
+class AutoserviceSafeAreaTest {
+    @get:Rule val composeRule = createComposeRule()
+
     @Test
-    fun rootAppConsumesOnlyTheStatusBarInset() {
-        val source = Files.readString(
-            Path.of("app/src/main/java/com/chengxu/autoservice/AutoserviceApp.kt"),
-        )
+    fun rootSafeAreaLayoutDisplaysItsContent() {
+        composeRule.setContent {
+            AutoserviceRootLayout {
+                Text("safe-area-content", modifier = androidx.compose.ui.Modifier.testTag("safe-area-content"))
+            }
+        }
 
-        assertTrue(source.contains(".statusBarsPadding()"))
-        assertTrue(source.contains(".background(AutoserviceColors.Canvas)"))
-        assertFalse(source.contains(".systemBarsPadding()"))
-        assertFalse(source.contains(".navigationBarsPadding()"))
+        composeRule.onNodeWithTag("safe-area-content").assertIsDisplayed()
     }
 }
 ```
@@ -70,23 +76,33 @@ class AutoserviceAppSafeAreaContractTest {
 cd android-client
 $env:JAVA_HOME='E:\codex\APP\.android-build\jdk\jdk-17.0.19+10'
 $env:ANDROID_HOME='E:\codex\APP\.android-build\android-sdk'
-.\gradlew.bat :app:testDebugUnitTest --tests "com.chengxu.autoservice.AutoserviceAppSafeAreaContractTest"
+.\gradlew.bat :app:compileDebugAndroidTestKotlin
 ```
 
-预期：失败于 `statusBarsPadding()` 尚未出现在 `AutoserviceApp.kt`，而不是测试配置或编译错误。
+预期：失败于 `AutoserviceRootLayout` 尚不存在；不连接设备，因此不运行 Android 测试。
 
 - [ ] **Step 3: 在根 Compose 容器添加最小安全区实现**
 
-在 `AutoserviceApp.kt` 导入 `Box` 和 `statusBarsPadding`，并把认证状态 `when` 包裹到下列根容器中：
+在 `AutoserviceApp.kt` 导入 `BoxScope` 和 `statusBarsPadding`，并新增下列可复用根容器：
 
 ```kotlin
-AutoserviceTheme {
+@Composable
+internal fun AutoserviceRootLayout(content: @Composable BoxScope.() -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(AutoserviceColors.Canvas)
             .statusBarsPadding(),
-    ) {
+        content = content,
+    )
+}
+```
+
+随后把认证状态 `when` 包裹为：
+
+```kotlin
+AutoserviceTheme {
+    AutoserviceRootLayout {
         when (val state = authenticationState) {
             // 保留现有 Restoring / Unauthenticated / Authenticated 分支，不改变参数或导航。
         }
@@ -134,7 +150,7 @@ $env:JAVA_HOME='E:\codex\APP\.android-build\jdk\jdk-17.0.19+10'
 
 ```powershell
 cd E:\codex\chengxu
-git add android-client/app/src/main/java/com/chengxu/autoservice/AutoserviceApp.kt android-client/app/src/test/java/com/chengxu/autoservice/AutoserviceAppSafeAreaContractTest.kt docs/android-client.md docs/latest-handoff-prompt.md dist/releases/android/autoservice-android-debug-0.1.0.apk
+git add android-client/app/src/main/java/com/chengxu/autoservice/AutoserviceApp.kt android-client/app/src/androidTest/java/com/chengxu/autoservice/AutoserviceSafeAreaTest.kt docs/superpowers/plans/2026-07-27-android-safe-area.md docs/android-client.md docs/latest-handoff-prompt.md dist/releases/android/autoservice-android-debug-0.1.0.apk
 git diff --cached --check
 git commit -m "fix(android): respect status bar safe area"
 git push origin codex/android-mobile-ui-atlas

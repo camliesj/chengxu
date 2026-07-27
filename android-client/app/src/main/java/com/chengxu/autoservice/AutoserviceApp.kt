@@ -1,12 +1,14 @@
 package com.chengxu.autoservice
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -76,27 +78,40 @@ fun AutoserviceApp(
     }
 
     AutoserviceTheme {
-        when (val state = authenticationState) {
-            AuthenticationState.Restoring -> BrandRestoringScreen()
+        AutoserviceRootLayout {
+            when (val state = authenticationState) {
+                AuthenticationState.Restoring -> BrandRestoringScreen()
 
-            is AuthenticationState.Unauthenticated -> LoginRoot(
-                authenticationRepository = authenticationRepository,
-                networkMonitor = networkMonitor,
-                initialErrorMessage = state.message,
-            )
+                is AuthenticationState.Unauthenticated -> LoginRoot(
+                    authenticationRepository = authenticationRepository,
+                    networkMonitor = networkMonitor,
+                    initialErrorMessage = state.message,
+                )
 
-            is AuthenticationState.Authenticated -> AuthenticatedRoot(
-                authenticationRepository = authenticationRepository,
-                networkMonitor = networkMonitor,
-                ordersRepository = ordersRepository,
-                orderCreationRepository = orderCreationRepository,
-                orderDetailRepository = orderDetailRepository,
-                orderEditRepository = orderEditRepository,
-                orderStatusRepository = orderStatusRepository,
-                authenticationState = state,
-            )
+                is AuthenticationState.Authenticated -> AuthenticatedRoot(
+                    authenticationRepository = authenticationRepository,
+                    networkMonitor = networkMonitor,
+                    ordersRepository = ordersRepository,
+                    orderCreationRepository = orderCreationRepository,
+                    orderDetailRepository = orderDetailRepository,
+                    orderEditRepository = orderEditRepository,
+                    orderStatusRepository = orderStatusRepository,
+                    authenticationState = state,
+                )
+            }
         }
     }
+}
+
+@Composable
+internal fun AutoserviceRootLayout(content: @Composable BoxScope.() -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(AutoserviceColors.Canvas)
+            .statusBarsPadding(),
+        content = content,
+    )
 }
 
 @Composable
