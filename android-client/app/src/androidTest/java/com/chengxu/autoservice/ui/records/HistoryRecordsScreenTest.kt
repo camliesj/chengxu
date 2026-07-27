@@ -1,6 +1,7 @@
 package com.chengxu.autoservice.ui.records
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -43,6 +44,35 @@ class HistoryRecordsScreenTest {
         composeRule.onNodeWithTag(HistoryRecordsTestTags.LOAD_MORE).performClick()
 
         assertEquals(1, loadMoreCount)
+    }
+
+    @Test
+    fun historyFilterLabelIsVerticallyCenteredInsideItsTouchTarget() {
+        composeRule.setContent {
+            HistoryRecordsScreen(
+                state = HistoryRecordsUiState(),
+                isOffline = false,
+                onQueryChange = {},
+                onTimeFilterChange = {},
+                onClearFilters = {},
+                onRefresh = {},
+                onLoadMore = {},
+                onOrderSelected = {},
+            )
+        }
+
+        val filterBounds = composeRule
+            .onNodeWithTag("${HistoryRecordsTestTags.FILTER_PREFIX}LAST_30_DAYS")
+            .getBoundsInRoot()
+        val labelBounds = composeRule
+            .onNodeWithTag("history-records-filter-label-LAST_30_DAYS", useUnmergedTree = true)
+            .getBoundsInRoot()
+
+        assertEquals(
+            (filterBounds.top.value + filterBounds.bottom.value) / 2f,
+            (labelBounds.top.value + labelBounds.bottom.value) / 2f,
+            0.5f,
+        )
     }
 
     private fun displayOrder() = OrderDisplayModel(

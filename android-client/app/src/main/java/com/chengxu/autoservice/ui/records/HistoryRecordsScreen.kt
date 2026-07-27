@@ -37,6 +37,7 @@ import com.chengxu.autoservice.core.designsystem.BrandButton
 import com.chengxu.autoservice.core.designsystem.BrandButtonTone
 import com.chengxu.autoservice.core.designsystem.BrandIcon
 import com.chengxu.autoservice.core.designsystem.BrandIconResource
+import com.chengxu.autoservice.core.designsystem.BrandSegmentedFilter
 import com.chengxu.autoservice.core.designsystem.BrandTextField
 import com.chengxu.autoservice.core.designsystem.StatusChip
 import com.chengxu.autoservice.ui.orders.OrderDisplayModel
@@ -156,17 +157,14 @@ private fun HistoryTimeFilters(selected: HistoryTimeFilter, onSelected: (History
         horizontalArrangement = Arrangement.spacedBy(AutoserviceSpacing.Sm),
     ) {
         HistoryTimeFilter.entries.forEach { filter ->
-            Surface(
+            BrandSegmentedFilter(
+                label = filter.label,
+                selected = filter == selected,
+                onClick = { onSelected(filter) },
                 modifier = Modifier
-                    .heightIn(min = 48.dp)
-                    .testTag("${HistoryRecordsTestTags.FILTER_PREFIX}${filter.name}")
-                    .selectable(filter == selected, role = Role.RadioButton) { onSelected(filter) },
-                shape = AutoserviceControlShape,
-                color = if (filter == selected) AutoserviceColors.Ice else AutoserviceColors.Surface,
-                border = BorderStroke(1.dp, if (filter == selected) AutoserviceColors.Action else AutoserviceColors.Line),
-            ) {
-                Text(filter.label, modifier = Modifier.padding(horizontal = AutoserviceSpacing.Lg), style = MaterialTheme.typography.labelLarge)
-            }
+                    .testTag("${HistoryRecordsTestTags.FILTER_PREFIX}${filter.name}"),
+                labelModifier = Modifier.testTag("history-records-filter-label-${filter.name}"),
+            )
         }
     }
 }

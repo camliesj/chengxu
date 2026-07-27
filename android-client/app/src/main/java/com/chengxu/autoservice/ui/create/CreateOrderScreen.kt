@@ -2,6 +2,7 @@ package com.chengxu.autoservice.ui.create
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.chengxu.autoservice.core.designsystem.AutoserviceColors
 import com.chengxu.autoservice.core.designsystem.AutoservicePanelShape
@@ -254,13 +256,29 @@ private fun CreateFooter(
                 modifier = Modifier.weight(1f).testTag(CreateOrderTestTags.BACK_ACTION),
                 tone = BrandButtonTone.SECONDARY,
                 enabled = state.step != CreateOrderStep.CUSTOMER && !state.submitting,
-            ) { Text("上一步") }
+                contentPadding = PaddingValues(horizontal = AutoserviceSpacing.Sm, vertical = AutoserviceSpacing.Sm),
+            ) {
+                Text(
+                    text = "上一步",
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             BrandButton(
                 onClick = onSaveDraft,
                 modifier = Modifier.weight(1.1f).testTag(CreateOrderTestTags.SAVE_ACTION),
                 tone = BrandButtonTone.QUIET,
                 enabled = state.dirty && !state.submitting,
-            ) { Text("保存草稿") }
+                contentPadding = PaddingValues(horizontal = AutoserviceSpacing.Sm, vertical = AutoserviceSpacing.Sm),
+            ) {
+                Text(
+                    text = "保存草稿",
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             val finalEnabled = state.connection == ConnectionState.Online && state.canCreate && !state.submitting
             val confirmationEnabled = state.connection == ConnectionState.Online && !state.submitting
             BrandButton(
@@ -271,6 +289,7 @@ private fun CreateFooter(
                 },
                 modifier = Modifier.weight(1.5f).testTag(CreateOrderTestTags.PRIMARY_ACTION),
                 loading = state.submitting,
+                contentPadding = PaddingValues(horizontal = AutoserviceSpacing.Sm, vertical = AutoserviceSpacing.Sm),
                 enabled = when {
                     state.unknownOperationId != null -> confirmationEnabled
                     state.step == CreateOrderStep.CONFIRM -> finalEnabled

@@ -6,6 +6,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -50,6 +52,7 @@ fun BrandButton(
     icon: BrandIconResource? = null,
     loading: Boolean = false,
     enabled: Boolean = true,
+    contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
     content: @Composable RowScope.() -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -95,6 +98,7 @@ fun BrandButton(
                 disabledContainerColor = AutoserviceColors.SurfaceSoft,
                 disabledContentColor = AutoserviceColors.InkMuted,
             ),
+            contentPadding = contentPadding,
             content = buttonContent,
         )
         BrandButtonTone.DANGER -> Button(
@@ -109,6 +113,7 @@ fun BrandButton(
                 disabledContainerColor = AutoserviceColors.SurfaceSoft,
                 disabledContentColor = AutoserviceColors.InkMuted,
             ),
+            contentPadding = contentPadding,
             content = buttonContent,
         )
         BrandButtonTone.SECONDARY -> OutlinedButton(
@@ -123,6 +128,7 @@ fun BrandButton(
                 contentColor = AutoserviceColors.Ink,
                 disabledContentColor = AutoserviceColors.InkMuted,
             ),
+            contentPadding = contentPadding,
             content = buttonContent,
         )
         BrandButtonTone.QUIET -> TextButton(
@@ -135,8 +141,55 @@ fun BrandButton(
                 contentColor = AutoserviceColors.Ink,
                 disabledContentColor = AutoserviceColors.InkMuted,
             ),
+            contentPadding = contentPadding,
             content = buttonContent,
         )
+    }
+}
+
+@Composable
+fun BrandSegmentedFilter(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    labelModifier: Modifier = Modifier,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.97f else 1f,
+        animationSpec = tween(AutoserviceMotion.FastMillis),
+        label = "brand-segmented-filter-scale",
+    )
+    Surface(
+        modifier = modifier
+            .heightIn(min = 48.dp)
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .selectable(
+                selected = selected,
+                interactionSource = interactionSource,
+                role = Role.RadioButton,
+                onClick = onClick,
+            ),
+        shape = AutoserviceControlShape,
+        color = if (selected) AutoserviceColors.Ice else AutoserviceColors.Surface,
+        contentColor = AutoserviceColors.Ink,
+        border = BorderStroke(1.dp, if (selected) AutoserviceColors.Action else AutoserviceColors.Line),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp)
+                .padding(horizontal = AutoserviceSpacing.Lg),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = label,
+                modifier = labelModifier,
+                style = MaterialTheme.typography.labelLarge,
+            )
+        }
     }
 }
 

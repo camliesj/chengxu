@@ -754,3 +754,12 @@ cd E:\codex\chengxu\android-client
 - Debug APK 已归档为 `dist/releases/android/autoservice-android-debug-0.1.0.apk`：19,944,686 bytes，SHA-256 `5314BAA6B770B28196EAE977726D2F28B31899894E51AD8EA82DB8577455C731`；Build Tools 35.0.0 `apksigner verify --verbose` 确认 v2 签名为 true。仅供 API 26+ 真机测试，不是生产签名发布包。
 - 真机验收：登录任一企业后打开“档案”，验证只出现已结算记录；验证关键词、近 30 天/更早记录筛选、在线加载更多、离线缓存可读且不触发同步；进入历史详情后确认没有编辑或状态变更入口；切换企业、登出或 401 后确认历史缓存不串企业且被清除。
 - 下一步：等待真机验收反馈；后续档案扩展（客户车辆、保险、管理员修正）须另行设计与授权，不在本批范围内。
+
+### Android UI 响应与字体对齐修复（已完成，待真机视觉验收）
+
+- 针对真机截图中的工单/档案横向筛选文字偏上与点击反馈迟缓，新增共享 `BrandSegmentedFilter`：48dp 命中区内用 Box 显式居中标签，并复用按下时 0.97 缩放反馈；工单和档案筛选统一使用该组件，状态更新仍在点击回调中即时发生。
+- 新增页固定底栏在 1.2 倍系统字体下收紧水平内边距；“上一步”和“保存草稿”显式保持单行并在极窄空间省略，避免截图中的“上一步”折为两行。未改动五栏导航和业务权限。
+- 模拟器 `industrial_mobile_api35_ws`（API 35）连接式回归：`OrdersScreenTest` 10/10、`HistoryRecordsScreenTest` 2/2、`CreateOrderScreenTest` 7/7 全部通过；新增几何断言锁定两类筛选标签的垂直中心，以及大字体固定底栏的单行高度。
+- 最终门禁：Node `npm.cmd test` 180/180、`npm.cmd run build` 成功；Android `:app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:lintDebug :app:assembleDebug` 为 `BUILD SUCCESSFUL`（68 tasks）。
+- 已归档 Debug APK：`dist/releases/android/autoservice-android-debug-0.1.0.apk`，20,104,100 bytes，SHA-256 `B85791CC0F199A85B24C07F1544FC55943D0BCDED6EDFF7C194D2AA80616274C`；Build Tools 35.0.0 `apksigner verify --verbose` 确认 v2 签名有效。仅供 API 26+ 真机测试。
+- 下一步：由用户在真机复核筛选按压、快速连续切换、系统大字体与新增页底栏；收到业务验收后再继续后续功能任务。

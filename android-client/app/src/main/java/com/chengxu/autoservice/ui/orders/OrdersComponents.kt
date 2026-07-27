@@ -1,6 +1,5 @@
 package com.chengxu.autoservice.ui.orders
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -11,7 +10,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -20,19 +18,18 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.chengxu.autoservice.core.designsystem.AutoserviceCard
 import com.chengxu.autoservice.core.designsystem.AutoserviceColors
-import com.chengxu.autoservice.core.designsystem.AutoserviceControlShape
 import com.chengxu.autoservice.core.designsystem.AutoserviceShape
 import com.chengxu.autoservice.core.designsystem.AutoserviceSpacing
 import com.chengxu.autoservice.core.designsystem.BrandButton
 import com.chengxu.autoservice.core.designsystem.BrandButtonTone
 import com.chengxu.autoservice.core.designsystem.BrandIcon
 import com.chengxu.autoservice.core.designsystem.BrandIconResource
+import com.chengxu.autoservice.core.designsystem.BrandSegmentedFilter
 import com.chengxu.autoservice.core.designsystem.StatusChip
 import com.chengxu.autoservice.core.designsystem.StatusTone
 
@@ -50,30 +47,14 @@ internal fun OrdersFilterRow(
     ) {
         OrderStatusFilter.entries.forEach { filter ->
             val isSelected = filter == selected
-            Surface(
+            BrandSegmentedFilter(
+                label = filter.label,
+                selected = isSelected,
+                onClick = { onSelected(filter) },
                 modifier = Modifier
-                    .heightIn(min = 48.dp)
-                    .testTag("${OrdersTestTags.FILTER_PREFIX}${filter.label}")
-                    .selectable(
-                        selected = isSelected,
-                        role = Role.RadioButton,
-                        onClick = { onSelected(filter) },
-                    ),
-                shape = AutoserviceControlShape,
-                color = if (isSelected) AutoserviceColors.Ice else AutoserviceColors.Surface,
-                contentColor = AutoserviceColors.Ink,
-                border = BorderStroke(
-                    width = 1.dp,
-                    color = if (isSelected) AutoserviceColors.Action else AutoserviceColors.Line,
-                ),
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = AutoserviceSpacing.Lg),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(text = filter.label, style = MaterialTheme.typography.labelLarge)
-                }
-            }
+                    .testTag("${OrdersTestTags.FILTER_PREFIX}${filter.label}"),
+                labelModifier = Modifier.testTag("orders-filter-label-${filter.label}"),
+            )
         }
     }
 }

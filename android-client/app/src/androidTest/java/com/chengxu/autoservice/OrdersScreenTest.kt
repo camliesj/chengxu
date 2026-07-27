@@ -3,6 +3,7 @@ package com.chengxu.autoservice
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
@@ -64,6 +65,24 @@ class OrdersScreenTest {
 
         assertEquals("张先生", query)
         assertEquals(OrderStatusFilter.PENDING_SETTLEMENT, filter)
+    }
+
+    @Test
+    fun filterLabelIsVerticallyCenteredInsideItsTouchTarget() {
+        setOrders(state = readyState(listOf(order("RO-PENDING", status = "待结算"))))
+
+        val filterBounds = composeRule
+            .onNodeWithTag("${OrdersTestTags.FILTER_PREFIX}待结算")
+            .getBoundsInRoot()
+        val labelBounds = composeRule
+            .onNodeWithTag("orders-filter-label-待结算", useUnmergedTree = true)
+            .getBoundsInRoot()
+
+        assertEquals(
+            (filterBounds.top.value + filterBounds.bottom.value) / 2f,
+            (labelBounds.top.value + labelBounds.bottom.value) / 2f,
+            0.5f,
+        )
     }
 
     @Test

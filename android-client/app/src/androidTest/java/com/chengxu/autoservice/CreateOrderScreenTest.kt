@@ -4,11 +4,15 @@ import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.runtime.CompositionLocalProvider
 import com.chengxu.autoservice.core.designsystem.AutoserviceTheme
 import com.chengxu.autoservice.core.network.ConnectionState
 import com.chengxu.autoservice.core.orders.model.OrderCreationDefaults
@@ -20,6 +24,7 @@ import com.chengxu.autoservice.ui.create.CreateOrderStep
 import com.chengxu.autoservice.ui.create.CreateOrderTestTags
 import com.chengxu.autoservice.ui.create.CreateOrderUiState
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -86,6 +91,21 @@ class CreateOrderScreenTest {
     }
 
     @Test
+    fun previousStepLabelStaysOnOneVisualLineInTheFixedFooter() {
+        launch(
+            state().copy(step = CreateOrderStep.INSURANCE, dirty = true),
+            fontScale = 1.2f,
+        )
+
+        val labelHeight = composeRule
+            .onNodeWithText("上一步", useUnmergedTree = true)
+            .getBoundsInRoot()
+            .let { bounds -> bounds.bottom - bounds.top }
+
+        assertTrue("Expected one visual line, was ${labelHeight.value}dp", labelHeight <= 26.dp)
+    }
+
+    @Test
     fun anExistingUnknownOperationCanBeConfirmedAfterCreateCapabilityIsDisabled() {
         launch(
             state().copy(
@@ -102,22 +122,28 @@ class CreateOrderScreenTest {
     private fun launch(
         value: CreateOrderUiState,
         onNext: () -> Unit = {},
+        fontScale: Float = 1f,
     ) {
         composeRule.setContent {
-            AutoserviceTheme {
-                CreateOrderScreen(
-                    state = value,
-                    onUpdate = { _, _ -> },
-                    onNext = onNext,
-                    onBack = {},
-                    onSubmit = {},
-                    onConfirmUnknown = {},
-                    onSaveDraft = {},
-                    onExit = {},
-                    onContinueEditing = {},
-                    onDiscardAndExit = {},
-                    onSaveAndExit = {},
-                )
+            val density = LocalDensity.current
+            CompositionLocalProvider(
+                LocalDensity provides Density(density.density, fontScale),
+            ) {
+                AutoserviceTheme {
+                    CreateOrderScreen(
+                        state = value,
+                        onUpdate = { _, _ -> },
+                        onNext = onNext,
+                        onBack = {},
+                        onSubmit = {},
+                        onConfirmUnknown = {},
+                        onSaveDraft = {},
+                        onExit = {},
+                        onContinueEditing = {},
+                        onDiscardAndExit = {},
+                        onSaveAndExit = {},
+                    )
+                }
             }
         }
     }
