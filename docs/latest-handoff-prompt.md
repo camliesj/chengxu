@@ -669,11 +669,12 @@ cd E:\codex\chengxu\android-client
 - 最终门禁：`EditOrderViewModelTest`、`OrderDetailViewModelTest`、`AppNavigationStateTest` 通过；`:app:compileDebugAndroidTestKotlin` 与 `:app:lintDebug` 均成功。未启动模拟器、未执行连接式测试、未访问远端 D1/Pages，Task 8 不生成 APK。
 - 下一步：执行阶段 3 Task 9——服务端普通工单状态命令；生产 `EDIT_ORDER` 能力保持关闭，等待 Task 13 的独立发布门禁。
 
-### 阶段 3 Task 9：普通状态命令（进行中检查点）
+### 阶段 3 Task 9：普通状态命令（已完成）
 
 - 新增 `functions/_shared/order-status.js`：合同化校验 UUID operationId、正 expectedVersion 和三个普通目标状态；状态转移继续复用唯一的 `shared/orderStatusPermissions.js` 角色矩阵。
-- 新增 `POST /api/orders/:id/status` 与 `GET /api/order-operations/change-order-status/:operationId`。写入路径已使用 `change_order_status` operation lease、版本/作废/普通状态谓词、审计哨兵、状态更新和终态响应；未开启 `ADVANCE_ORDER_STATUS` 时拒绝。
-- 新增状态合同、未认证路由、repair 权限/能力禁用/非相邻状态拒绝、成功批处理，以及版本冲突终态保存测试；当前 6/6 通过。尚需完成跨公司/作废、重放、租约和审计清理恢复矩阵后再执行完整 Node 回归、构建和完成提交。
+- 新增 `POST /api/orders/:id/status` 与 `GET /api/order-operations/change-order-status/:operationId`。写入路径使用 `change_order_status` operation lease、版本/作废/普通状态谓词、审计哨兵、状态更新和终态响应；未开启 `ADVANCE_ORDER_STATUS` 时拒绝，跨公司和作废目标统一返回 404。
+- 状态 API 测试覆盖合同矩阵、鉴权、repair 权限、能力开关、非相邻/结算拒绝、原子审计/版本递增、409 冲突终态、同 operation 重放、活跃租约、操作人查询隔离、跨公司与作废隐藏。完整 Node 回归 175/175 通过，Vite 生产构建成功；未启动模拟器、未访问远端 D1、未部署 Pages，也未开启生产能力。
+- 下一步：阶段 3 Task 10——网页端状态确认、冲突展示与未知结果恢复。
 
 每次重要改动后必须：
 
