@@ -743,4 +743,5 @@ cd E:\codex\chengxu\android-client
 - 已批准规格：`docs/superpowers/specs/2026-07-27-android-archive-history-read-design.md`。复用认证会话、`scope=history` 订单读取、现有企业隔离 Room 摘要/加密详情缓存与详情路由；离线不请求，401 复用共享会话失效与客户缓存清理。
 - 本批不新增 D1 migration、不访问远程 D1/Pages、不改变生产能力开关；最终仅运行无设备 Node/Android 门禁并生成 Debug APK，不启动模拟器或 connected 测试。
 - 实施计划：`docs/superpowers/plans/2026-07-27-android-archive-history-read.md`。按历史 HTTP 合同、企业隔离缓存与分页仓库、只读 Compose 档案页、应用装配与最终无设备交付四个可独立验收任务执行。
-- 下一步：按既有用户选择的当前会话内联方式，从 Task 1 的历史 HTTP 合同 RED 开始实施；不创建子代理或 worktree。
+- Task 1 已完成：新增 `HistoryOrdersApi` 与 `HttpUrlConnectionHistoryOrdersApi`，固定读取 `GET /api/orders?scope=history` 并可附加 URL 编码 cursor；200 映射摘要与 `nextCursor`，401/网络/畸形响应和取消语义与现有读取 API 一致。TDD RED 先因类型不存在失败，GREEN 聚焦 JVM 测试通过；未启动模拟器、未访问远程环境。
+- 下一步：按既有用户选择的当前会话内联方式执行 Task 2——企业隔离历史缓存与分页仓库；不创建子代理或 worktree。

@@ -29,7 +29,7 @@
 - Consumes: `OrdersHttpTransport`, `OrdersHttpResponse`, `OrderSummary`, `asOrderSummaryOrNull`。
 - Produces: `HistoryOrdersApi.fetch(token: String, cursor: String?): HistoryOrdersResult`；成功结果包含 `orders: List<OrderSummary>` 与 `nextCursor: String?`。
 
-- [ ] **Step 1: 写失败的 HTTP 合同测试。**
+- [x] **Step 1: 写失败的 HTTP 合同测试。**
 
 ```kotlin
 val result = api.fetch(token = "session-token", cursor = "next-cursor")
@@ -42,13 +42,13 @@ assertEquals("Bearer session-token", transport.authorization)
 
 覆盖首个请求、游标 URL 编码、200 分页映射、401、5xx、IO、畸形 JSON 与 `CancellationException` 原样传播；断言不接受缺少 `id/companyId/version/updatedAt` 的摘要。
 
-- [ ] **Step 2: 运行聚焦测试确认 RED。**
+- [x] **Step 2: 运行聚焦测试确认 RED。**
 
 Run: `cd android-client; .\gradlew.bat :app:testDebugUnitTest --tests "*HttpUrlConnectionHistoryOrdersApiTest"`
 
 Expected: FAIL，原因是 `HistoryOrdersApi` 与 HTTP 实现尚不存在。
 
-- [ ] **Step 3: 实现最小历史 API。**
+- [x] **Step 3: 实现最小历史 API。**
 
 ```kotlin
 interface HistoryOrdersApi {
@@ -63,13 +63,13 @@ sealed interface HistoryOrdersResult {
 
 仅构造 `/api/orders?scope=history`，有游标时追加 URL 编码后的 `cursor`。复用已有 transport、超时与 failure 映射；只映射合法摘要，缺少 `orders` 数组或解析异常返回 `MalformedResponse`。
 
-- [ ] **Step 4: 运行聚焦测试确认 GREEN。**
+- [x] **Step 4: 运行聚焦测试确认 GREEN。**
 
 Run: `cd android-client; .\gradlew.bat :app:testDebugUnitTest --tests "*HttpUrlConnectionHistoryOrdersApiTest"`
 
 Expected: PASS。
 
-- [ ] **Step 5: 检查差异并提交推送。**
+- [x] **Step 5: 检查差异并提交推送。**
 
 Run: `git diff --check`
 
