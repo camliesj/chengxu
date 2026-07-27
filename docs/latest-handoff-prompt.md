@@ -746,4 +746,6 @@ cd E:\codex\chengxu\android-client
 - Task 1 已完成：新增 `HistoryOrdersApi` 与 `HttpUrlConnectionHistoryOrdersApi`，固定读取 `GET /api/orders?scope=history` 并可附加 URL 编码 cursor；200 映射摘要与 `nextCursor`，401/网络/畸形响应和取消语义与现有读取 API 一致。TDD RED 先因类型不存在失败，GREEN 聚焦 JVM 测试通过；未启动模拟器、未访问远程环境。
 - Task 2 已完成：新增独立 `HistoryOrdersRepository` 与 `HistoryOrderCache`；首屏缓存优先、在线首刷与加载更多使用同一互斥锁，离线不请求，外来企业或非已结算摘要视为畸形响应且不落库，401 严格按清缓存再失效会话执行。`RoomOrderCache` 现支持仅观察/替换/追加当前企业 `HISTORY` scope，替换历史不会删除同企业当前工单；没有 Room migration。
 - TDD RED 先因仓库边界不存在失败；GREEN 聚焦 JVM（历史仓库、历史 HTTP、受影响当前仓库）与 `:app:compileDebugAndroidTestKotlin` 均通过。未启动模拟器、未运行 connected 测试、未访问远程环境。
-- 下一步：按既有用户选择的当前会话内联方式执行 Task 3——只读 Compose 历史档案 ViewModel 与页面；不创建子代理或 worktree。
+- Task 3 已完成：新增 `HistoryOrdersDataSource` 以使 UI 不依赖具体仓库，`HistoryRecordsViewModel` 支持关键词与“全部时间/近 30 天/更早记录”筛选、重新同步与加载更多；`HistoryRecordsScreen` 使用品牌组件展示只读提示、查询、筛选、同步/空状态、历史卡片和加载更多。页面不含编辑、状态、结算等写入交互。
+- TDD RED 先因新的 records 类型和页面不存在失败；GREEN 聚焦 JVM 与 Compose 测试源码编译通过。期间的组件签名与测试调度器问题已按现有项目模式修正；未启动模拟器、未运行 connected 测试。
+- 下一步：按既有用户选择的当前会话内联方式执行 Task 4——生产装配、历史详情只读门禁、完整无设备验证与 APK 交付；不创建子代理或 worktree。

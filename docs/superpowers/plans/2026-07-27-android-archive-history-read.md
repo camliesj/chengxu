@@ -144,7 +144,7 @@ Commit: `feat(android): cache history order pages`
 - Consumes: `HistoryOrdersRepository`、`OrderDisplayModel` 映射规则及 `ConnectionState`。
 - Produces: `HistoryRecordsUiState`（查询、筛选、缓存状态、分页状态、可见历史列表）与 `HistoryRecordsTestTags`。
 
-- [ ] **Step 1: 写失败的 ViewModel 和 Compose 测试源码。**
+- [x] **Step 1: 写失败的 ViewModel 和 Compose 测试源码。**
 
 ```kotlin
 viewModel.updateQuery("蒙A")
@@ -156,13 +156,13 @@ composeRule.onNodeWithTag(HistoryRecordsTestTags.READ_ONLY_NOTICE).assertIsDispl
 
 锁定只筛选历史摘要、无缓存加载、离线陈旧提示、无匹配清除筛选、可重试失败、加载更多以及卡片点击回调。测试断言中不得输出手机号、VIN 或 Token；断言不出现编辑、状态、结算类 test tag。
 
-- [ ] **Step 2: 运行 JVM 聚焦测试并编译 Android 测试源码确认 RED。**
+- [x] **Step 2: 运行 JVM 聚焦测试并编译 Android 测试源码确认 RED。**
 
 Run: `cd android-client; .\gradlew.bat :app:testDebugUnitTest --tests "*HistoryRecordsViewModelTest" :app:compileDebugAndroidTestKotlin`
 
 Expected: FAIL，原因是 records ViewModel、页面及 test tag 尚不存在。
 
-- [ ] **Step 3: 实现 ViewModel 和页面。**
+- [x] **Step 3: 实现 ViewModel 和页面。**
 
 ```kotlin
 fun loadNextPage() = viewModelScope.launch { repository.loadNextPage() }
@@ -181,13 +181,13 @@ fun HistoryRecordsScreen(
 
 页面使用现有品牌颜色、间距、卡片和 48dp 触控目标，显示“已结算历史档案”标题。离线不把“重新同步”做成可用写入式按钮；仅在线并存在 `nextCursor` 时显示加载更多。所有卡片只导航到详情。
 
-- [ ] **Step 4: 运行聚焦测试确认 GREEN。**
+- [x] **Step 4: 运行聚焦测试确认 GREEN。**
 
 Run: `cd android-client; .\gradlew.bat :app:testDebugUnitTest --tests "*HistoryRecordsViewModelTest" :app:compileDebugAndroidTestKotlin`
 
 Expected: PASS；不运行 connected 测试。
 
-- [ ] **Step 5: 检查差异并提交推送。**
+- [x] **Step 5: 检查差异并提交推送。**
 
 Run: `git diff --check`
 

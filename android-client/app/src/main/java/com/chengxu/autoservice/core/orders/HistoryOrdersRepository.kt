@@ -31,6 +31,12 @@ interface HistoryOrderCache : AuthenticatedDataCleaner {
     suspend fun appendHistory(companyId: String, orders: List<OrderSummary>)
 }
 
+interface HistoryOrdersDataSource {
+    val snapshot: StateFlow<HistoryOrdersSnapshot>
+    suspend fun refresh()
+    suspend fun loadNextPage()
+}
+
 class HistoryOrdersRepository(
     applicationScope: CoroutineScope,
     private val sessionRepository: SessionRepository,
@@ -38,14 +44,14 @@ class HistoryOrdersRepository(
     private val historyOrdersApi: HistoryOrdersApi,
     private val historyOrderCache: HistoryOrderCache,
     private val sessionInvalidator: SessionInvalidator,
-) {
+) : HistoryOrdersDataSource {
     private val mutableSnapshot = MutableStateFlow(HistoryOrdersSnapshot())
     private val requestMutex = Mutex()
 
     @Volatile
     private var activeIdentity: HistorySessionIdentity? = null
 
-    val snapshot: StateFlow<HistoryOrdersSnapshot> = mutableSnapshot.asStateFlow()
+    override val snapshot: StateFlow<HistoryOrdersSnapshot> = mutableSnapshot.asStateFlow()
 
     init {
         applicationScope.launch {
@@ -87,9 +93,9 @@ class HistoryOrdersRepository(
         }
     }
 
-    suspend fun refresh() = requestPage(cursor = null, replace = true)
+    override suspend fun refresh() = requestPage(cursor = null, replace = true)
 
-    suspend fun loadNextPage() {
+    override suspend fun loadNextPage() {
         val cursor = mutableSnapshot.value.nextCursor ?: return
         requestPage(cursor = cursor, replace = false)
     }
