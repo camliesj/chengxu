@@ -42,6 +42,8 @@ import com.chengxu.autoservice.ui.status.OrderStatusUiState
 import com.chengxu.autoservice.ui.records.HistoryRecordsUiState
 import com.chengxu.autoservice.ui.records.HistoryTimeFilter
 import com.chengxu.autoservice.ui.records.CustomerVehiclesUiState
+import com.chengxu.autoservice.ui.records.InsurancePoliciesUiState
+import com.chengxu.autoservice.core.orders.InsurancePolicyRecord
 
 @Composable
 fun AutoserviceShell(
@@ -64,6 +66,16 @@ fun AutoserviceShell(
     onHistoryRecordsLoadMore: () -> Unit = {},
     customerVehiclesState: CustomerVehiclesUiState = CustomerVehiclesUiState(),
     onCustomerVehiclesQueryChange: (String) -> Unit = {},
+    insurancePoliciesState: InsurancePoliciesUiState = InsurancePoliciesUiState(),
+    onInsurancePoliciesQueryChange: (String) -> Unit = {},
+    onInsurancePoliciesCreate: () -> Unit = {},
+    onInsurancePoliciesDraftChange: ((InsurancePolicyRecord) -> InsurancePolicyRecord) -> Unit = {},
+    onInsurancePoliciesSave: () -> Unit = {},
+    onInsurancePoliciesDismissEditor: () -> Unit = {},
+    onInsurancePoliciesDelete: (InsurancePolicyRecord) -> Unit = {},
+    onInsurancePoliciesConfirmDelete: () -> Unit = {},
+    onInsurancePoliciesDismissDelete: () -> Unit = {},
+    onInsurancePoliciesEdit: (InsurancePolicyRecord) -> Unit = {},
     createState: CreateOrderUiState = CreateOrderUiState(),
     onCreateUpdate: (CreateOrderField, String) -> Unit = { _, _ -> },
     onCreateNext: () -> Unit = {},
@@ -129,6 +141,16 @@ fun AutoserviceShell(
             onHistoryRecordsLoadMore = onHistoryRecordsLoadMore,
             customerVehiclesState = customerVehiclesState,
             onCustomerVehiclesQueryChange = onCustomerVehiclesQueryChange,
+            insurancePoliciesState = insurancePoliciesState,
+            onInsurancePoliciesQueryChange = onInsurancePoliciesQueryChange,
+            onInsurancePoliciesCreate = onInsurancePoliciesCreate,
+            onInsurancePoliciesDraftChange = onInsurancePoliciesDraftChange,
+            onInsurancePoliciesSave = onInsurancePoliciesSave,
+            onInsurancePoliciesDismissEditor = onInsurancePoliciesDismissEditor,
+            onInsurancePoliciesDelete = onInsurancePoliciesDelete,
+            onInsurancePoliciesConfirmDelete = onInsurancePoliciesConfirmDelete,
+            onInsurancePoliciesDismissDelete = onInsurancePoliciesDismissDelete,
+            onInsurancePoliciesEdit = onInsurancePoliciesEdit,
             createState = createState,
             onCreateUpdate = onCreateUpdate,
             onCreateNext = onCreateNext,

@@ -47,6 +47,7 @@ import com.chengxu.autoservice.core.orders.OrderEditRepository
 import com.chengxu.autoservice.core.orders.OrderStatusRepository
 import com.chengxu.autoservice.core.orders.HistoryOrdersDataSource
 import com.chengxu.autoservice.core.orders.CustomerVehiclesDataSource
+import com.chengxu.autoservice.core.orders.InsurancePoliciesDataSource
 import com.chengxu.autoservice.navigation.AppRoute
 import com.chengxu.autoservice.navigation.AppNavigationState
 import com.chengxu.autoservice.navigation.RootTab
@@ -63,6 +64,7 @@ import com.chengxu.autoservice.ui.workbench.WorkbenchViewModel
 import com.chengxu.autoservice.ui.status.OrderStatusViewModel
 import com.chengxu.autoservice.ui.records.HistoryRecordsViewModel
 import com.chengxu.autoservice.ui.records.CustomerVehiclesViewModel
+import com.chengxu.autoservice.ui.records.InsurancePoliciesViewModel
 import kotlinx.coroutines.launch
 
 @Composable
@@ -72,6 +74,7 @@ fun AutoserviceApp(
     ordersRepository: OrdersRepository,
     historyOrdersRepository: HistoryOrdersDataSource,
     customerVehiclesRepository: CustomerVehiclesDataSource,
+    insurancePoliciesRepository: InsurancePoliciesDataSource,
     orderCreationRepository: OrderCreationRepository,
     orderDetailRepository: OrderDetailRepository,
     orderEditRepository: OrderEditRepository,
@@ -100,6 +103,7 @@ fun AutoserviceApp(
                     ordersRepository = ordersRepository,
                     historyOrdersRepository = historyOrdersRepository,
                     customerVehiclesRepository = customerVehiclesRepository,
+                    insurancePoliciesRepository = insurancePoliciesRepository,
                     orderCreationRepository = orderCreationRepository,
                     orderDetailRepository = orderDetailRepository,
                     orderEditRepository = orderEditRepository,
@@ -190,6 +194,7 @@ private fun AuthenticatedRoot(
     ordersRepository: OrdersRepository,
     historyOrdersRepository: HistoryOrdersDataSource,
     customerVehiclesRepository: CustomerVehiclesDataSource,
+    insurancePoliciesRepository: InsurancePoliciesDataSource,
     orderCreationRepository: OrderCreationRepository,
     orderDetailRepository: OrderDetailRepository,
     orderEditRepository: OrderEditRepository,
@@ -218,6 +223,10 @@ private fun AuthenticatedRoot(
         viewModelStoreOwner = sessionViewModelStoreOwner,
         factory = customerVehiclesViewModelFactory(customerVehiclesRepository),
     )
+    val insurancePoliciesViewModel: InsurancePoliciesViewModel = viewModel(
+        viewModelStoreOwner = sessionViewModelStoreOwner,
+        factory = insurancePoliciesViewModelFactory(insurancePoliciesRepository, networkMonitor, authenticationState.session.permissions),
+    )
     val createOrderViewModel: CreateOrderViewModel = viewModel(
         viewModelStoreOwner = sessionViewModelStoreOwner,
         factory = createOrderViewModelFactory(orderCreationRepository, networkMonitor),
@@ -238,6 +247,7 @@ private fun AuthenticatedRoot(
     val ordersState by ordersViewModel.uiState.collectAsStateWithLifecycle()
     val historyRecordsState by historyRecordsViewModel.uiState.collectAsStateWithLifecycle()
     val customerVehiclesState by customerVehiclesViewModel.uiState.collectAsStateWithLifecycle()
+    val insurancePoliciesState by insurancePoliciesViewModel.uiState.collectAsStateWithLifecycle()
     val createState by createOrderViewModel.uiState.collectAsStateWithLifecycle()
     val detailState by detailViewModel.uiState.collectAsStateWithLifecycle()
     val editState by editOrderViewModel.uiState.collectAsStateWithLifecycle()
@@ -307,6 +317,16 @@ private fun AuthenticatedRoot(
         onHistoryRecordsLoadMore = historyRecordsViewModel::loadNextPage,
         customerVehiclesState = customerVehiclesState,
         onCustomerVehiclesQueryChange = customerVehiclesViewModel::updateQuery,
+        insurancePoliciesState = insurancePoliciesState,
+        onInsurancePoliciesQueryChange = insurancePoliciesViewModel::updateQuery,
+        onInsurancePoliciesCreate = insurancePoliciesViewModel::openCreate,
+        onInsurancePoliciesDraftChange = insurancePoliciesViewModel::updateDraft,
+        onInsurancePoliciesSave = insurancePoliciesViewModel::save,
+        onInsurancePoliciesDismissEditor = insurancePoliciesViewModel::dismissEditor,
+        onInsurancePoliciesDelete = insurancePoliciesViewModel::requestDelete,
+        onInsurancePoliciesConfirmDelete = insurancePoliciesViewModel::confirmDelete,
+        onInsurancePoliciesDismissDelete = insurancePoliciesViewModel::dismissDelete,
+        onInsurancePoliciesEdit = insurancePoliciesViewModel::openEdit,
         createState = createState,
         onCreateUpdate = createOrderViewModel::update,
         onCreateNext = createOrderViewModel::next,
@@ -422,6 +442,16 @@ private fun customerVehiclesViewModelFactory(
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
         if (modelClass.isAssignableFrom(CustomerVehiclesViewModel::class.java)) CustomerVehiclesViewModel(source) as T
+        else throw IllegalArgumentException("Unsupported ViewModel class: ${modelClass.name}")
+}
+
+private fun insurancePoliciesViewModelFactory(
+    source: InsurancePoliciesDataSource,
+    networkMonitor: NetworkMonitor,
+    permissions: com.chengxu.autoservice.core.session.PermissionSnapshot,
+): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST") override fun <T : ViewModel> create(modelClass: Class<T>): T =
+        if (modelClass.isAssignableFrom(InsurancePoliciesViewModel::class.java)) InsurancePoliciesViewModel(source, networkMonitor.connection, permissions) as T
         else throw IllegalArgumentException("Unsupported ViewModel class: ${modelClass.name}")
 }
 

@@ -27,6 +27,7 @@ data class PermissionSnapshot(private val granted: Set<AppPermission>) {
                     AppPermission.EDIT_ORDER,
                     AppPermission.ADVANCE_ORDER_STATUS,
                     AppPermission.VIEW_RECORDS,
+                    AppPermission.MANAGE_INSURANCE,
                 ),
             )
             UserRole.ADMINISTRATOR -> PermissionSnapshot(AppPermission.entries.toSet())
@@ -39,7 +40,8 @@ data class PermissionSnapshot(private val granted: Set<AppPermission>) {
                 AppPermission.EDIT_ORDER,
                 AppPermission.ADVANCE_ORDER_STATUS,
             )
-            "history", "insurance", "customers" -> setOf(AppPermission.VIEW_RECORDS)
+            "history", "customers" -> setOf(AppPermission.VIEW_RECORDS)
+            "insurance" -> setOf(AppPermission.VIEW_RECORDS, AppPermission.MANAGE_INSURANCE)
             else -> emptySet()
         }
     }

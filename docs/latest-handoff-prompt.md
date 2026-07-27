@@ -781,3 +781,12 @@ cd E:\codex\chengxu\android-client
 - Task 2 已完成：`customer_vehicles` 复用既有 Room v2 表，以企业+记录 ID 隔离并整包加密；新增只读仓储，在线刷新、离线缓存、跨企业响应拒绝、401 清缓存后失效会话均已由 JVM 测试覆盖。下一步 Task 3：将“客户车辆”只读标签和详情页接入档案导航。
 - 客户车辆只读档案已完成：档案页新增“维修历史 / 客户车辆”标签，车辆支持本地关键词检索与详情查看，但没有新建、编辑或删除入口；主应用、会话级 ViewModel 与 Navigation 3 已接线。验证通过 `:app:testDebugUnitTest`、`:app:compileDebugAndroidTestKotlin`、`:app:assembleDebug`。本轮 APK 待复制到 `dist/releases/android/` 并校验签名后提交；后续真实设备重点检查：切换标签、无网查看缓存、401 自动返回登录、详情返回。
 - 保险档案跨端一致化 Task 1：新增本地 D1 migration `0012_unified_insurance_policies.sql`，保险 API 已增加版本字段、保存与删除的 operationId 幂等处理、版本冲突返回和删除处理；尚未执行远端 D1 migration 或部署，网页与 Android 客户端迁移仍待完成。Node 合同测试通过。
+
+### 保险档案跨端一致化（Android 与网页完成，待远端部署和真机验收）
+
+- 网页端已完成统一合同迁移：保存与删除均携带 `expectedVersion` 和 UUID `operationId`；保存成功以服务端记录回写版本，删除使用 `DELETE /api/insurance-policies/:id`；遇到 `VERSION_CONFLICT` 会重新拉取当前企业记录，不会静默覆盖。
+- Android 已完成完整保险档案 CRUD：`InsurancePoliciesRepository` 只使用统一保险 API，复用 Room v2 `insurance_policies` 整包加密缓存；在线读取、创建、编辑、删除、企业隔离、离线只读、401 清缓存后失效会话、版本冲突保留本地编辑并刷新列表均已接通。没有新增 Android 数据库 migration。
+- 档案页新增第三个“保险档案”标签，提供关键词查询、到期状态、详情、完整字段表单、二次删除确认及冲突提示；服务端 `insurance` 权限会映射为 Android 的 `MANAGE_INSURANCE`，离线或无权限时写入入口禁用。
+- 本轮测试先行：仓储冲突保护和 ViewModel 离线提交门禁分别经历 RED 后转 GREEN。最终验证：Node `npm.cmd test` 182/182，`npm.cmd run build` 成功；Android `:app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:lintDebug :app:assembleDebug` 为 `BUILD SUCCESSFUL`（68 tasks）。未启动模拟器、未运行 connected 测试。
+- 已归档 Debug APK：`dist/releases/android/autoservice-android-debug-0.1.0.apk`，SHA-256 `A2FF2E9171EB2FDFED3BFEDFC10B298969DBBE82C727EA496615090BB48DC535`；Build Tools 35.0.0 `apksigner verify --verbose` 确认 v2 签名有效。仅供 API 26+ 真机测试。
+- 仍未执行远端 D1 migration 或 Cloudflare Pages 部署，必须获得用户明确授权。下一步先真机验收保险档案的权限、离线只读、版本冲突和删除确认，再按授权部署服务端 migration/Pages。

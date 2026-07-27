@@ -37,6 +37,9 @@ import com.chengxu.autoservice.core.orders.HistoryOrdersDataSource
 import com.chengxu.autoservice.core.orders.HistoryOrdersSnapshot
 import com.chengxu.autoservice.core.orders.CustomerVehiclesDataSource
 import com.chengxu.autoservice.core.orders.CustomerVehiclesSnapshot
+import com.chengxu.autoservice.core.orders.InsurancePoliciesDataSource
+import com.chengxu.autoservice.core.orders.InsurancePoliciesSnapshot
+import com.chengxu.autoservice.core.orders.InsurancePolicyRecord
 import com.chengxu.autoservice.core.orders.RepairOrder
 import com.chengxu.autoservice.core.orders.model.BusinessCapability
 import com.chengxu.autoservice.core.orders.model.OrderCommandResult
@@ -150,6 +153,7 @@ class AutoserviceAppTest {
                 ordersRepository = FakeOrdersRepository(),
                 historyOrdersRepository = FakeHistoryOrdersRepository(),
                 customerVehiclesRepository = FakeCustomerVehiclesRepository(),
+                insurancePoliciesRepository = FakeInsurancePoliciesRepository(),
                 orderCreationRepository = FakeOrderCreationRepository(),
                 orderDetailRepository = FakeOrderDetailRepository(),
                 orderEditRepository = FakeOrderEditRepository(),
@@ -253,6 +257,13 @@ class AutoserviceAppTest {
     private class FakeOrderDetailRepository : OrderDetailRepository {
         override suspend fun load(orderId: String): OrderReadResult<OrderDetailEnvelope> =
             OrderReadResult.Failure(OrderReadFailure.NotFound)
+    }
+
+    private class FakeInsurancePoliciesRepository : InsurancePoliciesDataSource {
+        override val snapshot: StateFlow<InsurancePoliciesSnapshot> = MutableStateFlow(InsurancePoliciesSnapshot(companyId = "tongda"))
+        override suspend fun refresh() = Unit
+        override suspend fun save(policy: InsurancePolicyRecord) = Unit
+        override suspend fun delete(id: String, expectedVersion: Int) = Unit
     }
 
     private class FakeOrderEditRepository : OrderEditRepository {

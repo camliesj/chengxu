@@ -68,6 +68,15 @@ interface FoundationDao {
     }
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertPolicies(rows: List<InsurancePolicyEntity>)
+    @Query("SELECT * FROM insurance_policies WHERE companyId = :companyId ORDER BY updatedAt DESC, recordId ASC")
+    fun observePolicies(companyId: String): Flow<List<InsurancePolicyEntity>>
+    @Query("DELETE FROM insurance_policies WHERE companyId = :companyId AND recordId = :recordId")
+    suspend fun deletePolicy(companyId: String, recordId: String)
+    @Transaction
+    suspend fun replacePolicies(companyId: String, rows: List<InsurancePolicyEntity>) {
+        deletePoliciesByCompany(companyId)
+        upsertPolicies(rows)
+    }
 
     @Query("DELETE FROM order_details WHERE companyId = :companyId")
     suspend fun deleteDetailsByCompany(companyId: String)

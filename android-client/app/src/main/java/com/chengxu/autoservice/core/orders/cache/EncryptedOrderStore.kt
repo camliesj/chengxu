@@ -10,6 +10,8 @@ import com.chengxu.autoservice.core.orders.OrderEditLocalStore
 import com.chengxu.autoservice.core.orders.OrderStatusLocalStore
 import com.chengxu.autoservice.core.orders.CustomerVehicleCache
 import com.chengxu.autoservice.core.orders.CustomerVehicleRecord
+import com.chengxu.autoservice.core.orders.InsurancePolicyRecord
+import com.chengxu.autoservice.core.orders.InsurancePolicyCache
 import com.chengxu.autoservice.core.security.StringCipher
 import com.chengxu.autoservice.core.orders.model.PendingStatusEnvelope
 import kotlinx.coroutines.CancellationException
@@ -20,7 +22,7 @@ import kotlinx.serialization.json.Json
 class EncryptedOrderStore(
     private val dao: FoundationDao,
     private val cipher: StringCipher,
-) : OrderCreationLocalStore, OrderEditLocalStore, OrderStatusLocalStore, CustomerVehicleCache {
+) : OrderCreationLocalStore, OrderEditLocalStore, OrderStatusLocalStore, CustomerVehicleCache, InsurancePolicyCache {
     override suspend fun upsertDetail(detail: OrderDetail) = dao.upsertDetail(detail.toEntity(cipher))
 
     override suspend fun getDetail(companyId: String, orderId: String): OrderDetail? {
@@ -116,7 +118,10 @@ class EncryptedOrderStore(
         dao.replaceVehicles(companyId, records.map { it.toEntity(cipher, updatedAt) })
     }
 
-    override suspend fun clear() = dao.clearVehicles()
+    override suspend fun clear() {
+        dao.clearVehicles()
+        dao.clearPolicies()
+    }
 
     private suspend fun OrderDraftEntity.decryptOrDelete(): OrderDraft? = try {
         toDomain(cipher)
@@ -135,6 +140,19 @@ class EncryptedOrderStore(
     } catch (_: Exception) {
         dao.deleteVehicle(companyId, recordId)
         null
+    }
+
+    override fun observePolicies(companyId: String): Flow<List<InsurancePolicyRecord>> =
+        dao.observePolicies(companyId).map { rows -> rows.mapNotNull { entity ->
+            try { Json.decodeFromString<InsurancePolicyRecord>(cipher.decrypt(entity.encryptedPayload)) }
+            catch (_: Exception) { null }
+        } }
+
+    override suspend fun replacePolicies(companyId: String, records: List<InsurancePolicyRecord>) {
+        require(records.all { it.companyId == companyId })
+        dao.replacePolicies(companyId, records.map { record -> InsurancePolicyEntity(
+            companyId, record.id, cipher.encrypt(Json.encodeToString(record)), record.updatedAt,
+        ) })
     }
 }
 

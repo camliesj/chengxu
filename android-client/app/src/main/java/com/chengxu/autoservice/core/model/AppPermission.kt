@@ -10,6 +10,7 @@ enum class AppPermission {
     VOID_ORDER,
     MAINTAIN_RECEIPT,
     VIEW_RECORDS,
+    MANAGE_INSURANCE,
     MANAGE_RECORDS,
     EXPORT_DATA,
 }

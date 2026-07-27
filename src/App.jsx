@@ -420,11 +420,11 @@ async function fetchCloudInsurancePolicies(session) {
   return Array.isArray(data.policies) ? data.policies.map(normalizeInsurancePolicy) : [];
 }
 
-async function saveCloudInsurancePolicy(policy, session) {
+async function saveCloudInsurancePolicy(policy, session, expectedVersion) {
   const response = await apiFetch('/api/insurance-policies', {
     method: 'POST',
     headers: { 'content-type': 'application/json', ...authHeaders(session) },
-    body: JSON.stringify({ policy }),
+    body: JSON.stringify({ policy, expectedVersion, operationId: crypto.randomUUID() }),
   });
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
@@ -432,6 +432,20 @@ async function saveCloudInsurancePolicy(policy, session) {
   }
   const data = await response.json();
   return normalizeInsurancePolicy(data.policy);
+}
+
+async function deleteCloudInsurancePolicy(id, session, expectedVersion) {
+  const response = await apiFetch(`/api/insurance-policies/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: { 'content-type': 'application/json', ...authHeaders(session) },
+    body: JSON.stringify({ expectedVersion, operationId: crypto.randomUUID() }),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `保险档案删除失败：${response.status}`);
+  }
+  const data = await response.json();
+  return String(data.id || id);
 }
 
 async function importCloudInsurancePolicies(records, session) {
@@ -550,6 +564,7 @@ function normalizeInsurancePolicy(policy, index = 0) {
     amount: Number(policy.amount) || 0,
     type: policy.type || '交强险 / 商业险',
     insurer: policy.insurer || '人保财险',
+    version: Number.isInteger(Number(policy.version)) ? Number(policy.version) : null,
   };
 }
 
@@ -1383,7 +1398,7 @@ function App() {
   }
 
   async function persistInsurancePolicy(policy) {
-    const savedPolicy = await saveCloudInsurancePolicy(policy, accessSession);
+    const savedPolicy = await saveCloudInsurancePolicy(policy, accessSession, policy.version ?? null);
     setInsurancePolicies((currentPolicies) => upsertRecord(currentPolicies, savedPolicy));
     return savedPolicy;
   }
@@ -1403,8 +1418,33 @@ function App() {
         return savedPolicy;
       })
       .catch((error) => {
+        if (String(error.message || '').includes('VERSION_CONFLICT')) {
+          fetchCloudInsurancePolicies(accessSession)
+            .then((policies) => setInsurancePolicies((current) => replaceCompanyRecords(current, policies, currentCompany.id)))
+            .catch(() => {});
+        }
         setRecordCloudState({ loading: false, error: error.message || '保险档案保存失败' });
         return null;
+      });
+  }
+
+  function deleteInsurancePolicy(policy) {
+    if (!policy || !window.confirm(`确定删除 ${policy.plate || policy.customer} 的保险档案吗？`)) return Promise.resolve(false);
+    setRecordCloudState({ loading: true, error: '' });
+    return deleteCloudInsurancePolicy(policy.id, accessSession, policy.version)
+      .then((id) => {
+        setInsurancePolicies((currentPolicies) => currentPolicies.filter((item) => item.id !== id));
+        setRecordCloudState({ loading: false, error: '' });
+        return true;
+      })
+      .catch((error) => {
+        if (String(error.message || '').includes('VERSION_CONFLICT')) {
+          fetchCloudInsurancePolicies(accessSession)
+            .then((policies) => setInsurancePolicies((current) => replaceCompanyRecords(current, policies, currentCompany.id)))
+            .catch(() => {});
+        }
+        setRecordCloudState({ loading: false, error: error.message || '保险档案删除失败' });
+        return false;
       });
   }
 
@@ -1743,7 +1783,7 @@ function App() {
           />
         )}
         {activePage === '车辆保险' && (
-          <InsuranceLedger policies={companyInsurancePolicies} insurerOptions={insurerChoices} onSavePolicy={saveInsurancePolicy} focusPolicyRequest={insuranceFocusRequest} cloudReadOnly={cloudReadOnly} />
+          <InsuranceLedger policies={companyInsurancePolicies} insurerOptions={insurerChoices} onSavePolicy={saveInsurancePolicy} onDeletePolicy={deleteInsurancePolicy} focusPolicyRequest={insuranceFocusRequest} cloudReadOnly={cloudReadOnly} />
         )}
         {activePage === '客户车辆' && (
           <CustomerVehiclesPage
@@ -3776,6 +3816,7 @@ function createInsuranceDraft(policy) {
   if (policy) {
     return {
       id: policy.id,
+      version: policy.version ?? null,
       plate: policy.plate,
       customer: policy.customer,
       phone: policy.phone,
@@ -3815,7 +3856,7 @@ function draftToInsurancePolicy(draft) {
   });
 }
 
-function InsuranceLedger({ policies, insurerOptions, onSavePolicy, focusPolicyRequest, cloudReadOnly = false }) {
+function InsuranceLedger({ policies, insurerOptions, onSavePolicy, onDeletePolicy, focusPolicyRequest, cloudReadOnly = false }) {
   const [activeFilter, setActiveFilter] = useState('7天内到期');
   const [formMode, setFormMode] = useState('create');
   const [draft, setDraft] = useState(createInsuranceDraft);
@@ -3858,9 +3899,11 @@ function InsuranceLedger({ policies, insurerOptions, onSavePolicy, focusPolicyRe
   function savePolicy(event) {
     event.preventDefault();
     const nextPolicy = draftToInsurancePolicy(draft);
-    onSavePolicy(nextPolicy);
-    setFormMode('edit');
-    setDraft(createInsuranceDraft(nextPolicy));
+    Promise.resolve(onSavePolicy(nextPolicy)).then((savedPolicy) => {
+      if (!savedPolicy) return;
+      setFormMode('edit');
+      setDraft(createInsuranceDraft(savedPolicy));
+    });
   }
 
   return (
@@ -3902,7 +3945,10 @@ function InsuranceLedger({ policies, insurerOptions, onSavePolicy, focusPolicyRe
                   <div><dt>车型</dt><dd>{row.car}</dd></div>
                   <div><dt>车架号</dt><dd>{row.vin}</dd></div>
                 </dl>
-                <button className="insurance-card-action" disabled={cloudReadOnly} onClick={() => startEdit(row)}>编辑保险</button>
+                <div className="insurance-card-actions">
+                  <button className="insurance-card-action" disabled={cloudReadOnly} onClick={() => startEdit(row)}>编辑保险</button>
+                  <button className="insurance-card-action" disabled={cloudReadOnly} onClick={() => onDeletePolicy(row)}>删除保险</button>
+                </div>
               </article>
             );
           })}
