@@ -27,6 +27,9 @@ sealed interface AppRoute : NavKey {
     data class HistoryOrderDetail(val orderId: String) : AppRoute
 
     @Serializable
+    data class CustomerVehicleDetail(val recordId: String) : AppRoute
+
+    @Serializable
     data class EditOrder(val orderId: String) : AppRoute
 
     @Serializable

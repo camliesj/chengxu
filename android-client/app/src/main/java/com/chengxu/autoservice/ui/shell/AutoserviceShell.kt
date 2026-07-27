@@ -41,6 +41,7 @@ import com.chengxu.autoservice.ui.edit.EditOrderUiState
 import com.chengxu.autoservice.ui.status.OrderStatusUiState
 import com.chengxu.autoservice.ui.records.HistoryRecordsUiState
 import com.chengxu.autoservice.ui.records.HistoryTimeFilter
+import com.chengxu.autoservice.ui.records.CustomerVehiclesUiState
 
 @Composable
 fun AutoserviceShell(
@@ -61,6 +62,8 @@ fun AutoserviceShell(
     onHistoryRecordsClearFilters: () -> Unit = {},
     onHistoryRecordsRefresh: () -> Unit = {},
     onHistoryRecordsLoadMore: () -> Unit = {},
+    customerVehiclesState: CustomerVehiclesUiState = CustomerVehiclesUiState(),
+    onCustomerVehiclesQueryChange: (String) -> Unit = {},
     createState: CreateOrderUiState = CreateOrderUiState(),
     onCreateUpdate: (CreateOrderField, String) -> Unit = { _, _ -> },
     onCreateNext: () -> Unit = {},
@@ -124,6 +127,8 @@ fun AutoserviceShell(
             onHistoryRecordsClearFilters = onHistoryRecordsClearFilters,
             onHistoryRecordsRefresh = onHistoryRecordsRefresh,
             onHistoryRecordsLoadMore = onHistoryRecordsLoadMore,
+            customerVehiclesState = customerVehiclesState,
+            onCustomerVehiclesQueryChange = onCustomerVehiclesQueryChange,
             createState = createState,
             onCreateUpdate = onCreateUpdate,
             onCreateNext = onCreateNext,

@@ -46,6 +46,7 @@ import com.chengxu.autoservice.core.orders.OrderDetailRepository
 import com.chengxu.autoservice.core.orders.OrderEditRepository
 import com.chengxu.autoservice.core.orders.OrderStatusRepository
 import com.chengxu.autoservice.core.orders.HistoryOrdersDataSource
+import com.chengxu.autoservice.core.orders.CustomerVehiclesDataSource
 import com.chengxu.autoservice.navigation.AppRoute
 import com.chengxu.autoservice.navigation.AppNavigationState
 import com.chengxu.autoservice.navigation.RootTab
@@ -61,6 +62,7 @@ import com.chengxu.autoservice.ui.orders.OrderDetailViewModel
 import com.chengxu.autoservice.ui.workbench.WorkbenchViewModel
 import com.chengxu.autoservice.ui.status.OrderStatusViewModel
 import com.chengxu.autoservice.ui.records.HistoryRecordsViewModel
+import com.chengxu.autoservice.ui.records.CustomerVehiclesViewModel
 import kotlinx.coroutines.launch
 
 @Composable
@@ -69,6 +71,7 @@ fun AutoserviceApp(
     networkMonitor: NetworkMonitor,
     ordersRepository: OrdersRepository,
     historyOrdersRepository: HistoryOrdersDataSource,
+    customerVehiclesRepository: CustomerVehiclesDataSource,
     orderCreationRepository: OrderCreationRepository,
     orderDetailRepository: OrderDetailRepository,
     orderEditRepository: OrderEditRepository,
@@ -96,6 +99,7 @@ fun AutoserviceApp(
                     networkMonitor = networkMonitor,
                     ordersRepository = ordersRepository,
                     historyOrdersRepository = historyOrdersRepository,
+                    customerVehiclesRepository = customerVehiclesRepository,
                     orderCreationRepository = orderCreationRepository,
                     orderDetailRepository = orderDetailRepository,
                     orderEditRepository = orderEditRepository,
@@ -185,6 +189,7 @@ private fun AuthenticatedRoot(
     networkMonitor: NetworkMonitor,
     ordersRepository: OrdersRepository,
     historyOrdersRepository: HistoryOrdersDataSource,
+    customerVehiclesRepository: CustomerVehiclesDataSource,
     orderCreationRepository: OrderCreationRepository,
     orderDetailRepository: OrderDetailRepository,
     orderEditRepository: OrderEditRepository,
@@ -209,6 +214,10 @@ private fun AuthenticatedRoot(
         viewModelStoreOwner = sessionViewModelStoreOwner,
         factory = historyRecordsViewModelFactory(historyOrdersRepository),
     )
+    val customerVehiclesViewModel: CustomerVehiclesViewModel = viewModel(
+        viewModelStoreOwner = sessionViewModelStoreOwner,
+        factory = customerVehiclesViewModelFactory(customerVehiclesRepository),
+    )
     val createOrderViewModel: CreateOrderViewModel = viewModel(
         viewModelStoreOwner = sessionViewModelStoreOwner,
         factory = createOrderViewModelFactory(orderCreationRepository, networkMonitor),
@@ -228,6 +237,7 @@ private fun AuthenticatedRoot(
     val state by workbenchViewModel.uiState.collectAsStateWithLifecycle()
     val ordersState by ordersViewModel.uiState.collectAsStateWithLifecycle()
     val historyRecordsState by historyRecordsViewModel.uiState.collectAsStateWithLifecycle()
+    val customerVehiclesState by customerVehiclesViewModel.uiState.collectAsStateWithLifecycle()
     val createState by createOrderViewModel.uiState.collectAsStateWithLifecycle()
     val detailState by detailViewModel.uiState.collectAsStateWithLifecycle()
     val editState by editOrderViewModel.uiState.collectAsStateWithLifecycle()
@@ -295,6 +305,8 @@ private fun AuthenticatedRoot(
         onHistoryRecordsClearFilters = historyRecordsViewModel::clearFilters,
         onHistoryRecordsRefresh = historyRecordsViewModel::refresh,
         onHistoryRecordsLoadMore = historyRecordsViewModel::loadNextPage,
+        customerVehiclesState = customerVehiclesState,
+        onCustomerVehiclesQueryChange = customerVehiclesViewModel::updateQuery,
         createState = createState,
         onCreateUpdate = createOrderViewModel::update,
         onCreateNext = createOrderViewModel::next,
@@ -402,6 +414,15 @@ private fun historyRecordsViewModelFactory(
         }
         throw IllegalArgumentException("Unsupported ViewModel class: ${modelClass.name}")
     }
+}
+
+private fun customerVehiclesViewModelFactory(
+    source: CustomerVehiclesDataSource,
+): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T =
+        if (modelClass.isAssignableFrom(CustomerVehiclesViewModel::class.java)) CustomerVehiclesViewModel(source) as T
+        else throw IllegalArgumentException("Unsupported ViewModel class: ${modelClass.name}")
 }
 
 private fun createOrderViewModelFactory(

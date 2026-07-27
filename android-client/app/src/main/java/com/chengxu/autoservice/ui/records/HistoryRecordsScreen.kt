@@ -64,6 +64,7 @@ fun HistoryRecordsScreen(
     onRefresh: () -> Unit,
     onLoadMore: () -> Unit,
     onOrderSelected: (String) -> Unit,
+    showTitle: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -74,7 +75,7 @@ fun HistoryRecordsScreen(
         contentPadding = PaddingValues(horizontal = AutoserviceSpacing.Lg, vertical = AutoserviceSpacing.Xl),
         verticalArrangement = Arrangement.spacedBy(AutoserviceSpacing.Md),
     ) {
-        item {
+        if (showTitle) item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,

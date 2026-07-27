@@ -35,6 +35,8 @@ import com.chengxu.autoservice.core.orders.OrdersRepository
 import com.chengxu.autoservice.core.orders.OrdersSnapshot
 import com.chengxu.autoservice.core.orders.HistoryOrdersDataSource
 import com.chengxu.autoservice.core.orders.HistoryOrdersSnapshot
+import com.chengxu.autoservice.core.orders.CustomerVehiclesDataSource
+import com.chengxu.autoservice.core.orders.CustomerVehiclesSnapshot
 import com.chengxu.autoservice.core.orders.RepairOrder
 import com.chengxu.autoservice.core.orders.model.BusinessCapability
 import com.chengxu.autoservice.core.orders.model.OrderCommandResult
@@ -147,6 +149,7 @@ class AutoserviceAppTest {
                 networkMonitor = FakeNetworkMonitor(),
                 ordersRepository = FakeOrdersRepository(),
                 historyOrdersRepository = FakeHistoryOrdersRepository(),
+                customerVehiclesRepository = FakeCustomerVehiclesRepository(),
                 orderCreationRepository = FakeOrderCreationRepository(),
                 orderDetailRepository = FakeOrderDetailRepository(),
                 orderEditRepository = FakeOrderEditRepository(),
@@ -215,6 +218,11 @@ class AutoserviceAppTest {
 
         override suspend fun refresh() = Unit
         override suspend fun loadNextPage() = Unit
+    }
+
+    private class FakeCustomerVehiclesRepository : CustomerVehiclesDataSource {
+        override val snapshot: StateFlow<CustomerVehiclesSnapshot> = MutableStateFlow(CustomerVehiclesSnapshot())
+        override suspend fun refresh() = Unit
     }
 
     private class FakeOrderCreationRepository : OrderCreationRepository {

@@ -6,7 +6,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation3.runtime.NavEntry
@@ -27,6 +30,16 @@ import com.chengxu.autoservice.ui.orders.OrdersUiState
 import com.chengxu.autoservice.ui.records.HistoryRecordsScreen
 import com.chengxu.autoservice.ui.records.HistoryRecordsUiState
 import com.chengxu.autoservice.ui.records.HistoryTimeFilter
+import com.chengxu.autoservice.ui.records.CustomerVehiclesScreen
+import com.chengxu.autoservice.ui.records.CustomerVehiclesUiState
+import com.chengxu.autoservice.ui.records.CustomerVehicleDetailScreen
+import com.chengxu.autoservice.core.designsystem.BrandSegmentedFilter
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Arrangement
+import com.chengxu.autoservice.core.designsystem.AutoserviceSpacing
 import com.chengxu.autoservice.ui.status.OrderStatusConfirmScreen
 import com.chengxu.autoservice.ui.status.OrderStatusUiState
 import com.chengxu.autoservice.core.orders.model.BusinessCapability
@@ -54,6 +67,8 @@ fun AppNavDisplay(
     onHistoryRecordsClearFilters: () -> Unit = {},
     onHistoryRecordsRefresh: () -> Unit = {},
     onHistoryRecordsLoadMore: () -> Unit = {},
+    customerVehiclesState: CustomerVehiclesUiState = CustomerVehiclesUiState(),
+    onCustomerVehiclesQueryChange: (String) -> Unit = {},
     createState: CreateOrderUiState = CreateOrderUiState(),
     onCreateUpdate: (CreateOrderField, String) -> Unit = { _, _ -> },
     onCreateNext: () -> Unit = {},
@@ -96,6 +111,8 @@ fun AppNavDisplay(
     val currentHistoryRecordsClearFilters by rememberUpdatedState(onHistoryRecordsClearFilters)
     val currentHistoryRecordsRefresh by rememberUpdatedState(onHistoryRecordsRefresh)
     val currentHistoryRecordsLoadMore by rememberUpdatedState(onHistoryRecordsLoadMore)
+    val currentCustomerVehiclesState by rememberUpdatedState(customerVehiclesState)
+    val currentCustomerVehiclesQueryChange by rememberUpdatedState(onCustomerVehiclesQueryChange)
     val currentIsOffline by rememberUpdatedState(isOffline)
 
     NavDisplay(
@@ -139,17 +156,18 @@ fun AppNavDisplay(
                         onDiscardAndExit = onCreateDiscardAndExit,
                         onSaveAndExit = onCreateSaveAndExit,
                     )
-                    AppRoute.Records -> HistoryRecordsScreen(
-                        state = currentHistoryRecordsState,
+                    AppRoute.Records -> RecordsTabs(
+                        historyState = currentHistoryRecordsState,
+                        vehicleState = currentCustomerVehiclesState,
                         isOffline = currentIsOffline,
-                        onQueryChange = currentHistoryRecordsQueryChange,
-                        onTimeFilterChange = currentHistoryRecordsTimeFilterChange,
-                        onClearFilters = currentHistoryRecordsClearFilters,
-                        onRefresh = currentHistoryRecordsRefresh,
-                        onLoadMore = currentHistoryRecordsLoadMore,
-                        onOrderSelected = { orderId ->
-                            navigationState.push(AppRoute.HistoryOrderDetail(orderId))
-                        },
+                        onHistoryQueryChange = currentHistoryRecordsQueryChange,
+                        onHistoryTimeFilterChange = currentHistoryRecordsTimeFilterChange,
+                        onHistoryClearFilters = currentHistoryRecordsClearFilters,
+                        onHistoryRefresh = currentHistoryRecordsRefresh,
+                        onHistoryLoadMore = currentHistoryRecordsLoadMore,
+                        onVehicleQueryChange = currentCustomerVehiclesQueryChange,
+                        onOrderSelected = { navigationState.push(AppRoute.HistoryOrderDetail(it)) },
+                        onVehicleSelected = { navigationState.push(AppRoute.CustomerVehicleDetail(it)) },
                     )
                     AppRoute.Profile -> profileSession?.let {
                         ProfileScreen(session = it, offline = isOffline, onLogout = onLogout)
@@ -166,6 +184,10 @@ fun AppNavDisplay(
                         order = historyRecordsState.allOrders.firstOrNull { order -> order.id == entry.orderId },
                         onBack = navigationState::pop,
                         readOnly = true,
+                    )
+                    is AppRoute.CustomerVehicleDetail -> CustomerVehicleDetailScreen(
+                        record = customerVehiclesState.records.firstOrNull { it.id == entry.recordId },
+                        onBack = navigationState::pop,
                     )
                     is AppRoute.EditOrder -> EditOrderScreen(
                         state = editState,
@@ -193,6 +215,25 @@ fun AppNavDisplay(
 @Composable
 private fun WorkbenchShellPlaceholder() {
     ShellPlaceholder(title = RootTab.WORKBENCH.label)
+}
+
+@Composable
+private fun RecordsTabs(
+    historyState: HistoryRecordsUiState, vehicleState: CustomerVehiclesUiState, isOffline: Boolean,
+    onHistoryQueryChange: (String) -> Unit, onHistoryTimeFilterChange: (HistoryTimeFilter) -> Unit,
+    onHistoryClearFilters: () -> Unit, onHistoryRefresh: () -> Unit, onHistoryLoadMore: () -> Unit,
+    onVehicleQueryChange: (String) -> Unit, onOrderSelected: (String) -> Unit, onVehicleSelected: (String) -> Unit,
+) {
+    var selectedTab by rememberSaveable { mutableIntStateOf(0) }
+    Column(Modifier.fillMaxSize()) {
+        Text("档案", modifier = Modifier.padding(horizontal = AutoserviceSpacing.Lg, vertical = AutoserviceSpacing.Md), style = MaterialTheme.typography.headlineSmall)
+        Row(Modifier.fillMaxWidth().padding(horizontal = AutoserviceSpacing.Lg), horizontalArrangement = Arrangement.spacedBy(AutoserviceSpacing.Sm)) {
+            BrandSegmentedFilter("维修历史", selectedTab == 0, { selectedTab = 0 })
+            BrandSegmentedFilter("客户车辆", selectedTab == 1, { selectedTab = 1 })
+        }
+        if (selectedTab == 0) HistoryRecordsScreen(historyState, isOffline, onHistoryQueryChange, onHistoryTimeFilterChange, onHistoryClearFilters, onHistoryRefresh, onHistoryLoadMore, onOrderSelected, showTitle = false, modifier = Modifier.weight(1f))
+        else CustomerVehiclesScreen(vehicleState, onVehicleQueryChange, onVehicleSelected, Modifier.weight(1f))
+    }
 }
 
 private fun availableStatusTargets(detailState: OrderDetailUiState, session: AppSession?): List<OrderStatus> {
