@@ -649,6 +649,13 @@ cd E:\codex\chengxu\android-client
 - 新增 `OrderEditApi`、可替换的 HTTP transport 和 `HttpUrlConnectionOrderEditApi`：支持 `PATCH /api/orders/:id` 与 `GET /api/order-operations/edit-order/:operationId`。覆盖 Bearer、400 field errors、401/403/404、409 最新详情与冲突字段、处理中/幂等 ID 复用、5xx、IO、畸形响应、取消传播和请求前版本校验；请求一经发出后，IO/5xx/畸形/处理中均保留 operationId 并映射为 `UnknownResult`，避免盲目重试。
 - TDD 证据：`OrderEditContractTest` 首次因 `toEditCommand` 缺失而 RED；HTTP API 测试首次因 transport/API 缺失而 RED。实现后，Task 6 聚焦 JVM 测试与详情读取测试均通过；未启动 Android 模拟器，未访问远端 D1，未部署 Pages，也尚未生成新的 APK。
 
+### 阶段 3 Task 7：Android 完整详情与加密编辑仓库（已完成）
+
+- 新增 `OrderDetailRepository` 和 `OrderEditRepository`。完整详情在线时必须通过当前会话公司校验后才写入加密详情缓存；离线仅读取当前公司的缓存，404 删除不可访问的本地详情，401 调用共享会话失效处理。
+- 编辑仓库把能力、元数据和 orderId 与 `companyId + username + token` 绑定；未在线、身份变化、未先加载上下文或缺少 `EDIT_ORDER` 时均在发出 PATCH 前拒绝。编辑/操作确认成功严格按“详情 → 摘要 → 对应编辑草稿”落库，未知结果保留草稿，跨公司/跨工单成功响应不会落库。
+- `FoundationDao` 和 `EncryptedOrderStore` 新增按 `companyId + localId` 的草稿读取/观察/删除，以及 `replaceEditDraft`。编辑草稿仅使用 `edit:<orderId>`，不会影响 `create:*` 创建草稿或 `status:*` 状态信封；草稿和详情仍只保存密文，损坏密文会按精确 localId 受控删除。
+- TDD 证据：详情/编辑仓库测试先因缺少仓库及本地接口而 RED；随后焦点 JVM 测试（详情、编辑、创建仓库）和 `:app:compileDebugAndroidTestKotlin` 均通过。未启动模拟器、未运行连接式 Android 测试，未访问远端 D1、未部署 Pages、未生成 APK。
+
 每次重要改动后必须：
 
 1. 提交 Git；

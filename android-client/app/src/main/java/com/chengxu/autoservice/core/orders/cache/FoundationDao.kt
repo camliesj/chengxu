@@ -30,10 +30,20 @@ interface FoundationDao {
     fun observeCreateDraft(companyId: String): Flow<OrderDraftEntity?>
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertDraft(entity: OrderDraftEntity)
+    @Query("SELECT * FROM order_drafts WHERE companyId = :companyId AND localId = :localId")
+    suspend fun getDraft(companyId: String, localId: String): OrderDraftEntity?
+    @Query("SELECT * FROM order_drafts WHERE companyId = :companyId AND localId = :localId")
+    fun observeDraft(companyId: String, localId: String): Flow<OrderDraftEntity?>
     @Query("DELETE FROM order_drafts WHERE companyId = :companyId AND localId = :localId")
     suspend fun deleteDraft(companyId: String, localId: String)
     @Query("DELETE FROM order_drafts WHERE companyId = :companyId AND baseOrderId IS NULL")
     suspend fun deleteCreateDraft(companyId: String)
+
+    @Transaction
+    suspend fun replaceEditDraft(entity: OrderDraftEntity) {
+        deleteDraft(entity.companyId, "edit:${entity.baseOrderId}")
+        upsertDraft(entity)
+    }
 
     @Transaction
     suspend fun replaceCreateDraft(entity: OrderDraftEntity) {

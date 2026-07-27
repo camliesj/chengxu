@@ -93,6 +93,22 @@ class FoundationDaoTest {
     }
 
     @Test
+    fun editDraftReplacementAndDeletionDoNotTouchCreateOrStatusDrafts() = runTest {
+        store.replaceCreateDraft(OrderDraft("create:tongda", "tongda", null, null, "{\"create\":true}", 1L))
+        store.upsertDraft(OrderDraft("status:RO-1", "tongda", "RO-1", 4L, "{\"status\":true}", 2L))
+
+        store.replaceEditDraft(OrderDraft("edit:RO-1", "tongda", "RO-1", 4L, "{\"record\":\"old\"}", 3L))
+        store.replaceEditDraft(OrderDraft("edit:RO-1", "tongda", "RO-1", 4L, "{\"record\":\"new\"}", 4L))
+
+        assertEquals("{\"record\":\"new\"}", store.getEditDraft("tongda", "RO-1")?.payloadJson)
+        assertEquals("status:RO-1", store.getDraft("tongda", "status:RO-1")?.localId)
+        assertEquals("create:tongda", store.getLatestCreateDraft("tongda")?.localId)
+        store.deleteEditDraft("tongda", "RO-1")
+        assertNull(store.getEditDraft("tongda", "RO-1"))
+        assertEquals("status:RO-1", store.getDraft("tongda", "status:RO-1")?.localId)
+    }
+
+    @Test
     fun companyAndGlobalClearCoverEveryFoundationTable() = runTest {
         for (company in listOf("tongda", "xinqiheng")) {
             store.upsertDetail(detail(company, "RO-$company"))
