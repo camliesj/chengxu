@@ -790,3 +790,9 @@ cd E:\codex\chengxu\android-client
 - 本轮测试先行：仓储冲突保护和 ViewModel 离线提交门禁分别经历 RED 后转 GREEN。最终验证：Node `npm.cmd test` 182/182，`npm.cmd run build` 成功；Android `:app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:lintDebug :app:assembleDebug` 为 `BUILD SUCCESSFUL`（68 tasks）。未启动模拟器、未运行 connected 测试。
 - 已归档 Debug APK：`dist/releases/android/autoservice-android-debug-0.1.0.apk`，SHA-256 `A2FF2E9171EB2FDFED3BFEDFC10B298969DBBE82C727EA496615090BB48DC535`；Build Tools 35.0.0 `apksigner verify --verbose` 确认 v2 签名有效。仅供 API 26+ 真机测试。
 - 仍未执行远端 D1 migration 或 Cloudflare Pages 部署，必须获得用户明确授权。下一步先真机验收保险档案的权限、离线只读、版本冲突和删除确认，再按授权部署服务端 migration/Pages。
+
+### 保险删除动态路由修复（已完成，待部署）
+
+- 复核部署路径时发现网页与 Android 的删除请求使用 `/api/insurance-policies/:id`，但此前只有集合路由文件，Cloudflare Pages 无法将参数化删除请求分派到 `onRequestDelete`。
+- 新增 `functions/api/insurance-policies/[id].js`，只转发既有的 `onRequestDelete`；新增回归测试锁定参数化路由注册。全量 Node 测试为 183/183，生产网页构建成功。
+- 远端 D1 migration 与 Pages 部署仍未执行，必须先获用户明确授权；部署后优先验证保险删除的 200、409 版本冲突和 401 会话失效。
