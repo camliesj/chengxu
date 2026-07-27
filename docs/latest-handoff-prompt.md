@@ -673,7 +673,7 @@ cd E:\codex\chengxu\android-client
 
 - 新增 `functions/_shared/order-status.js`：合同化校验 UUID operationId、正 expectedVersion 和三个普通目标状态；状态转移继续复用唯一的 `shared/orderStatusPermissions.js` 角色矩阵。
 - 新增 `POST /api/orders/:id/status` 与 `GET /api/order-operations/change-order-status/:operationId`。写入路径已使用 `change_order_status` operation lease、版本/作废/普通状态谓词、审计哨兵、状态更新和终态响应；未开启 `ADVANCE_ORDER_STATUS` 时拒绝。
-- 新增状态合同、未认证路由、repair 权限/能力禁用/非相邻状态拒绝，以及成功批处理测试；当前 5/5 通过。尚需完成跨公司/作废、版本冲突、重放、租约和审计清理恢复矩阵后再执行完整 Node 回归、构建和完成提交。
+- 新增状态合同、未认证路由、repair 权限/能力禁用/非相邻状态拒绝、成功批处理，以及版本冲突终态保存测试；当前 6/6 通过。尚需完成跨公司/作废、重放、租约和审计清理恢复矩阵后再执行完整 Node 回归、构建和完成提交。
 
 每次重要改动后必须：
 

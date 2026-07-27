@@ -97,13 +97,36 @@ test('status command writes one audit, one versioned update, and a completed ope
   assert.equal(env.state.operation.state, 'completed');
 });
 
+test('missed status version precondition persists and returns a stable conflict', async () => {
+  const edge = contract.allowedCases[0];
+  const env = commandEnvironment({
+    status: edge.from,
+    capabilities: ['ADVANCE_ORDER_STATUS'],
+    batchChanges: [0, 0, 0],
+  });
+
+  const response = await handleStatusCommand({
+    env, session: session(), orderId: 'RO-1',
+    payload: { operationId, expectedVersion: 4, targetStatus: edge.to },
+  });
+
+  assert.equal(response.status, 409);
+  const body = await response.json();
+  assert.equal(body.error, 'ORDER_STATUS_CONFLICT');
+  assert.equal(body.order.id, 'RO-1');
+  assert.equal(body.order.version, 4);
+  assert.equal(body.order.status, edge.from);
+  assert.equal(env.state.operation.state, 'completed');
+  assert.equal(env.state.operation.http_status, 409);
+});
+
 function session({ permissions = '["repair"]' } = {}) {
   return {
     token: 'token', role: 'staff', label: 'worker', company_id: 'tongda', username: 'worker', permissions,
   };
 }
 
-function commandEnvironment({ status, permissions = '["repair"]', capabilities = [] }) {
+function commandEnvironment({ status, permissions = '["repair"]', capabilities = [], batchChanges = [1, 1, 1] }) {
   const row = {
     id: 'RO-1', company_id: 'tongda', version: 4, status, voided: 0,
     updated_at: '2026-07-22 10:00:00', plate: 'A1', customer: 'C', phone: '', car: '', insurer: '',
@@ -122,18 +145,22 @@ function commandEnvironment({ status, permissions = '["repair"]', capabilities =
           : statement.sql.includes('-- order-update') ? 'order-update' : 'operation-complete'
       ));
       const audit = statements[0];
-      state.auditRows.push({ eventId: audit.values[2] });
+      if (batchChanges[0] === 1) state.auditRows.push({ eventId: audit.values[2] });
       const update = statements[1];
-      state.row = { ...state.row, status: update.values[0], updated_at: update.values[1], version: state.row.version + 1 };
+      if (batchChanges[1] === 1) {
+        state.row = { ...state.row, status: update.values[0], updated_at: update.values[1], version: state.row.version + 1 };
+      }
       const complete = statements[2];
       const operation = operations.get(complete.values.slice(2, 6).join('|'));
-      operation.state = 'completed';
-      operation.http_status = complete.values[0];
-      operation.response_json = complete.values[1];
-      operation.lease_token = '';
-      operation.lease_until = '';
+      if (batchChanges[2] === 1) {
+        operation.state = 'completed';
+        operation.http_status = complete.values[0];
+        operation.response_json = complete.values[1];
+        operation.lease_token = '';
+        operation.lease_until = '';
+      }
       state.operation = operation;
-      return [{ meta: { changes: 1 } }, { meta: { changes: 1 } }, { meta: { changes: 1 } }];
+      return batchChanges.map((changes) => ({ meta: { changes } }));
     },
   };
   function statement(sql, values) {
@@ -160,6 +187,16 @@ function commandEnvironment({ status, permissions = '["repair"]', capabilities =
             lease_until: '2999-01-01 00:00:00', http_status: 0, response_json: '',
           };
           operations.set(key, operation);
+          state.operation = operation;
+          return { meta: { changes: 1 } };
+        }
+        if (sql.includes("SET state = 'completed'")) {
+          const operation = operations.get(values.slice(2, 6).join('|'));
+          operation.state = 'completed';
+          operation.http_status = values[0];
+          operation.response_json = values[1];
+          operation.lease_token = '';
+          operation.lease_until = '';
           state.operation = operation;
           return { meta: { changes: 1 } };
         }
