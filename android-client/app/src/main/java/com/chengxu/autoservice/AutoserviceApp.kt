@@ -42,6 +42,7 @@ import com.chengxu.autoservice.core.orders.OrdersRepository
 import com.chengxu.autoservice.core.orders.OrderCreationRepository
 import com.chengxu.autoservice.core.orders.OrderDetailRepository
 import com.chengxu.autoservice.core.orders.OrderEditRepository
+import com.chengxu.autoservice.core.orders.OrderStatusRepository
 import com.chengxu.autoservice.navigation.AppRoute
 import com.chengxu.autoservice.navigation.AppNavigationState
 import com.chengxu.autoservice.navigation.RootTab
@@ -55,6 +56,7 @@ import com.chengxu.autoservice.ui.edit.EditOrderEvent
 import com.chengxu.autoservice.ui.edit.EditOrderViewModel
 import com.chengxu.autoservice.ui.orders.OrderDetailViewModel
 import com.chengxu.autoservice.ui.workbench.WorkbenchViewModel
+import com.chengxu.autoservice.ui.status.OrderStatusViewModel
 import kotlinx.coroutines.launch
 
 @Composable
@@ -65,6 +67,7 @@ fun AutoserviceApp(
     orderCreationRepository: OrderCreationRepository,
     orderDetailRepository: OrderDetailRepository,
     orderEditRepository: OrderEditRepository,
+    orderStatusRepository: OrderStatusRepository,
 ) {
     val authenticationState by authenticationRepository.state.collectAsStateWithLifecycle()
 
@@ -89,6 +92,7 @@ fun AutoserviceApp(
                 orderCreationRepository = orderCreationRepository,
                 orderDetailRepository = orderDetailRepository,
                 orderEditRepository = orderEditRepository,
+                orderStatusRepository = orderStatusRepository,
                 authenticationState = state,
             )
         }
@@ -164,6 +168,7 @@ private fun AuthenticatedRoot(
     orderCreationRepository: OrderCreationRepository,
     orderDetailRepository: OrderDetailRepository,
     orderEditRepository: OrderEditRepository,
+    orderStatusRepository: OrderStatusRepository,
     authenticationState: AuthenticationState.Authenticated,
 ) {
     val sessionViewModelStoreOwner = remember(authenticationState.session) {
@@ -192,11 +197,16 @@ private fun AuthenticatedRoot(
         viewModelStoreOwner = sessionViewModelStoreOwner,
         factory = editOrderViewModelFactory(orderEditRepository, networkMonitor),
     )
+    val orderStatusViewModel: OrderStatusViewModel = viewModel(
+        viewModelStoreOwner = sessionViewModelStoreOwner,
+        factory = orderStatusViewModelFactory(orderStatusRepository, orderDetailRepository, networkMonitor),
+    )
     val state by workbenchViewModel.uiState.collectAsStateWithLifecycle()
     val ordersState by ordersViewModel.uiState.collectAsStateWithLifecycle()
     val createState by createOrderViewModel.uiState.collectAsStateWithLifecycle()
     val detailState by detailViewModel.uiState.collectAsStateWithLifecycle()
     val editState by editOrderViewModel.uiState.collectAsStateWithLifecycle()
+    val statusState by orderStatusViewModel.uiState.collectAsStateWithLifecycle()
     val navigationState = remember(authenticationState.session) { AppNavigationState() }
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
@@ -223,8 +233,13 @@ private fun AuthenticatedRoot(
 
     LaunchedEffect(navigationState.currentStack.lastOrNull()) {
         when (val route = navigationState.currentStack.lastOrNull()) {
-            is AppRoute.OrderDetail -> detailViewModel.open(route.orderId)
+            is AppRoute.OrderDetail -> {
+                detailViewModel.open(route.orderId)
+                orderStatusViewModel.restorePending(route.orderId) { detailViewModel.open(route.orderId) }
+            }
             is AppRoute.EditOrder -> editOrderViewModel.open(route.orderId)
+            is AppRoute.ChangeOrderStatus -> com.chengxu.autoservice.core.orders.model.OrderStatus.fromWire(route.targetStatus)
+                ?.let { orderStatusViewModel.open(route.orderId, it) }
             else -> Unit
         }
     }
@@ -271,6 +286,9 @@ private fun AuthenticatedRoot(
         onEditSaveDraft = editOrderViewModel::saveDraft,
         onEditReturn = editOrderViewModel::returnToDetail,
         onEditRebase = editOrderViewModel::rebaseOnLatest,
+        statusState = statusState,
+        onStatusConfirm = orderStatusViewModel::submit,
+        onStatusConfirmUnknown = orderStatusViewModel::confirmUnknownResult,
         profileSession = authenticationState.session,
         onLogout = { scope.launch { authenticationRepository.logout() } },
     )
@@ -318,6 +336,17 @@ private fun editOrderViewModelFactory(repository: OrderEditRepository, networkMo
     @Suppress("UNCHECKED_CAST") override fun <T : ViewModel> create(modelClass: Class<T>): T =
         if (modelClass.isAssignableFrom(EditOrderViewModel::class.java)) EditOrderViewModel(repository, networkMonitor) { java.util.UUID.randomUUID().toString() } as T
         else throw IllegalArgumentException("Unsupported ViewModel class: ${modelClass.name}")
+}
+
+private fun orderStatusViewModelFactory(
+    repository: OrderStatusRepository,
+    detailRepository: OrderDetailRepository,
+    networkMonitor: NetworkMonitor,
+): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST") override fun <T : ViewModel> create(modelClass: Class<T>): T =
+        if (modelClass.isAssignableFrom(OrderStatusViewModel::class.java)) {
+            OrderStatusViewModel(repository, detailRepository, networkMonitor) { java.util.UUID.randomUUID().toString() } as T
+        } else throw IllegalArgumentException("Unsupported ViewModel class: ${modelClass.name}")
 }
 
 private fun ordersViewModelFactory(

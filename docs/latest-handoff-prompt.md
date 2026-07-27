@@ -698,3 +698,12 @@ cd E:\codex\chengxu\android-client
 
 - 已按 TDD 完成状态 HTTP API 基础：新增 `OrderStatusCommand`、待确认信封模型、`OrderStatusApi` 与 `HttpUrlConnectionOrderStatusApi`。专用写入固定为 `POST /api/orders/:id/status`，查询固定为 `GET /api/order-operations/change-order-status/:operationId`；请求带 Bearer、operationId、expectedVersion 与目标普通状态，SETTLED 在客户端前置拒绝。
 - `HttpUrlConnectionOrderStatusApiTest` 的初始 RED 精确失败于新模型/API/transport 尚不存在；GREEN 聚焦 JVM 测试覆盖路径编码、JSON、授权、400/401/403/404/409、5xx、IO、completed/pending 与取消传播。本检查点未改 Room schema、未启动模拟器、未访问远程 D1/Pages，也尚未接入状态仓储或 UI。
+
+### 阶段 3 Task 11：Android 普通状态工作流（已完成）
+
+- 新增 `OrderStatusApi`、HTTP 实现与 `DefaultOrderStatusRepository`：普通状态写入固定为 `POST /api/orders/:id/status`，结果确认固定查询 `GET /api/order-operations/change-order-status/:operationId`。客户端始终携带原 operationId；网络/服务端未知结果仅保存加密待确认信封，恢复时只查询，绝不自动重放写入。
+- `EncryptedOrderStore` 复用现有 `order_drafts`，以 `status:<orderId>` 保存序列化且经 Android Keystore 加密的待确认信封；没有 Room schema 或迁移变更。成功或冲突会同步详情/摘要并清除对应状态信封。
+- 新增 Navigation 3 `ChangeOrderStatus` 路由、会话级 `OrderStatusViewModel` 和全屏确认页。详情页仅在服务端 `ADVANCE_ORDER_STATUS` 能力与角色状态矩阵均允许时显示相邻普通状态操作；确认页展示工单、车牌、当前/目标状态和影响，具备取消、提交锁、离线禁用与未知结果确认。
+- 详情入口会检查同工单的待确认信封并查询原操作；状态矩阵 JVM 测试已补齐其余合同禁止边。新增 JVM 与 Android Compose 测试源码，未运行 connected 测试、未启动模拟器、未访问远程 D1/Pages 或生产能力开关。
+- 已完成的 Task 11 聚焦门禁：`HttpUrlConnectionOrderStatusApiTest`、`OrderStatusRepositoryTest`、`OrderStatusViewModelTest` 与 `OrderStateMachineTest`；`:app:compileDebugAndroidTestKotlin`、`:app:lintDebug` 均通过。下一步为阶段 3 Task 12：跨端合同门禁与干净候选 APK 构建。
+- 任务完成后额外执行完整无设备门禁：`:app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:lintDebug :app:assembleDebug`，结果 `BUILD SUCCESSFUL`。已刷新可安装 APK：`dist/releases/android/autoservice-android-debug-0.1.0.apk`（19,909,645 bytes，SHA-256 `03300EE0DF56B318D285DCF5D1239877D4F511D9562B8B708C34390AF2AC35F4`）。

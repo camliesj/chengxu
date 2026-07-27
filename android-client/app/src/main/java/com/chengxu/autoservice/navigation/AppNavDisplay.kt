@@ -22,6 +22,11 @@ import com.chengxu.autoservice.ui.orders.OrderDetailUiState
 import com.chengxu.autoservice.ui.orders.OrderStatusFilter
 import com.chengxu.autoservice.ui.orders.OrdersScreen
 import com.chengxu.autoservice.ui.orders.OrdersUiState
+import com.chengxu.autoservice.ui.status.OrderStatusConfirmScreen
+import com.chengxu.autoservice.ui.status.OrderStatusUiState
+import com.chengxu.autoservice.core.orders.model.BusinessCapability
+import com.chengxu.autoservice.core.orders.model.OrderStatus
+import com.chengxu.autoservice.core.orders.model.allowedOrderTransition
 import com.chengxu.autoservice.ui.stage.StageScreen
 import com.chengxu.autoservice.ui.stage.StageKind
 import com.chengxu.autoservice.ui.workbench.WorkbenchAction
@@ -62,6 +67,9 @@ fun AppNavDisplay(
     onEditSaveDraft: () -> Unit = {},
     onEditReturn: () -> Unit = {},
     onEditRebase: () -> Unit = {},
+    statusState: OrderStatusUiState = OrderStatusUiState(),
+    onStatusConfirm: () -> Unit = {},
+    onStatusConfirmUnknown: () -> Unit = {},
     profileSession: AppSession? = null,
     onLogout: () -> Unit = {},
     isOffline: Boolean = false,
@@ -116,6 +124,8 @@ fun AppNavDisplay(
                         onBack = navigationState::pop,
                         canEdit = detailState.canEdit,
                         onEdit = { onEditOrder(entry.orderId) },
+                        statusTargets = availableStatusTargets(detailState, profileSession),
+                        onChangeStatus = { target -> navigationState.push(AppRoute.ChangeOrderStatus(entry.orderId, target.wireValue)) },
                     )
                     is AppRoute.EditOrder -> EditOrderScreen(
                         state = editState,
@@ -128,6 +138,12 @@ fun AppNavDisplay(
                         onReturn = onEditReturn,
                         onRebase = onEditRebase,
                     )
+                    is AppRoute.ChangeOrderStatus -> OrderStatusConfirmScreen(
+                        state = statusState,
+                        onBack = navigationState::pop,
+                        onConfirm = onStatusConfirm,
+                        onConfirmUnknown = onStatusConfirmUnknown,
+                    )
                 }
             }
         },
@@ -137,6 +153,14 @@ fun AppNavDisplay(
 @Composable
 private fun WorkbenchShellPlaceholder() {
     ShellPlaceholder(title = RootTab.WORKBENCH.label)
+}
+
+private fun availableStatusTargets(detailState: OrderDetailUiState, session: AppSession?): List<OrderStatus> {
+    val detail = detailState.detail ?: return emptyList()
+    val role = session?.role ?: return emptyList()
+    if (BusinessCapability.ADVANCE_ORDER_STATUS !in detailState.capabilities) return emptyList()
+    val current = OrderStatus.fromWire(detail.summary.status) ?: return emptyList()
+    return OrderStatus.entries.filter { target -> allowedOrderTransition(role, current, target) }
 }
 
 @Composable

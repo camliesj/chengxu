@@ -30,6 +30,7 @@ import com.chengxu.autoservice.core.designsystem.BrandIcon
 import com.chengxu.autoservice.core.designsystem.BrandIconResource
 import com.chengxu.autoservice.core.designsystem.StatusChip
 import com.chengxu.autoservice.core.designsystem.StatusTone
+import com.chengxu.autoservice.core.orders.model.OrderStatus
 
 @Composable
 fun OrderDetailScreen(
@@ -37,6 +38,8 @@ fun OrderDetailScreen(
     onBack: () -> Unit,
     canEdit: Boolean = false,
     onEdit: () -> Unit = {},
+    statusTargets: List<OrderStatus> = emptyList(),
+    onChangeStatus: (OrderStatus) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -86,6 +89,8 @@ fun OrderDetailScreen(
         } else {
             OrderDetailContent(
                 order = order,
+                statusTargets = statusTargets,
+                onChangeStatus = onChangeStatus,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -95,6 +100,8 @@ fun OrderDetailScreen(
 @Composable
 private fun OrderDetailContent(
     order: OrderDisplayModel,
+    statusTargets: List<OrderStatus>,
+    onChangeStatus: (OrderStatus) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -171,6 +178,17 @@ private fun OrderDetailContent(
             icon = BrandIconResource.Wallet,
             rows = listOf("工单总额" to order.amountLabel),
         )
+        if (statusTargets.isNotEmpty()) {
+            AutoserviceCard(modifier = Modifier.fillMaxWidth()) {
+                Text("状态操作", style = MaterialTheme.typography.titleMedium, color = AutoserviceColors.Ink)
+                statusTargets.forEach { target ->
+                    BrandButton(
+                        onClick = { onChangeStatus(target) },
+                        modifier = Modifier.fillMaxWidth().padding(top = AutoserviceSpacing.Sm).testTag("change-status-${target.name}"),
+                    ) { Text("更新为${target.wireValue}") }
+                }
+            }
+        }
     }
 }
 

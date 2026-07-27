@@ -38,6 +38,7 @@ import com.chengxu.autoservice.ui.orders.OrderDetailUiState
 import com.chengxu.autoservice.ui.orders.OrdersUiState
 import com.chengxu.autoservice.ui.edit.EditOrderField
 import com.chengxu.autoservice.ui.edit.EditOrderUiState
+import com.chengxu.autoservice.ui.status.OrderStatusUiState
 
 @Composable
 fun AutoserviceShell(
@@ -74,6 +75,9 @@ fun AutoserviceShell(
     onEditSaveDraft: () -> Unit = {},
     onEditReturn: () -> Unit = {},
     onEditRebase: () -> Unit = {},
+    statusState: OrderStatusUiState = OrderStatusUiState(),
+    onStatusConfirm: () -> Unit = {},
+    onStatusConfirmUnknown: () -> Unit = {},
     profileSession: AppSession? = null,
     onLogout: () -> Unit = {},
 ) {
@@ -128,6 +132,9 @@ fun AutoserviceShell(
             onEditSaveDraft = onEditSaveDraft,
             onEditReturn = onEditReturn,
             onEditRebase = onEditRebase,
+            statusState = statusState,
+            onStatusConfirm = onStatusConfirm,
+            onStatusConfirmUnknown = onStatusConfirmUnknown,
             profileSession = profileSession,
             onLogout = onLogout,
             isOffline = isOffline,

@@ -15,6 +15,7 @@ import com.chengxu.autoservice.core.designsystem.AutoserviceTheme
 import com.chengxu.autoservice.ui.orders.OrderDetailScreen
 import com.chengxu.autoservice.ui.orders.OrderDisplayModel
 import com.chengxu.autoservice.ui.orders.OrderStatusTone
+import com.chengxu.autoservice.core.orders.model.OrderStatus
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -89,6 +90,27 @@ class OrderDetailScreenTest {
             .assertHeightIsAtLeast(48.dp)
             .performClick()
         assertEquals(1, editCount)
+    }
+
+    @Test
+    fun allowedStatusActionShowsAnAccessibleConfirmationEntry() {
+        var statusCalls = 0
+        composeRule.setContent {
+            AutoserviceTheme {
+                OrderDetailScreen(
+                    order = order(),
+                    onBack = {},
+                    statusTargets = listOf(OrderStatus.COMPLETED),
+                    onChangeStatus = { statusCalls += 1 },
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("change-status-COMPLETED")
+            .assertHasClickAction()
+            .assertHeightIsAtLeast(48.dp)
+            .performClick()
+        assertEquals(1, statusCalls)
     }
 
     private fun order() = OrderDisplayModel(

@@ -64,4 +64,22 @@ class OrderStateMachineTest {
             ),
         )
     }
+
+    @Test
+    fun contractMatrixRejectsEveryRemainingOrdinaryStatusEdge() {
+        val forbidden = listOf(
+            Triple(UserRole.EMPLOYEE, OrderStatus.PENDING_SETTLEMENT, OrderStatus.COMPLETED),
+            Triple(UserRole.EMPLOYEE, OrderStatus.PENDING_SETTLEMENT, OrderStatus.IN_REPAIR),
+            Triple(UserRole.EMPLOYEE, OrderStatus.SETTLED, OrderStatus.PENDING_SETTLEMENT),
+            Triple(UserRole.EMPLOYEE, OrderStatus.IN_REPAIR, OrderStatus.IN_REPAIR),
+            Triple(UserRole.ADMINISTRATOR, OrderStatus.PENDING_SETTLEMENT, OrderStatus.IN_REPAIR),
+            Triple(UserRole.ADMINISTRATOR, OrderStatus.PENDING_SETTLEMENT, OrderStatus.SETTLED),
+            Triple(UserRole.ADMINISTRATOR, OrderStatus.SETTLED, OrderStatus.PENDING_SETTLEMENT),
+            Triple(UserRole.ADMINISTRATOR, OrderStatus.COMPLETED, OrderStatus.COMPLETED),
+        )
+
+        forbidden.forEach { (role, from, to) ->
+            assertFalse("$role must not move $from to $to", allowedOrderTransition(role, from, to))
+        }
+    }
 }

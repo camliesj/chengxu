@@ -18,9 +18,11 @@ import com.chengxu.autoservice.core.orders.CachedOrdersRepository
 import com.chengxu.autoservice.core.orders.DefaultOrderCreationRepository
 import com.chengxu.autoservice.core.orders.DefaultOrderDetailRepository
 import com.chengxu.autoservice.core.orders.DefaultOrderEditRepository
+import com.chengxu.autoservice.core.orders.DefaultOrderStatusRepository
 import com.chengxu.autoservice.core.orders.HttpUrlConnectionOrderCreateApi
 import com.chengxu.autoservice.core.orders.HttpUrlConnectionOrderEditApi
 import com.chengxu.autoservice.core.orders.HttpUrlConnectionOrderReadApi
+import com.chengxu.autoservice.core.orders.HttpUrlConnectionOrderStatusApi
 import com.chengxu.autoservice.core.orders.HttpUrlConnectionOrdersApi
 import com.chengxu.autoservice.core.orders.SessionInvalidator
 import com.chengxu.autoservice.core.orders.cache.AutoserviceDatabase
@@ -93,6 +95,15 @@ class MainActivity : ComponentActivity() {
             summaryStore = orderCache,
             sessionInvalidator = sessionInvalidator,
         )
+        val orderStatusRepository = DefaultOrderStatusRepository(
+            sessionRepository = authenticationRepository,
+            networkMonitor = networkMonitor,
+            readApi = HttpUrlConnectionOrderReadApi(BuildConfig.API_ORIGIN),
+            api = HttpUrlConnectionOrderStatusApi(BuildConfig.API_ORIGIN),
+            localStore = encryptedOrderStore,
+            summaryStore = orderCache,
+            sessionInvalidator = sessionInvalidator,
+        )
 
         setContent {
             AutoserviceApp(
@@ -102,6 +113,7 @@ class MainActivity : ComponentActivity() {
                 orderCreationRepository = orderCreationRepository,
                 orderDetailRepository = orderDetailRepository,
                 orderEditRepository = orderEditRepository,
+                orderStatusRepository = orderStatusRepository,
             )
         }
     }

@@ -27,6 +27,7 @@ import com.chengxu.autoservice.core.orders.OrderSyncState
 import com.chengxu.autoservice.core.orders.OrderCreationRepository
 import com.chengxu.autoservice.core.orders.OrderDetailRepository
 import com.chengxu.autoservice.core.orders.OrderEditRepository
+import com.chengxu.autoservice.core.orders.OrderStatusRepository
 import com.chengxu.autoservice.core.orders.OrderReadFailure
 import com.chengxu.autoservice.core.orders.OrderReadResult
 import com.chengxu.autoservice.core.orders.OrderEditorData
@@ -44,6 +45,8 @@ import com.chengxu.autoservice.core.orders.model.OrderDetail
 import com.chengxu.autoservice.core.orders.model.OrderDetailEnvelope
 import com.chengxu.autoservice.core.orders.model.OrderDraft
 import com.chengxu.autoservice.core.orders.model.OrderEditCommand
+import com.chengxu.autoservice.core.orders.model.OrderStatusCommand
+import com.chengxu.autoservice.core.orders.model.PendingStatusRecovery
 import com.chengxu.autoservice.core.session.AppSession
 import com.chengxu.autoservice.core.session.PermissionSnapshot
 import com.chengxu.autoservice.core.designsystem.AutoserviceTheme
@@ -144,6 +147,7 @@ class AutoserviceAppTest {
                 orderCreationRepository = FakeOrderCreationRepository(),
                 orderDetailRepository = FakeOrderDetailRepository(),
                 orderEditRepository = FakeOrderEditRepository(),
+                orderStatusRepository = FakeOrderStatusRepository(),
             )
         }
     }
@@ -239,5 +243,11 @@ class AutoserviceAppTest {
         override suspend fun deleteDraft(orderId: String) = Unit
         override suspend fun edit(orderId: String, command: OrderEditCommand): OrderCommandResult<OrderDetail> = OrderCommandResult.NotFound
         override suspend fun confirm(operationId: String): OrderCommandResult<OrderDetail> = OrderCommandResult.NotFound
+    }
+
+    private class FakeOrderStatusRepository : OrderStatusRepository {
+        override suspend fun change(orderId: String, command: OrderStatusCommand): OrderCommandResult<OrderDetail> = OrderCommandResult.NotFound
+        override suspend fun confirm(operationId: String): OrderCommandResult<OrderDetail> = OrderCommandResult.NotFound
+        override suspend fun restorePending(orderId: String): PendingStatusRecovery? = null
     }
 }

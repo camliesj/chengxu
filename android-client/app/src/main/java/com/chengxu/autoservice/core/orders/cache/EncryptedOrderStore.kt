@@ -7,15 +7,18 @@ import com.chengxu.autoservice.core.orders.model.ReceiptMetadata
 import com.chengxu.autoservice.core.orders.OrderCreationLocalStore
 import com.chengxu.autoservice.core.orders.OrderDetailLocalStore
 import com.chengxu.autoservice.core.orders.OrderEditLocalStore
+import com.chengxu.autoservice.core.orders.OrderStatusLocalStore
 import com.chengxu.autoservice.core.security.StringCipher
+import com.chengxu.autoservice.core.orders.model.PendingStatusEnvelope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.json.Json
 
 class EncryptedOrderStore(
     private val dao: FoundationDao,
     private val cipher: StringCipher,
-) : OrderCreationLocalStore, OrderEditLocalStore {
+) : OrderCreationLocalStore, OrderEditLocalStore, OrderStatusLocalStore {
     override suspend fun upsertDetail(detail: OrderDetail) = dao.upsertDetail(detail.toEntity(cipher))
 
     override suspend fun getDetail(companyId: String, orderId: String): OrderDetail? {
@@ -74,6 +77,32 @@ class EncryptedOrderStore(
 
     override suspend fun deleteDraft(companyId: String, orderId: String) = deleteEditDraft(companyId, orderId)
 
+    override suspend fun getPendingStatus(companyId: String, orderId: String): PendingStatusEnvelope? =
+        getDraft(companyId, statusDraftId(orderId))?.let { draft ->
+            try {
+                Json.decodeFromString<PendingStatusEnvelope>(draft.payloadJson)
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (_: Exception) {
+                dao.deleteDraft(companyId, draft.localId)
+                null
+            }
+        }
+
+    override suspend fun savePending(companyId: String, envelope: PendingStatusEnvelope) {
+        dao.upsertDraft(OrderDraft(
+            localId = statusDraftId(envelope.orderId),
+            companyId = companyId,
+            baseOrderId = envelope.orderId,
+            expectedVersion = envelope.expectedVersion,
+            payloadJson = Json.encodeToString(envelope),
+            updatedAtMillis = envelope.createdAtMillis,
+        ).toEntity(cipher))
+    }
+
+    override suspend fun deletePendingStatus(companyId: String, orderId: String) =
+        dao.deleteDraft(companyId, statusDraftId(orderId))
+
     private suspend fun OrderDraftEntity.decryptOrDelete(): OrderDraft? = try {
         toDomain(cipher)
     } catch (cancellation: CancellationException) {
@@ -85,6 +114,7 @@ class EncryptedOrderStore(
 }
 
 private fun editDraftId(orderId: String) = "edit:$orderId"
+private fun statusDraftId(orderId: String) = "status:$orderId"
 
 private fun OrderDraft.toEntity(cipher: StringCipher) = OrderDraftEntity(
     companyId = companyId,
