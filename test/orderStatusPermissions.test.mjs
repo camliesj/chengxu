@@ -104,8 +104,9 @@ test('orders API allows staff to mark pending settlement but rejects settlement'
   );
 });
 
-test('repair UI exposes pending settlement to staff but gates settlement actions', () => {
-  assert.match(appSource, /<button[\s\S]{0,200}requestStatusChange\(selected, REPAIR_STATUS\.pendingSettlement\)[\s\S]{0,120}待结算/);
+test('repair UI derives ordinary actions from the role-specific adjacent-status matrix', () => {
+  assert.match(appSource, /allowedStatusTargets\(role, selected\.status\)\.map\(\(status\)/);
+  assert.match(appSource, /requestStatusChange\(selected, status\)/);
   assert.match(appSource, /canSettleOrder && selected\.status !== REPAIR_STATUS\.settled/);
   assert.match(appSource, /canReverseSettlement && selected\.status === REPAIR_STATUS\.settled/);
 });

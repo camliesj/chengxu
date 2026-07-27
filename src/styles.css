@@ -2118,6 +2118,75 @@ dd {
   line-height: 1.7;
 }
 
+.order-status-backdrop { z-index: 80; }
+
+.order-status-confirm {
+  width: min(520px, 100%);
+  overflow: hidden;
+  border: 1px solid #c8dced;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 28px 76px rgba(13, 42, 70, 0.28);
+}
+
+.order-status-confirm header {
+  padding: 26px 28px 22px;
+  border-bottom: 1px solid #dce8f2;
+  background: linear-gradient(135deg, #edf7ff, #fff 72%);
+}
+
+.order-status-confirm header > span {
+  color: #0879e5;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+
+.order-status-confirm h2 { margin: 7px 0; color: #142b43; font-size: 24px; }
+.order-status-confirm header p { margin: 0; color: #687d91; font-size: 13px; font-weight: 700; line-height: 1.65; }
+
+.order-status-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 0;
+  padding: 22px 28px;
+}
+
+.order-status-summary div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #dce7f0;
+  border-radius: 10px;
+  background: #f9fcff;
+}
+
+.order-status-summary .impact { grid-column: 1 / -1; }
+.order-status-summary dt { color: #76899b; font-size: 12px; font-weight: 800; }
+.order-status-summary dd { margin: 0; color: #203d58; font-size: 14px; font-weight: 900; overflow-wrap: anywhere; }
+.order-status-summary .impact dd { color: #547089; font-size: 13px; line-height: 1.6; }
+
+.order-status-message,
+.order-status-conflict { margin: 0 28px 18px; padding: 12px 14px; border-radius: 10px; font-size: 13px; font-weight: 800; line-height: 1.6; }
+.order-status-message { border: 1px solid #c6def4; color: #265f91; background: #eef8ff; }
+.order-status-conflict { border: 1px solid #f1cf9c; color: #8a5712; background: #fff9ed; }
+.order-status-conflict strong { display: block; color: #754609; }
+.order-status-conflict p { margin: 5px 0 0; }
+.order-status-confirm .modal-actions { padding: 0 28px 26px; }
+.order-status-primary { border-color: #0879e5 !important; color: #fff !important; background: #0879e5 !important; }
+
+@media (max-width: 620px) {
+  .order-status-backdrop { padding: 14px; }
+  .order-status-confirm header { padding: 22px 20px 18px; }
+  .order-status-summary { grid-template-columns: 1fr; padding: 18px 20px; }
+  .order-status-summary .impact { grid-column: auto; }
+  .order-status-message,
+  .order-status-conflict { margin-right: 20px; margin-left: 20px; }
+  .order-status-confirm .modal-actions { padding: 0 20px 20px; }
+}
+
 .order-detail-modal,
 .settlement-modal {
   width: min(860px, 100%);

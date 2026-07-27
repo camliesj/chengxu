@@ -16,6 +16,7 @@ import DesktopUpdatePrompt from './components/DesktopUpdatePrompt.jsx';
 import NetworkStatusBar from './components/NetworkStatusBar.jsx';
 import OrderCreationWizard from './components/OrderCreationWizard.jsx';
 import OrderEditWizard from './components/OrderEditWizard.jsx';
+import OrderStatusConfirmDialog from './components/OrderStatusConfirmDialog.jsx';
 import { printCurrentDocument, saveBytes } from './platform/files.js';
 import { isTauriRuntime } from './platform/runtime.js';
 import {
@@ -27,6 +28,7 @@ import {
 import { useNetworkStatus } from './platform/useNetworkStatus.js';
 import { createOrderCommand } from './orderCreationApi.js';
 import { editOrderCommand } from './orderEditApi.js';
+import { changeOrderStatusCommand, queryStatusOperation } from './orderStatusApi.js';
 import { createBrowserOrderCreationDraftStore } from './orderCreationDraftStore.js';
 import { legacyOrderToCreatePayload } from './orderCreationLogic.js';
 import { createUpdateProgress } from './updateLogic.js';
@@ -40,6 +42,7 @@ import {
 import {
   EMPLOYEE_EDITABLE_STATUSES,
   canEmployeeSetOrderStatus,
+  allowedStatusTargets,
 } from '../shared/orderStatusPermissions.js';
 
 const navItems = ['首页看板', '维修接待', '历史查询', '车辆保险', '客户车辆', '汇总报表', '数据导出', '系统设置'];
@@ -1298,10 +1301,39 @@ function App() {
     return persistInsurancePolicy(normalizedPolicy);
   }
 
-  function updateOrderStatus(orderId, status) {
-    const currentOrder = companyOrders.find((order) => order.id === orderId);
-    if (!currentOrder) return;
-    upsertOrder({ ...currentOrder, status }).catch(() => {});
+  async function updateOrderStatus(order, command) {
+    setOrdersCloudState({ loading: true, error: '' });
+    const result = await changeOrderStatusCommand(order.id, command, accessSession);
+    if (result.kind === 'success') {
+      setOrders((currentOrders) => upsertRecord(currentOrders, result.value.order));
+      setOrdersCloudState({ loading: false, error: '' });
+      setLastRefreshAt(currentTimeLabel());
+      return result;
+    }
+    if (result.kind === 'conflict' && result.latest) {
+      setOrders((currentOrders) => upsertRecord(currentOrders, result.latest));
+    }
+    setOrdersCloudState({
+      loading: false,
+      error: result.kind === 'networkUnavailable' ? '网络不可用，工单状态尚未确认' : '',
+    });
+    return result;
+  }
+
+  async function confirmOrderStatusOperation(operationId) {
+    setOrdersCloudState({ loading: true, error: '' });
+    const result = await queryStatusOperation(operationId, accessSession);
+    if (result.kind === 'success') {
+      setOrders((currentOrders) => upsertRecord(currentOrders, result.value.order));
+      setOrdersCloudState({ loading: false, error: '' });
+      setLastRefreshAt(currentTimeLabel());
+      return result;
+    }
+    if (result.kind === 'conflict' && result.latest) {
+      setOrders((currentOrders) => upsertRecord(currentOrders, result.latest));
+    }
+    setOrdersCloudState({ loading: false, error: '' });
+    return result;
   }
 
   function voidOrder(orderId, reason) {
@@ -1664,6 +1696,7 @@ function App() {
             onFocusHandled={() => setReceptionFocus(null)}
             onSaveOrder={saveOrder}
             onStatusChange={updateOrderStatus}
+            onStatusOperationQuery={confirmOrderStatusOperation}
             cloudState={ordersCloudState}
             role={accessSession?.role || 'staff'}
             canSettleOrder={canSettleOrder}
@@ -2178,6 +2211,12 @@ const REPAIR_STATUS = {
   pendingSettlement: statusOptions[2],
   settled: statusOptions[3],
 };
+
+function statusTransitionLabel(status) {
+  if (status === REPAIR_STATUS.repairing) return '切为在修';
+  if (status === REPAIR_STATUS.completed) return '切为完工';
+  return '待结算';
+}
 const vehicleTypeOptions = ['标的车', '三者车'];
 const accidentTypeOptions = ['喷漆维修（无换件）', '钣喷维修（有换件）', '机电维修保养', '数据修复'];
 
@@ -2683,7 +2722,9 @@ function RepairReception({
   onFocusHandled,
   onSaveOrder,
   onStatusChange,
+  onStatusOperationQuery,
   cloudState,
+  role = 'staff',
   canCreateOrder,
   canEditOrder,
   canAdvanceOrderStatus,
@@ -2707,6 +2748,7 @@ function RepairReception({
   const [settlementOrder, setSettlementOrder] = useState(null);
   const [voidOrderTarget, setVoidOrderTarget] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null);
+  const [statusChange, setStatusChange] = useState(null);
   const [activeStatus, setActiveStatus] = useState('全部');
 
   const visibleOrders = useMemo(
@@ -2788,34 +2830,9 @@ function RepairReception({
     closeWorkOrderModal();
   }
 
-  function applyStatusChange(order, status) {
-    if (!order) return;
-    if (status !== REPAIR_STATUS.settled && !canAdvanceOrderStatus) return;
-    if (!canSettleOrder && !canEmployeeSetOrderStatus(status)) return;
-    if (status === REPAIR_STATUS.settled) {
-      setSettlementOrder(order);
-      return;
-    }
-    const nextOrder = { ...order, status };
-    onStatusChange(order.id, status);
-    setDraft(createOrderDraft(nextOrder));
-  }
-
   function requestStatusChange(order, status) {
-    if (!order) return;
-    const actionText = status === REPAIR_STATUS.repairing
-      ? '切为在修'
-      : status === REPAIR_STATUS.completed
-        ? '切为完工'
-        : status === REPAIR_STATUS.pendingSettlement
-          ? '切为待结算'
-          : '完成结算';
-    setConfirmAction({
-      title: `确认${actionText}`,
-      description: `工单 ${order.id}（${order.plate}）当前状态为“${order.status}”，确认切换为“${status}”？`,
-      confirmText: status === REPAIR_STATUS.settled ? '继续结算' : '确认切换',
-      onConfirm: () => applyStatusChange(order, status),
-    });
+    if (!order || !canAdvanceOrderStatus || !allowedStatusTargets(role, order.status).includes(status)) return;
+    setStatusChange({ order, targetStatus: status });
   }
 
   function requestSettlement(order) {
@@ -2960,9 +2977,7 @@ function RepairReception({
                 <div className="total"><span>工单金额</span><strong>{formatMoney(selected.amount)}</strong></div>
               </div>
               <div className="state-actions">
-                {canAdvanceOrderStatus ? <button disabled={cloudReadOnly} onClick={() => requestStatusChange(selected, REPAIR_STATUS.repairing)}>切为在修</button> : null}
-                {canAdvanceOrderStatus ? <button disabled={cloudReadOnly} onClick={() => requestStatusChange(selected, REPAIR_STATUS.completed)}>切为完工</button> : null}
-                {canAdvanceOrderStatus ? <button disabled={cloudReadOnly} onClick={() => requestStatusChange(selected, REPAIR_STATUS.pendingSettlement)}>待结算</button> : null}
+                {canAdvanceOrderStatus ? allowedStatusTargets(role, selected.status).map((status) => <button key={status} disabled={cloudReadOnly} onClick={() => requestStatusChange(selected, status)}>{statusTransitionLabel(status)}</button>) : null}
                 {canSettleOrder && selected.status !== REPAIR_STATUS.settled ? <button disabled={cloudReadOnly} onClick={() => requestSettlement(selected)}>完成结算</button> : null}
                 {canReverseSettlement && selected.status === REPAIR_STATUS.settled ? <button disabled={cloudReadOnly} onClick={() => requestReverseSettlement(selected)}>返结算</button> : null}
               </div>
@@ -3047,6 +3062,8 @@ function RepairReception({
           onClose={closeWorkOrderModal}
           onEdit={canEditOrder ? () => openEdit(modalOrder) : null}
           onPrint={() => printOrder(modalOrder)}
+          statusTargets={canAdvanceOrderStatus ? allowedStatusTargets(role, modalOrder.status) : []}
+          onStatusChange={(status) => requestStatusChange(modalOrder, status)}
           onSettle={canSettleOrder ? () => requestSettlement(modalOrder) : null}
           onReverseSettle={canReverseSettlement ? () => requestReverseSettlement(modalOrder) : null}
           onUploadReceipt={canMaintainReceipt ? (file, order) => onUploadReceipt(file, order.id).then((receipt) => {
@@ -3080,6 +3097,36 @@ function RepairReception({
           onConfirm={() => {
             confirmAction.onConfirm();
             setConfirmAction(null);
+          }}
+        />
+      ) : null}
+      {statusChange ? (
+        <OrderStatusConfirmDialog
+          order={statusChange.order}
+          targetStatus={statusChange.targetStatus}
+          onClose={() => setStatusChange(null)}
+          onSubmit={async (command) => {
+            const result = await onStatusChange(statusChange.order, command);
+            if (result.kind === 'success') {
+              setSelectedId(result.value.order.id);
+              setDraft(createOrderDraft(result.value.order));
+            }
+            return result;
+          }}
+          onCheck={async (operationId) => {
+            const result = await onStatusOperationQuery(operationId);
+            if (result.kind === 'success') {
+              setSelectedId(result.value.order.id);
+              setDraft(createOrderDraft(result.value.order));
+            }
+            return result;
+          }}
+          onSuccess={() => {}}
+          onConflict={(latest) => {
+            if (latest?.id) {
+              setSelectedId(latest.id);
+              setDraft(createOrderDraft(latest));
+            }
           }}
         />
       ) : null}
@@ -3136,7 +3183,7 @@ function ConfirmActionDialog({ action, onClose, onConfirm }) {
   );
 }
 
-function OrderDetailDialog({ order, company, onClose, onEdit, onPrint, onSettle, onReverseSettle, onUploadReceipt, onViewReceipt, onDeleteReceipt, onVoid, canManageReceipt = true, cloudReadOnly = false }) {
+function OrderDetailDialog({ order, company, onClose, onEdit, onPrint, statusTargets = [], onStatusChange, onSettle, onReverseSettle, onUploadReceipt, onViewReceipt, onDeleteReceipt, onVoid, canManageReceipt = true, cloudReadOnly = false }) {
   const [receiptState, setReceiptState] = useState({ loading: false, error: '', previewUrl: '' });
   const [receiptFile, setReceiptFile] = useState(null);
   const printTime = new Date().toLocaleString('zh-CN', { hour12: false });
@@ -3263,6 +3310,7 @@ function OrderDetailDialog({ order, company, onClose, onEdit, onPrint, onSettle,
 
           <footer className="modal-actions">
             <button type="button" onClick={onPrint}>打印工单</button>
+            {statusTargets.map((status) => <button key={status} type="button" disabled={cloudReadOnly} onClick={() => onStatusChange?.(status)}>{statusTransitionLabel(status)}</button>)}
             {onSettle && order.status !== REPAIR_STATUS.settled ? <button type="button" disabled={cloudReadOnly} onClick={onSettle}>结算工单</button> : null}
             {onReverseSettle && order.status === REPAIR_STATUS.settled ? <button type="button" disabled={cloudReadOnly} onClick={onReverseSettle}>返结算</button> : null}
             {onVoid ? <button type="button" disabled={cloudReadOnly} onClick={onVoid}>作废工单</button> : null}

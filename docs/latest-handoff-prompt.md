@@ -685,3 +685,11 @@ cd E:\codex\chengxu\android-client
 不要提交腾讯云 COS 密钥、账号密码或其他敏感信息。不要修改现有网页端布局来模拟移动端；Android 保持独立 `android-client/` 工程。继续采用测试驱动、任务级审查和小步提交。
 
 如需使用本地隔离 worktree，请放在项目根目录 `.worktrees/`；该目录已被 Git 忽略，不能提交其中的构建产物或工作文件。
+
+### 阶段 3 Task 10：Web 普通状态确认、冲突与未知结果恢复（已完成）
+
+- 新增 `src/orderStatusApi.js`：仅使用 `POST /api/orders/:id/status` 发送 `{ operationId, expectedVersion, targetStatus }`，并将成功、400/401/403/404/409、5xx、网络、畸形响应与 Abort 稳定映射。未知结果只查询原 `operationId`，不会自动重放。
+- 新增 `OrderStatusConfirmDialog`，在确认前展示工单号、车牌、当前/目标状态和业务影响；提交中禁用重复点击，409 显示最新状态，5xx/网络等未知结果可用原 ID 确认。
+- 维修接待的侧栏与完整详情弹窗均只显示当前角色的相邻普通状态动作；普通状态不再调用 legacy `upsertOrder`，结算/返结算继续保持旧的专用流程。
+- TDD 证据：交通模块的初始 RED 因 `orderStatusApi.js` 不存在失败；状态 UI 初始 RED 因无相邻状态按钮失败。现在 focused Node 2/2 通过，Playwright 覆盖员工单步前进、双击单请求、409 最新状态和原 operation ID 查询恢复，3/3 通过。本任务无 D1 migration、无远程 D1/Pages、无能力开关、无模拟器或 APK 更新。
+- 下一步：阶段 3 Task 11，Android 普通状态 API、加密待确认信封和全屏确认界面。
