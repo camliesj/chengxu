@@ -883,3 +883,9 @@ cd E:\codex\chengxu\android-client
 - 用户明确授权后，已为 `tongda` 与 `xinqiheng` 同时启用 `SETTLE_ORDER`、`MAINTAIN_RECEIPT`、`REVERSE_SETTLEMENT`。写入前核对两家企业账户存在、所有远端 migration 已应用，并导出忽略路径备份 `tmp/d1-backups/pre-settlement-capabilities-2026-07-28.sql`；写入后只读复核 6/6 项能力均为 `enabled=1`。
 - 已重新构建并发布 Pages 生产主分支，部署 URL：`https://92c376a1.chengxu.pages.dev`，正式域名：`https://chengxu.pages.dev`。未认证 `POST /api/orders/route-probe/settlement`、`/reverse-settlement`、`/receipt` 均返回 `401 {"error":"UNAUTHORIZED"}`，确认三条路由注册且认证门禁生效，烟测未改动真实业务数据。
 - 真机验收前提：管理员登录后先将工单从“在修中”推进至“已完工”再至“待结算”；此时 Android 显示“办理结算”，进入后可从系统相册选择到账回执截图。已结算工单显示返结算；具备回执的已结算工单可管理回执。
+
+### 统一档案与工单自动建档（规格已确认，待内联实施）
+
+- 用户已确认规格：`docs/superpowers/specs/2026-07-28-unified-archives-and-auto-provisioning-design.md`。网页与 Android 的工单创建将共用服务端自动建档：同一幂等创建命令的 D1 batch 写入工单、客户车辆、可选保险档案、operation 与审计；不新增 D1/Room migration。
+- Android 档案入口将明确提供维修历史、客户车辆、保险档案三个可滚动分区及数量；客户车辆补齐网页端已有的查询、详情、新增、编辑，`customers` 权限可维护；保险继续使用 `insurance` 权限和现有版本冲突合同。创建成功后 Android 刷新两个加密缓存，网页创建成功后刷新档案，避免旧的客户端二次同步。
+- 未经新的明确授权，不部署本功能到远端 D1 或 Pages；依旧不启动 Android 模拟器，只运行 JVM、Android 测试代码编译、lint、APK 构建及签名校验。
