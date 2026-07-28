@@ -947,3 +947,11 @@ cd E:\codex\chengxu\android-client
 - 已验证：Node `npm.cmd test` 203/203；Vite build 成功；Android `:app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:lintDebug :app:assembleDebug` 为 BUILD SUCCESSFUL（68 tasks）。Tauri source/config 合同通过；本机 `desktop:check` 被 Windows SDK `RC.EXE` 缺失阻断，属于构建环境前置条件，并非配置/代码错误。没有 D1/Room migration。
 - 最新可安装 Debug APK：`dist/releases/android/autoservice-android-debug-0.1.0.apk`；SHA-256 `447EAEE9EBA6316CF81BF120CE7C7B4CECD9DC07AAE3FECD2D892CFAD7778B4E`；Build Tools 35.0.0 `apksigner verify --verbose` 确认 v2=true。已在 `industrial_mobile_api35_ws` 模拟器安装，包标签为“智维车服”；启动后 UI 树确认 `ZHIWEI CAR SERVICE`、`登录智维车服移动端`、通达/鑫齐恒企业入口、账号/密码字段与进入系统按钮正常显示。模拟器启动时出现一次 System UI 短暂无响应，选择等待后恢复，应用未崩溃。
 - 下一步唯一外部前置：使用有效管理员会话调用 APK 上传接口，获取返回的 HTTPS URL 后写入五项 `ANDROID_RELEASE_*` Pages 变量；随后只读核验 `android.available=true`、APK 下载 200/附件响应头和登录页二维码。不得通过修改生产账号、权限或业务数据绕过该认证。
+
+### 智维车服 Android APK 正式发布（已完成）
+
+- 已使用管理员授权会话将 `0.1.0` APK 上传至受控发布存储，并写入生产 Pages 的 `ANDROID_RELEASE_*` 元数据；`GET https://chengxu.pages.dev/api/client-releases` 现返回 `android.available=true`、版本 `0.1.0` 与 HTTPS 下载地址。
+- 生产验证发现腾讯 COS 默认域名会拒绝 APK/IPA 的公网分发（`DownloadForbidden`）。为确保二维码可真实安装，正式下载改为 Pages 静态资源：`https://chengxu.pages.dev/downloads/zhiwei-car-service_0.1.0.apk`；登录页二维码和备用下载按钮从同一发布元数据读取该地址。COS 的 Android 路由仍保留，供未来接入已备案的自定义 COS 分发域名时使用。
+- Pages 已重新部署，最新部署预览为 `https://323760c6.chengxu.pages.dev`，正式域名为 `https://chengxu.pages.dev`。生产下载响应为 `200` 与 `application/vnd.android.package-archive`；实际下载 20,646,930 bytes 的 SHA-256 为 `447EAEE9EBA6316CF81BF120CE7C7B4CECD9DC07AAE3FECD2D892CFAD7778B4E`，与已验证构建产物完全一致。
+- 发布资产同时归档在 `public/downloads/zhiwei-car-service_0.1.0.apk`（Pages 分发源）和 `dist/releases/android/autoservice-android-debug-0.1.0.apk`（本地归档）。本轮未新增 D1 migration、未改变 D1/Room 数据库结构，也未写入业务数据。
+- 后续：发布新版本时重新构建、签名校验后替换上述版本化 APK，上传并更新 `ANDROID_RELEASE_VERSION`、发布时间、大小、说明和下载 URL，再进行生产哈希校验；若需要 Windows 客户端本机构建，需先安装 Windows SDK 的 `RC.EXE`。
