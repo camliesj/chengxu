@@ -965,3 +965,4 @@ cd E:\codex\chengxu\android-client
 - 新 APK 已归档在 `public/downloads/zhiwei-car-service_0.1.0.apk` 与 `dist/releases/android/autoservice-android-debug-0.1.0.apk`。后续仅需在新版本发布时更新版本号、静态 APK、Pages 发布元数据并重复哈希与标签校验。
 - Android 手动检查更新已确认采用应用内下载：入口位于“我的”，仅在用户点击时读取现有 `/api/client-releases` Android 元数据；仅高于本机的 HTTPS 版本可下载，下载到应用专属目录后通过 FileProvider 调起系统安装器。规格为 `docs/superpowers/specs/2026-07-28-android-in-app-update-design.md`；尚未进入编码，等待用户审阅规格后再写实施计划。
 - Android 手动检查更新 Task 1 已完成：新增 `core/update` 的发布元数据 API 与严格三段数字版本比较，仅接受 HTTPS 且 `android.available=true` 的发布项；网络、服务端和畸形响应可区分，取消请求会向上传播。JVM 定向测试已通过；未改变 D1/Room 数据库结构或业务数据。下一步为 APK 原子下载、FileProvider 和系统安装器。
+- Android 手动检查更新 Task 2 已完成：下载器仅接受 HTTPS、写入应用专属外部下载目录的 `.part` 临时文件并在非空 HTTP 2xx 完整读取后原子替换为 `zhiwei-update.apk`；新增受限 FileProvider、未知来源安装设置 Intent 与系统安装 Intent。没有请求存储读写权限；D1/Room 结构未变。下载器 JVM 测试通过，Android test source 离线编译通过；普通联网 Gradle 解析因环境网络等待超时，离线缓存验证通过。
