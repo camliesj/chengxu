@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { normalizeClientReleases } from '../clientReleaseLogic.js';
 import { apiFetch } from '../platform/apiClient.js';
 import { openExternal } from '../platform/files.js';
@@ -111,6 +112,17 @@ export default function ClientDownloadsDialog({ open, onClose }) {
                   <span>{releaseMeta(release)}</span>
                   {release.notes ? <small>{release.notes}</small> : null}
                 </div>
+                {platform.key === 'android' && release.canDownload ? (
+                  <div className="client-download-android-qr">
+                    <div className="client-download-android-qr-code" aria-label="扫描二维码安装智纬 Android APP">
+                      <QRCodeSVG value={release.downloadUrl} size={108} marginSize={2} bgColor="#ffffff" fgColor="#1d242b" level="M" />
+                    </div>
+                    <div>
+                      <strong>扫码安装 Android APP</strong>
+                      <span>使用手机相册或扫码工具打开安装包</span>
+                    </div>
+                  </div>
+                ) : null}
                 <button
                   type="button"
                   className={release.canDownload ? 'client-download-action primary' : 'client-download-action'}

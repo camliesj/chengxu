@@ -11,7 +11,6 @@ import { apiFetch, setSessionExpiredReporter } from './platform/apiClient.js';
 import { findLegacyImportCandidates } from './cloudRecordLogic.js';
 import LegacyCloudImportDialog from './components/LegacyCloudImportDialog.jsx';
 import ClientDownloadsDialog from './components/ClientDownloadsDialog.jsx';
-import AndroidInstallQr from './components/AndroidInstallQr.jsx';
 import DesktopUpdatePanel from './components/DesktopUpdatePanel.jsx';
 import DesktopUpdatePrompt from './components/DesktopUpdatePrompt.jsx';
 import NetworkStatusBar from './components/NetworkStatusBar.jsx';
@@ -794,7 +793,6 @@ function AccessGate({ onUnlock }) {
             客户端下载
           </button>
           <span>Windows · Android</span>
-          <AndroidInstallQr onOpenDownloads={() => setDownloadsOpen(true)} />
         </footer>
       </section>
       <ClientDownloadsDialog

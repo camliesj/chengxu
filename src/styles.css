@@ -56,6 +56,7 @@ button {
   background:
     radial-gradient(circle at 50% 36%, rgba(255, 255, 255, 0.95) 0, rgba(255, 255, 255, 0.72) 34%, rgba(246, 249, 252, 0.9) 68%),
     linear-gradient(90deg, rgba(255, 255, 255, 0.92), rgba(246, 249, 252, 0.84)),
+    url("/brand/zhiwei-login-background.png") right center / min(1100px, 78vw) auto no-repeat,
     url("/assets/ui/backgrounds/modal-flow-overlay.png") center / cover no-repeat,
     var(--bg);
 }
@@ -201,68 +202,6 @@ button {
 
 .access-download-link:hover {
   color: var(--blue-deep);
-}
-
-.android-install-qr {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: min(100%, 310px);
-  margin: 14px auto 0;
-  padding: 10px;
-  border: 1px solid #cce5f5;
-  border-radius: 12px;
-  background: #f5fbff;
-  color: var(--text);
-  text-align: left;
-}
-
-.android-install-qr-code {
-  display: grid;
-  flex: 0 0 auto;
-  place-items: center;
-  padding: 5px;
-  border-radius: 8px;
-  background: #fff;
-}
-
-.android-install-qr-copy {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-}
-
-.android-install-qr-copy strong {
-  color: #1d242b;
-  font-size: 13px;
-}
-
-.android-install-qr-copy span {
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.android-install-qr button {
-  justify-self: start;
-  border: 0;
-  padding: 2px 0;
-  color: var(--blue);
-  background: transparent;
-  font-size: 12px;
-  font-weight: 900;
-}
-
-.android-install-qr.pending,
-.android-install-qr.unavailable {
-  justify-content: center;
-  width: min(100%, 310px);
-  min-height: 40px;
-  margin-top: 14px;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
-  text-align: center;
 }
 
 .client-download-backdrop {
@@ -424,6 +363,44 @@ button {
 .client-download-platform-copy small {
   color: var(--muted);
   font-weight: 600;
+}
+
+.client-download-android-qr {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 116px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid #cbe8d8;
+  border-radius: 8px;
+  background: #f4fbf7;
+}
+
+.client-download-android-qr-code {
+  display: grid;
+  place-items: center;
+  padding: 4px;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.client-download-android-qr strong,
+.client-download-android-qr span {
+  display: block;
+}
+
+.client-download-android-qr strong {
+  color: #1d3b2c;
+  font-size: 13px;
+}
+
+.client-download-android-qr span {
+  margin-top: 4px;
+  color: #5f7a6a;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.5;
 }
 
 .client-download-action {
@@ -5525,7 +5502,7 @@ button:disabled,
   .client-download-dialog { width: 100%; min-height: 100vh; border: 0; border-radius: 0; }
   .client-download-header { padding: 22px 18px 18px; }
   .client-download-platforms { grid-template-columns: 1fr; padding: 18px; }
-  .android-install-qr { width: 100%; }
+  .client-download-android-qr { grid-template-columns: 108px minmax(0, 1fr); }
   .client-download-status { margin: 16px 18px 0; }
   .settings-launcher-card { grid-template-columns: 42px minmax(0, 1fr) 16px; }
   .settings-launcher-card em { display: none; }
