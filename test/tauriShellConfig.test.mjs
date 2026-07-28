@@ -18,7 +18,7 @@ test('Tauri config targets the Windows NSIS application shell', () => {
   const cargoToml = readFileSync(new URL('../src-tauri/Cargo.toml', import.meta.url), 'utf8');
   const [window] = config.app.windows;
 
-  assert.equal(config.productName, '智维车服');
+  assert.equal(config.productName, '智纬');
   assert.equal(config.version, '0.1.3');
   assert.equal(packageJson.version, config.version);
   assert.match(cargoToml, /^version = "0\.1\.3"$/m);
