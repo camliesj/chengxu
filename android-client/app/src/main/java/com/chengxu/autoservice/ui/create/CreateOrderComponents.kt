@@ -27,6 +27,7 @@ import com.chengxu.autoservice.core.designsystem.AutoserviceControlShape
 import com.chengxu.autoservice.core.designsystem.AutoserviceShape
 import com.chengxu.autoservice.core.designsystem.AutoserviceSpacing
 import com.chengxu.autoservice.core.designsystem.BrandTextField
+import com.chengxu.autoservice.core.designsystem.BrandDateField
 
 object CreateOrderTestTags {
     const val FIELD_PREFIX = "create-order-field-"
@@ -109,14 +110,25 @@ internal fun CreateTextField(
             ),
         )
     } else {
-        BrandTextField(
-            value = state.fields.value(field),
-            onValueChange = { onUpdate(field, it) },
-            label = label,
-            error = error,
-            enabled = !state.submitting,
-            modifier = Modifier.testTag("${CreateOrderTestTags.FIELD_PREFIX}${field.wireName}"),
-        )
+        if (field == CreateOrderField.INSURANCE_EXPIRY) {
+            BrandDateField(
+                value = state.fields.value(field),
+                onValueChange = { onUpdate(field, it) },
+                label = label,
+                error = error,
+                enabled = !state.submitting,
+                modifier = Modifier.testTag("${CreateOrderTestTags.FIELD_PREFIX}${field.wireName}"),
+            )
+        } else {
+            BrandTextField(
+                value = state.fields.value(field),
+                onValueChange = { onUpdate(field, it) },
+                label = label,
+                error = error,
+                enabled = !state.submitting,
+                modifier = Modifier.testTag("${CreateOrderTestTags.FIELD_PREFIX}${field.wireName}"),
+            )
+        }
     }
 }
 

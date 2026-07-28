@@ -840,6 +840,13 @@ cd E:\codex\chengxu\android-client
 
 ### Android 结算包 Task 3：Android 命令 HTTP 边界（进行中）
 
+### Android 结算包 Task 5：日期选择与详情标题动作（已实现，待提交）
+
+- `BrandDateField` 已加入设计系统：ISO 日期有效时以该日期打开系统 `DatePickerDialog`，空值或非法值回退当天；输入框只读，日历图标和整块控件均可打开选择器。
+- 新增与编辑工单的保险到期日，以及保险档案编辑的到期日，均已从手工文本输入切换为日期选择。结算表单尚未接入，待 Task 4 UI 创建后使用同一组件。
+- 工单详情“编辑”由白底描边按钮调整为 48dp 轻量文字动作；只读状态芯片保持不变。
+- TDD：`BrandDateFieldTest` 先因缺少实现而 RED，当前聚焦 JVM 测试与 `:app:compileDebugAndroidTestKotlin` 均为 `BUILD SUCCESSFUL`。未启动模拟器、未运行 connected tests、未触碰 D1/Pages；本次没有数据库结构变更。
+
 - 新增 Android `SettlementCommand`、`OrderSettlementApi` 与 `HttpUrlConnectionOrderSettlementApi`。结算、返结算、回执元数据更新分别固定为 `/settlement`、`/reverse-settlement`、`/receipt`，复用现有 Bearer、路径编码、详情解析、409 冲突、操作处理中未知结果和 IO 未知结果约定。
 - `ReceiptMetadata` 新增 key 字段，服务端仅在具备 `MAINTAIN_RECEIPT` 的管理员完整详情返回它；列表仍不含 key。Android 聚焦 JVM 测试通过，未启动模拟器。下一步实现仓储门禁和系统相册图片传输。
 

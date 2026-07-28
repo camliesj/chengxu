@@ -22,6 +22,7 @@ import com.chengxu.autoservice.core.designsystem.AutoserviceCard
 import com.chengxu.autoservice.core.designsystem.AutoserviceColors
 import com.chengxu.autoservice.core.designsystem.AutoserviceSpacing
 import com.chengxu.autoservice.core.designsystem.BrandTextField
+import com.chengxu.autoservice.core.designsystem.BrandDateField
 import com.chengxu.autoservice.core.orders.InsurancePolicyRecord
 import java.time.LocalDate
 
@@ -122,7 +123,7 @@ fun InsurancePolicyDetailScreen(
     item { BrandTextField(draft.vin, { value -> onChange { it.copy(vin = value) } }, "VIN / 车架号") }
     item { BrandTextField(draft.type, { value -> onChange { it.copy(type = value) } }, "保险类型") }
     item { BrandTextField(draft.insurer, { value -> onChange { it.copy(insurer = value) } }, "保险公司") }
-    item { BrandTextField(draft.expiry, { value -> onChange { it.copy(expiry = value) } }, "到期日（YYYY-MM-DD）") }
+    item { BrandDateField(draft.expiry, { value -> onChange { it.copy(expiry = value) } }, "到期日") }
     item { BrandTextField(draft.amount.toString(), { value -> onChange { it.copy(amount = value.toLongOrNull() ?: 0L) } }, "保额") }
     conflict?.let { item { Text("记录已被其他人修改，已刷新当前列表；请核对后重新提交。", color = AutoserviceColors.InkMuted) } }
     message?.let { item { Text(it, color = AutoserviceColors.InkMuted) } }

@@ -348,7 +348,7 @@ git push origin codex/android-mobile-ui-atlas
 fun parseIsoDateOrToday(value: String, today: LocalDate): LocalDate
 ```
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 ```kotlin
 @Test fun parseIsoDateOrTodayRejectsInvalidInputAndFormatsSelectedDate() {
@@ -358,21 +358,21 @@ fun parseIsoDateOrToday(value: String, today: LocalDate): LocalDate
 
 The Compose source tests assert that insurance date fields expose the date-picker action and are not editable text fields; the detail header test asserts an `edit-order` 44dp action and a separate read-only status chip.
 
-- [ ] **Step 2: Run the unit test to verify RED**
+- [x] **Step 2: Run the unit test to verify RED**
 
 Run: `cd android-client; .\gradlew.bat :app:testDebugUnitTest --tests "*BrandDateFieldTest"`
 
 Expected: FAIL because the shared date component does not exist.
 
-- [ ] **Step 3: Implement `BrandDateField` and replace date text inputs**
+- [x] **Step 3: Implement `BrandDateField` and replace date text inputs**
 
 Use `DatePickerDialog` with the parsed existing date or current date. Render the ISO value in a read-only field with calendar affordance and 48dp control height; call `onDateSelected` only after user confirmation. Apply it to all specified create/edit/insurance/settlement dates.
 
-- [ ] **Step 4: Implement compact title action**
+- [x] **Step 4: Implement compact title action**
 
 Use a text action with the existing brand ink/action colors and pressed background, no white surface or outline. Keep it aligned to the title row, preserve a 44dp semantic touch target, and leave the read-only `StatusChip` unchanged.
 
-- [ ] **Step 5: Run focused GREEN checks**
+- [x] **Step 5: Run focused GREEN checks**
 
 Run: `cd android-client; .\gradlew.bat :app:testDebugUnitTest --tests "*BrandDateFieldTest"`; then `.\gradlew.bat :app:compileDebugAndroidTestKotlin`
 

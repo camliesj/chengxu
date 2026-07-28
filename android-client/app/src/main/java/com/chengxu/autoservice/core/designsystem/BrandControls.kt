@@ -19,9 +19,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.clickable
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -32,6 +34,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -41,6 +44,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
+import android.app.DatePickerDialog
+import java.time.LocalDate
 
 enum class BrandButtonTone { PRIMARY, SECONDARY, QUIET, DANGER }
 
@@ -206,12 +211,23 @@ fun BrandTextField(
     visualTransformation: VisualTransformation = VisualTransformation.None,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
+    readOnly: Boolean = false,
+    onClick: (() -> Unit)? = null,
 ) {
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .then(
+                if (onClick == null) Modifier else Modifier.clickable(
+                    enabled = enabled,
+                    role = Role.Button,
+                    onClick = onClick,
+                ),
+            ),
         enabled = enabled,
+        readOnly = readOnly,
         singleLine = true,
         label = { Text(label) },
         leadingIcon = leadingIcon?.let { resource ->
@@ -240,6 +256,52 @@ fun BrandTextField(
             cursorColor = AutoserviceColors.Action,
             errorCursorColor = AutoserviceColors.Danger,
         ),
+    )
+}
+
+internal fun datePickerInitialDate(value: String, fallback: LocalDate = LocalDate.now()): LocalDate =
+    runCatching { LocalDate.parse(value.trim()) }.getOrDefault(fallback)
+
+@Composable
+fun BrandDateField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    error: String? = null,
+    enabled: Boolean = true,
+) {
+    val context = LocalContext.current
+    val openDatePicker = {
+        val initialDate = datePickerInitialDate(value)
+        DatePickerDialog(
+            context,
+            { _, year, month, dayOfMonth ->
+                onValueChange(LocalDate.of(year, month + 1, dayOfMonth).toString())
+            },
+            initialDate.year,
+            initialDate.monthValue - 1,
+            initialDate.dayOfMonth,
+        ).show()
+    }
+    BrandTextField(
+        value = value,
+        onValueChange = {},
+        label = label,
+        modifier = modifier,
+        error = error,
+        enabled = enabled,
+        readOnly = true,
+        onClick = openDatePicker,
+        trailingContent = {
+            IconButton(onClick = openDatePicker, enabled = enabled) {
+                BrandIcon(
+                    resource = BrandIconResource.Calendar,
+                    contentDescription = "选择日期",
+                    tint = AutoserviceColors.InkMuted,
+                )
+            }
+        },
     )
 }
 

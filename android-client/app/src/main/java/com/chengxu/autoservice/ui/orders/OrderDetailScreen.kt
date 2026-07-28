@@ -13,6 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -72,11 +73,14 @@ fun OrderDetailScreen(
                 color = AutoserviceColors.Ink,
             )
             if (!readOnly && canEdit && order != null) {
-                BrandButton(
+                TextButton(
                     onClick = onEdit,
-                    modifier = Modifier.testTag("edit-order"),
-                    tone = BrandButtonTone.SECONDARY,
-                ) { Text("编辑") }
+                    modifier = Modifier
+                        .size(48.dp)
+                        .testTag("edit-order"),
+                ) {
+                    Text("编辑", color = AutoserviceColors.Action)
+                }
             }
             StatusChip(
                 text = "只读",
