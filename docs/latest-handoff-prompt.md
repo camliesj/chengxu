@@ -934,3 +934,7 @@ cd E:\codex\chengxu\android-client
 
 - 用户确认采用方案 A：将 Android APK 上传至现有受控 COS 发布存储，新增 Android 专用公开下载路由，并让网页端和 Windows 客户端共用登录页生成直达 APK HTTPS URL 的二维码；Android 自身登录页不显示二维码。
 - 规格：`docs/superpowers/specs/2026-07-28-android-install-qr-release-design.md`。二维码区域位于现有“客户端下载”位置，未发布时明确显示发布中，不生成无效码；二维码和后备下载按钮使用同一 release URL。该包不新增 D1/Room migration，也不改变订单、档案或权限业务逻辑。
+
+### 智维车服品牌与 Android 安装二维码发布实施计划（已确认，待内联执行）
+
+- 实施计划：`docs/superpowers/plans/2026-07-28-zhiwei-brand-and-android-qr-release.md`。以 Android artifact 受控上传/下载为先决条件，再接入登录页本地二维码，最后替换跨端名称与图标并构建签名 APK。生产部署、APK 上传与 Pages 环境变量写入均须保持本轮已确认的用户授权范围内执行。
