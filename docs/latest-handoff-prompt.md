@@ -920,3 +920,8 @@ cd E:\codex\chengxu\android-client
 
 - 用户已明确确认功能验证完成。验证会话中已自行启动 `industrial_mobile_api35_ws` Android 模拟器、安装最新 Debug APK，并确认应用登录页及双企业入口正常打开；随后由用户完成完整功能验收。
 - 当前基线：Android 档案三分区、客户车辆查询/新增/编辑、工单创建后的车辆与保险档案自动刷新，以及已发布的 Pages Functions 均已完成验收。后续仅在收到新的业务需求或缺陷反馈后继续开发。
+
+### 智维车服跨端品牌（规格已确认，待图标预览）
+
+- 用户已确认统一产品名称为“智维车服”。图标方向为深石墨圆角底、抽象 W 服务道路结构与冰蓝点缀；图标内不放文字，便于同时用于网页 favicon、Windows 与 Android。
+- 规格文件：`docs/superpowers/specs/2026-07-28-zhiwei-car-service-brand-design.md`。先生成 1024×1024 预览；用户确认预览后，才替换三端名称与图标资源。
