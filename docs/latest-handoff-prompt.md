@@ -929,3 +929,8 @@ cd E:\codex\chengxu\android-client
 ### 智维车服跨端品牌实施计划（已确认，预览生成中）
 
 - 实施计划：`docs/superpowers/plans/2026-07-28-zhiwei-car-service-brand.md`。严格分为预览确认门、跨端图标派生、可见名称替换和构建验收四步；预览获批前不改产品资源，获批后仍保持包名、数据库名、会话键、Cloudflare 标识与 API 路径不变。
+
+### 智维车服 Android 安装二维码与正式发布（方案 A 已确认，待实施）
+
+- 用户确认采用方案 A：将 Android APK 上传至现有受控 COS 发布存储，新增 Android 专用公开下载路由，并让网页端和 Windows 客户端共用登录页生成直达 APK HTTPS URL 的二维码；Android 自身登录页不显示二维码。
+- 规格：`docs/superpowers/specs/2026-07-28-android-install-qr-release-design.md`。二维码区域位于现有“客户端下载”位置，未发布时明确显示发布中，不生成无效码；二维码和后备下载按钮使用同一 release URL。该包不新增 D1/Room migration，也不改变订单、档案或权限业务逻辑。
