@@ -48,7 +48,7 @@ export default function AndroidInstallQr({ onOpenDownloads }) {
     const { release } = state;
     return (
       <section className="android-install-qr" aria-labelledby="android-install-qr-title">
-        <div className="android-install-qr-code" aria-label="扫描二维码下载智维车服 Android APP">
+        <div className="android-install-qr-code" aria-label="扫描二维码下载智纬 Android APP">
           <QRCodeSVG value={release.downloadUrl} size={116} marginSize={2} bgColor="#ffffff" fgColor="#1d242b" level="M" />
         </div>
         <div className="android-install-qr-copy">

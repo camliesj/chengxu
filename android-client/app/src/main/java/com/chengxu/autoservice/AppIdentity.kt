@@ -1,5 +1,5 @@
 package com.chengxu.autoservice
 
 object AppIdentity {
-    const val displayName = "智维车服"
+    const val displayName = "智纬"
 }
