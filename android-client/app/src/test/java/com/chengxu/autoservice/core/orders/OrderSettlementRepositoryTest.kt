@@ -42,16 +42,29 @@ class OrderSettlementRepositoryTest {
         assertEquals("已结算", store.detail?.summary?.status)
     }
 
-    private fun repository(api: FakeApi, connection: ConnectionState = ConnectionState.Online, store: FakeStore = FakeStore(), capabilities: Set<BusinessCapability> = setOf(BusinessCapability.SETTLE_ORDER, BusinessCapability.MAINTAIN_RECEIPT)) = DefaultOrderSettlementRepository(sessionRepository(), monitor(connection), FakeReadApi(capabilities), api, store, FakeSummaryStore(), SessionInvalidator { })
+    @Test fun settlementAndReverseAreBlockedUnlessTheFreshServerStatusAllowsThem() = runTest {
+        val settlementApi = FakeApi(OrderCommandResult.Success(detail(OrderStatus.SETTLED)))
+        val settlement = repository(settlementApi, status = OrderStatus.IN_REPAIR)
+        assertEquals(OrderCommandResult.Forbidden, settlement.settle("RO-1", command()))
+        assertEquals(0, settlementApi.settleCalls)
+
+        val reverseApi = FakeApi()
+        val reverse = repository(reverseApi, status = OrderStatus.PENDING_SETTLEMENT, capabilities = setOf(BusinessCapability.REVERSE_SETTLEMENT))
+        assertEquals(OrderCommandResult.Forbidden, reverse.reverse("RO-1", "reverse-op", 4))
+        assertEquals(0, reverseApi.reverseCalls)
+    }
+
+    private fun repository(api: FakeApi, connection: ConnectionState = ConnectionState.Online, store: FakeStore = FakeStore(), capabilities: Set<BusinessCapability> = setOf(BusinessCapability.SETTLE_ORDER, BusinessCapability.MAINTAIN_RECEIPT), status: OrderStatus = OrderStatus.PENDING_SETTLEMENT) = DefaultOrderSettlementRepository(sessionRepository(), monitor(connection), FakeReadApi(capabilities, status), api, store, FakeSummaryStore(), SessionInvalidator { })
     private class FakeApi(private val settleResult: OrderCommandResult<OrderDetail> = OrderCommandResult.ServerFailure) : OrderSettlementApi {
         var settleCalls = 0
+        var reverseCalls = 0
         override suspend fun settle(token: String, orderId: String, command: SettlementCommand): OrderCommandResult<OrderDetail> { settleCalls++; return settleResult }
-        override suspend fun reverse(token: String, orderId: String, operationId: String, expectedVersion: Long) = OrderCommandResult.ServerFailure
+        override suspend fun reverse(token: String, orderId: String, operationId: String, expectedVersion: Long): OrderCommandResult<OrderDetail> { reverseCalls++; return OrderCommandResult.ServerFailure }
         override suspend fun updateReceipt(token: String, orderId: String, operationId: String, expectedVersion: Long, receipt: ReceiptMetadata?) = OrderCommandResult.ServerFailure
     }
-    private class FakeReadApi(private val capabilities: Set<BusinessCapability>) : OrderReadApi {
+    private class FakeReadApi(private val capabilities: Set<BusinessCapability>, private val status: OrderStatus) : OrderReadApi {
         override suspend fun fetchPage(token: String, query: OrderPageQuery) = error("unused")
-        override suspend fun fetchDetail(token: String, orderId: String) = OrderReadResult.Success(OrderDetailEnvelope(detail(), capabilities, "now"))
+        override suspend fun fetchDetail(token: String, orderId: String) = OrderReadResult.Success(OrderDetailEnvelope(detail(status), capabilities, "now"))
     }
     private class FakeStore : OrderSettlementLocalStore { var detail: OrderDetail? = null; override suspend fun getDetail(companyId: String, orderId: String) = detail; override suspend fun upsertDetail(detail: OrderDetail) { this.detail = detail }; override suspend fun deleteDetail(companyId: String, orderId: String) { detail = null } }
     private class FakeSummaryStore : OrderCreationSummaryStore { override suspend fun upsert(summary: OrderSummary) = Unit }

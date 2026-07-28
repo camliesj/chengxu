@@ -50,6 +50,9 @@ class DefaultOrderSettlementRepository(
             is OrderReadResult.Failure -> return loaded.reason.toCommandResult(orderId, session)
         }
         if (envelope.order.summary.companyId != session.companyId || envelope.order.summary.version != version || !envelope.capabilities.containsAll(required)) return OrderCommandResult.Forbidden
+        val status = OrderStatus.fromWire(envelope.order.summary.status)
+        if (BusinessCapability.SETTLE_ORDER in required && status != OrderStatus.PENDING_SETTLEMENT) return OrderCommandResult.Forbidden
+        if (BusinessCapability.REVERSE_SETTLEMENT in required && status != OrderStatus.SETTLED) return OrderCommandResult.Forbidden
         return handle(session, orderId, call(session))
     }
 
