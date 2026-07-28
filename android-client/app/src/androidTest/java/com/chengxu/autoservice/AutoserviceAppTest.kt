@@ -28,6 +28,14 @@ import com.chengxu.autoservice.core.orders.OrderCreationRepository
 import com.chengxu.autoservice.core.orders.OrderDetailRepository
 import com.chengxu.autoservice.core.orders.OrderEditRepository
 import com.chengxu.autoservice.core.orders.OrderStatusRepository
+import com.chengxu.autoservice.core.orders.OrderSettlementRepository
+import com.chengxu.autoservice.core.orders.OrderReceiptApi
+import com.chengxu.autoservice.core.orders.ReceiptOperationResult
+import com.chengxu.autoservice.core.orders.ReceiptUpload
+import com.chengxu.autoservice.core.orders.ReceiptDownload
+import com.chengxu.autoservice.core.orders.model.ReceiptMetadata
+import com.chengxu.autoservice.core.orders.model.ReceiptReference
+import com.chengxu.autoservice.core.orders.model.SettlementCommand
 import com.chengxu.autoservice.core.orders.OrderReadFailure
 import com.chengxu.autoservice.core.orders.OrderReadResult
 import com.chengxu.autoservice.core.orders.OrderEditorData
@@ -158,6 +166,8 @@ class AutoserviceAppTest {
                 orderDetailRepository = FakeOrderDetailRepository(),
                 orderEditRepository = FakeOrderEditRepository(),
                 orderStatusRepository = FakeOrderStatusRepository(),
+                orderSettlementRepository = FakeOrderSettlementRepository(),
+                orderReceiptApi = FakeOrderReceiptApi(),
             )
         }
     }
@@ -279,5 +289,17 @@ class AutoserviceAppTest {
         override suspend fun change(orderId: String, command: OrderStatusCommand): OrderCommandResult<OrderDetail> = OrderCommandResult.NotFound
         override suspend fun confirm(operationId: String): OrderCommandResult<OrderDetail> = OrderCommandResult.NotFound
         override suspend fun restorePending(orderId: String): PendingStatusRecovery? = null
+    }
+
+    private class FakeOrderSettlementRepository : OrderSettlementRepository {
+        override suspend fun settle(orderId: String, command: SettlementCommand): OrderCommandResult<OrderDetail> = OrderCommandResult.NotFound
+        override suspend fun reverse(orderId: String, operationId: String, expectedVersion: Long): OrderCommandResult<OrderDetail> = OrderCommandResult.NotFound
+        override suspend fun updateReceipt(orderId: String, operationId: String, expectedVersion: Long, receipt: ReceiptReference?): OrderCommandResult<OrderDetail> = OrderCommandResult.NotFound
+    }
+
+    private class FakeOrderReceiptApi : OrderReceiptApi {
+        override suspend fun upload(token: String, orderId: String, upload: ReceiptUpload): ReceiptOperationResult<ReceiptReference> = ReceiptOperationResult.NotFound
+        override suspend fun download(token: String, key: String): ReceiptOperationResult<ReceiptDownload> = ReceiptOperationResult.NotFound
+        override suspend fun delete(token: String, key: String, orderId: String): ReceiptOperationResult<Unit> = ReceiptOperationResult.NotFound
     }
 }

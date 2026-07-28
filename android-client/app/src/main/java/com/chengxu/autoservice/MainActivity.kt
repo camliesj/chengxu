@@ -19,10 +19,13 @@ import com.chengxu.autoservice.core.orders.DefaultOrderCreationRepository
 import com.chengxu.autoservice.core.orders.DefaultOrderDetailRepository
 import com.chengxu.autoservice.core.orders.DefaultOrderEditRepository
 import com.chengxu.autoservice.core.orders.DefaultOrderStatusRepository
+import com.chengxu.autoservice.core.orders.DefaultOrderSettlementRepository
 import com.chengxu.autoservice.core.orders.HttpUrlConnectionOrderCreateApi
 import com.chengxu.autoservice.core.orders.HttpUrlConnectionOrderEditApi
 import com.chengxu.autoservice.core.orders.HttpUrlConnectionOrderReadApi
 import com.chengxu.autoservice.core.orders.HttpUrlConnectionOrderStatusApi
+import com.chengxu.autoservice.core.orders.HttpUrlConnectionOrderSettlementApi
+import com.chengxu.autoservice.core.orders.HttpUrlConnectionOrderReceiptApi
 import com.chengxu.autoservice.core.orders.HttpUrlConnectionOrdersApi
 import com.chengxu.autoservice.core.orders.HttpUrlConnectionHistoryOrdersApi
 import com.chengxu.autoservice.core.orders.HistoryOrdersRepository
@@ -134,6 +137,15 @@ class MainActivity : ComponentActivity() {
             summaryStore = orderCache,
             sessionInvalidator = sessionInvalidator,
         )
+        val orderSettlementRepository = DefaultOrderSettlementRepository(
+            sessionRepository = authenticationRepository,
+            networkMonitor = networkMonitor,
+            readApi = HttpUrlConnectionOrderReadApi(BuildConfig.API_ORIGIN),
+            api = HttpUrlConnectionOrderSettlementApi(BuildConfig.API_ORIGIN),
+            localStore = encryptedOrderStore,
+            summaryStore = orderCache,
+            sessionInvalidator = sessionInvalidator,
+        )
 
         setContent {
             AutoserviceApp(
@@ -147,6 +159,8 @@ class MainActivity : ComponentActivity() {
                 orderDetailRepository = orderDetailRepository,
                 orderEditRepository = orderEditRepository,
                 orderStatusRepository = orderStatusRepository,
+                orderSettlementRepository = orderSettlementRepository,
+                orderReceiptApi = HttpUrlConnectionOrderReceiptApi(BuildConfig.API_ORIGIN),
             )
         }
     }

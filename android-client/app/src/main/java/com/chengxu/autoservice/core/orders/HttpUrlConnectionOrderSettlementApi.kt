@@ -2,7 +2,7 @@ package com.chengxu.autoservice.core.orders
 
 import com.chengxu.autoservice.core.orders.model.OrderCommandResult
 import com.chengxu.autoservice.core.orders.model.OrderDetail
-import com.chengxu.autoservice.core.orders.model.ReceiptMetadata
+import com.chengxu.autoservice.core.orders.model.ReceiptReference
 import com.chengxu.autoservice.core.orders.model.SettlementCommand
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.Json
@@ -39,7 +39,7 @@ class HttpUrlConnectionOrderSettlementApi(
         }.toString())
     }
 
-    override suspend fun updateReceipt(token: String, orderId: String, operationId: String, expectedVersion: Long, receipt: ReceiptMetadata?): OrderCommandResult<OrderDetail> = request(operationId) {
+    override suspend fun updateReceipt(token: String, orderId: String, operationId: String, expectedVersion: Long, receipt: ReceiptReference?): OrderCommandResult<OrderDetail> = request(operationId) {
         transport.post("$ordersUrl/${encode(orderId)}/receipt", "Bearer $token", buildJsonObject {
             put("operationId", operationId); put("expectedVersion", expectedVersion)
             if (receipt == null) put("receipt", kotlinx.serialization.json.JsonNull) else put("receipt", buildJsonObject {

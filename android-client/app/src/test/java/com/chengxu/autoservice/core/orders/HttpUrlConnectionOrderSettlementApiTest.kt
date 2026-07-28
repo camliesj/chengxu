@@ -1,7 +1,7 @@
 package com.chengxu.autoservice.core.orders
 
 import com.chengxu.autoservice.core.orders.model.OrderCommandResult
-import com.chengxu.autoservice.core.orders.model.ReceiptMetadata
+import com.chengxu.autoservice.core.orders.model.ReceiptReference
 import com.chengxu.autoservice.core.orders.model.SettlementCommand
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -31,7 +31,7 @@ class HttpUrlConnectionOrderSettlementApiTest {
         assertEquals(OrderCommandResult.UnknownResult("receipt-op"), receipt)
     }
 
-    private fun receipt() = ReceiptMetadata("receipts/tongda/2026/RO-1.png", "receipt.png", "image/png", 128, "2026-07-28T02:30:00.000Z")
+    private fun receipt() = ReceiptReference("receipts/tongda/2026/RO-1.png", "receipt.png", "image/png", 128, "2026-07-28T02:30:00.000Z")
     private class RecordingTransport(private val response: OrdersHttpResponse) : OrderStatusHttpTransport {
         var url = ""; var body = ""
         override suspend fun get(url: String, authorization: String): OrdersHttpResponse = response

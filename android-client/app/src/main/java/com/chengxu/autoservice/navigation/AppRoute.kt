@@ -37,4 +37,7 @@ sealed interface AppRoute : NavKey {
 
     @Serializable
     data class ChangeOrderStatus(val orderId: String, val targetStatus: String) : AppRoute
+
+    @Serializable
+    data class Settlement(val orderId: String, val reversing: Boolean = false) : AppRoute
 }

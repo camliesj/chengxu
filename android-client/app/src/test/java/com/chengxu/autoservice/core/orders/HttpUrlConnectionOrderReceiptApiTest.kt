@@ -1,6 +1,5 @@
 package com.chengxu.autoservice.core.orders
 
-import com.chengxu.autoservice.core.orders.model.ReceiptMetadata
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

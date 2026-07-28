@@ -1,6 +1,6 @@
 package com.chengxu.autoservice.core.orders
 
-import com.chengxu.autoservice.core.orders.model.ReceiptMetadata
+import com.chengxu.autoservice.core.orders.model.ReceiptReference
 
 data class ReceiptUpload(
     val name: String,
@@ -24,7 +24,7 @@ sealed interface ReceiptOperationResult<out T> {
 }
 
 interface OrderReceiptApi {
-    suspend fun upload(token: String, orderId: String, upload: ReceiptUpload): ReceiptOperationResult<ReceiptMetadata>
+    suspend fun upload(token: String, orderId: String, upload: ReceiptUpload): ReceiptOperationResult<ReceiptReference>
     suspend fun download(token: String, key: String): ReceiptOperationResult<ReceiptDownload>
     suspend fun delete(token: String, key: String, orderId: String): ReceiptOperationResult<Unit>
 }

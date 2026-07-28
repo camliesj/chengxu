@@ -19,11 +19,18 @@ enum class OrderScope {
 }
 
 data class ReceiptMetadata(
-    val key: String = "",
     val name: String = "",
     val contentType: String = "",
     val sizeBytes: Long = 0,
     val uploadedAt: String = "",
+)
+
+data class ReceiptReference(
+    val key: String,
+    val name: String,
+    val contentType: String,
+    val sizeBytes: Long,
+    val uploadedAt: String,
 )
 
 data class OrderSummary(

@@ -8,6 +8,7 @@ import com.chengxu.autoservice.core.orders.OrderCreationLocalStore
 import com.chengxu.autoservice.core.orders.OrderDetailLocalStore
 import com.chengxu.autoservice.core.orders.OrderEditLocalStore
 import com.chengxu.autoservice.core.orders.OrderStatusLocalStore
+import com.chengxu.autoservice.core.orders.OrderSettlementLocalStore
 import com.chengxu.autoservice.core.orders.CustomerVehicleCache
 import com.chengxu.autoservice.core.orders.CustomerVehicleRecord
 import com.chengxu.autoservice.core.orders.InsurancePolicyRecord
@@ -22,7 +23,7 @@ import kotlinx.serialization.json.Json
 class EncryptedOrderStore(
     private val dao: FoundationDao,
     private val cipher: StringCipher,
-) : OrderCreationLocalStore, OrderEditLocalStore, OrderStatusLocalStore, CustomerVehicleCache, InsurancePolicyCache {
+) : OrderCreationLocalStore, OrderEditLocalStore, OrderStatusLocalStore, OrderSettlementLocalStore, CustomerVehicleCache, InsurancePolicyCache {
     override suspend fun upsertDetail(detail: OrderDetail) = dao.upsertDetail(detail.toEntity(cipher))
 
     override suspend fun getDetail(companyId: String, orderId: String): OrderDetail? {

@@ -9,7 +9,7 @@ import com.chengxu.autoservice.core.orders.model.OrderDetail
 import com.chengxu.autoservice.core.orders.model.OrderDetailEnvelope
 import com.chengxu.autoservice.core.orders.model.OrderStatus
 import com.chengxu.autoservice.core.orders.model.OrderSummary
-import com.chengxu.autoservice.core.orders.model.ReceiptMetadata
+import com.chengxu.autoservice.core.orders.model.ReceiptReference
 import com.chengxu.autoservice.core.orders.model.SettlementCommand
 import com.chengxu.autoservice.core.session.AppSession
 import com.chengxu.autoservice.core.session.PermissionSnapshot
@@ -60,7 +60,7 @@ class OrderSettlementRepositoryTest {
         var reverseCalls = 0
         override suspend fun settle(token: String, orderId: String, command: SettlementCommand): OrderCommandResult<OrderDetail> { settleCalls++; return settleResult }
         override suspend fun reverse(token: String, orderId: String, operationId: String, expectedVersion: Long): OrderCommandResult<OrderDetail> { reverseCalls++; return OrderCommandResult.ServerFailure }
-        override suspend fun updateReceipt(token: String, orderId: String, operationId: String, expectedVersion: Long, receipt: ReceiptMetadata?) = OrderCommandResult.ServerFailure
+        override suspend fun updateReceipt(token: String, orderId: String, operationId: String, expectedVersion: Long, receipt: ReceiptReference?) = OrderCommandResult.ServerFailure
     }
     private class FakeReadApi(private val capabilities: Set<BusinessCapability>, private val status: OrderStatus) : OrderReadApi {
         override suspend fun fetchPage(token: String, query: OrderPageQuery) = error("unused")
@@ -70,7 +70,7 @@ class OrderSettlementRepositoryTest {
     private class FakeSummaryStore : OrderCreationSummaryStore { override suspend fun upsert(summary: OrderSummary) = Unit }
     private fun sessionRepository() = object : SessionRepository { override val session: StateFlow<AppSession?> = MutableStateFlow(AppSession("tongda", "Tongda", "manager", "Manager", "token", UserRole.ADMINISTRATOR, PermissionSnapshot.forRole(UserRole.ADMINISTRATOR))) }
     private fun monitor(state: ConnectionState) = object : NetworkMonitor { override val connection: StateFlow<ConnectionState> = MutableStateFlow(state) }
-    private fun command() = SettlementCommand("settle-op", 4, "现金", "2026-07-28", "10:30", "到账", ReceiptMetadata("key", "receipt.png", "image/png", 128, "now"))
+    private fun command() = SettlementCommand("settle-op", 4, "现金", "2026-07-28", "10:30", "到账", ReceiptReference("key", "receipt.png", "image/png", 128, "now"))
     private companion object {
         fun detail(status: OrderStatus = OrderStatus.PENDING_SETTLEMENT) = OrderDetail(OrderSummary("RO-1", "tongda", 4, "2026-07-28", "2026-07-28", "10:00", "A-1", "Customer", "Car", "Type", status.wireValue, 300, "Record", "2027-01-01", "Tomorrow", "now"), "", "", "", "", "", "", "", "", 100, 200, "", "", "", null, false, "", "")
     }

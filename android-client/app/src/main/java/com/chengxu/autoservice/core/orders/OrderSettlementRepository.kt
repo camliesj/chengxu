@@ -7,7 +7,7 @@ import com.chengxu.autoservice.core.orders.model.BusinessCapability
 import com.chengxu.autoservice.core.orders.model.OrderCommandResult
 import com.chengxu.autoservice.core.orders.model.OrderDetail
 import com.chengxu.autoservice.core.orders.model.OrderStatus
-import com.chengxu.autoservice.core.orders.model.ReceiptMetadata
+import com.chengxu.autoservice.core.orders.model.ReceiptReference
 import com.chengxu.autoservice.core.orders.model.SettlementCommand
 import com.chengxu.autoservice.core.session.AppSession
 import com.chengxu.autoservice.core.session.SessionRepository
@@ -17,7 +17,7 @@ interface OrderSettlementLocalStore : OrderDetailLocalStore
 interface OrderSettlementRepository {
     suspend fun settle(orderId: String, command: SettlementCommand): OrderCommandResult<OrderDetail>
     suspend fun reverse(orderId: String, operationId: String, expectedVersion: Long): OrderCommandResult<OrderDetail>
-    suspend fun updateReceipt(orderId: String, operationId: String, expectedVersion: Long, receipt: ReceiptMetadata?): OrderCommandResult<OrderDetail>
+    suspend fun updateReceipt(orderId: String, operationId: String, expectedVersion: Long, receipt: ReceiptReference?): OrderCommandResult<OrderDetail>
 }
 
 class DefaultOrderSettlementRepository(
@@ -37,7 +37,7 @@ class DefaultOrderSettlementRepository(
         api.reverse(session.token, orderId, operationId, expectedVersion)
     }
 
-    override suspend fun updateReceipt(orderId: String, operationId: String, expectedVersion: Long, receipt: ReceiptMetadata?) = mutate(orderId, expectedVersion, setOf(BusinessCapability.MAINTAIN_RECEIPT)) { session ->
+    override suspend fun updateReceipt(orderId: String, operationId: String, expectedVersion: Long, receipt: ReceiptReference?) = mutate(orderId, expectedVersion, setOf(BusinessCapability.MAINTAIN_RECEIPT)) { session ->
         api.updateReceipt(session.token, orderId, operationId, expectedVersion, receipt)
     }
 

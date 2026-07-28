@@ -7,5 +7,5 @@ data class SettlementCommand(
     val settlementDate: String,
     val settlementTime: String,
     val settlementRemark: String,
-    val receipt: ReceiptMetadata,
+    val receipt: ReceiptReference,
 )

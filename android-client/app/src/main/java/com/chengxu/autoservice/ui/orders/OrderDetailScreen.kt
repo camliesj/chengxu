@@ -41,6 +41,10 @@ fun OrderDetailScreen(
     onEdit: () -> Unit = {},
     statusTargets: List<OrderStatus> = emptyList(),
     onChangeStatus: (OrderStatus) -> Unit = {},
+    canSettle: Boolean = false,
+    onSettle: () -> Unit = {},
+    canReverse: Boolean = false,
+    onReverse: () -> Unit = {},
     readOnly: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
@@ -96,6 +100,10 @@ fun OrderDetailScreen(
                 order = order,
                 statusTargets = if (readOnly) emptyList() else statusTargets,
                 onChangeStatus = onChangeStatus,
+                canSettle = canSettle && !readOnly && OrderStatus.fromWire(order.status) == OrderStatus.PENDING_SETTLEMENT,
+                onSettle = onSettle,
+                canReverse = canReverse && OrderStatus.fromWire(order.status) == OrderStatus.SETTLED,
+                onReverse = onReverse,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -107,6 +115,10 @@ private fun OrderDetailContent(
     order: OrderDisplayModel,
     statusTargets: List<OrderStatus>,
     onChangeStatus: (OrderStatus) -> Unit,
+    canSettle: Boolean,
+    onSettle: () -> Unit,
+    canReverse: Boolean,
+    onReverse: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -192,6 +204,13 @@ private fun OrderDetailContent(
                         modifier = Modifier.fillMaxWidth().padding(top = AutoserviceSpacing.Sm).testTag("change-status-${target.name}"),
                     ) { Text("更新为${target.wireValue}") }
                 }
+            }
+        }
+        if (canSettle || canReverse) {
+            AutoserviceCard(modifier = Modifier.fillMaxWidth()) {
+                Text("结算操作", style = MaterialTheme.typography.titleMedium, color = AutoserviceColors.Ink)
+                if (canSettle) BrandButton(onClick = onSettle, modifier = Modifier.fillMaxWidth().padding(top = AutoserviceSpacing.Sm)) { Text("办理结算") }
+                if (canReverse) BrandButton(onClick = onReverse, modifier = Modifier.fillMaxWidth().padding(top = AutoserviceSpacing.Sm), tone = BrandButtonTone.DANGER) { Text("返结算") }
             }
         }
     }

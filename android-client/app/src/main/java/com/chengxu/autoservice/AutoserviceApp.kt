@@ -45,6 +45,8 @@ import com.chengxu.autoservice.core.orders.OrderCreationRepository
 import com.chengxu.autoservice.core.orders.OrderDetailRepository
 import com.chengxu.autoservice.core.orders.OrderEditRepository
 import com.chengxu.autoservice.core.orders.OrderStatusRepository
+import com.chengxu.autoservice.core.orders.OrderSettlementRepository
+import com.chengxu.autoservice.core.orders.OrderReceiptApi
 import com.chengxu.autoservice.core.orders.HistoryOrdersDataSource
 import com.chengxu.autoservice.core.orders.CustomerVehiclesDataSource
 import com.chengxu.autoservice.core.orders.InsurancePoliciesDataSource
@@ -65,6 +67,7 @@ import com.chengxu.autoservice.ui.status.OrderStatusViewModel
 import com.chengxu.autoservice.ui.records.HistoryRecordsViewModel
 import com.chengxu.autoservice.ui.records.CustomerVehiclesViewModel
 import com.chengxu.autoservice.ui.records.InsurancePoliciesViewModel
+import com.chengxu.autoservice.ui.settlement.SettlementViewModel
 import kotlinx.coroutines.launch
 
 @Composable
@@ -79,6 +82,8 @@ fun AutoserviceApp(
     orderDetailRepository: OrderDetailRepository,
     orderEditRepository: OrderEditRepository,
     orderStatusRepository: OrderStatusRepository,
+    orderSettlementRepository: OrderSettlementRepository,
+    orderReceiptApi: OrderReceiptApi,
 ) {
     val authenticationState by authenticationRepository.state.collectAsStateWithLifecycle()
 
@@ -108,6 +113,8 @@ fun AutoserviceApp(
                     orderDetailRepository = orderDetailRepository,
                     orderEditRepository = orderEditRepository,
                     orderStatusRepository = orderStatusRepository,
+                    orderSettlementRepository = orderSettlementRepository,
+                    orderReceiptApi = orderReceiptApi,
                     authenticationState = state,
                 )
             }
@@ -199,6 +206,8 @@ private fun AuthenticatedRoot(
     orderDetailRepository: OrderDetailRepository,
     orderEditRepository: OrderEditRepository,
     orderStatusRepository: OrderStatusRepository,
+    orderSettlementRepository: OrderSettlementRepository,
+    orderReceiptApi: OrderReceiptApi,
     authenticationState: AuthenticationState.Authenticated,
 ) {
     val sessionViewModelStoreOwner = remember(authenticationState.session) {
@@ -243,6 +252,10 @@ private fun AuthenticatedRoot(
         viewModelStoreOwner = sessionViewModelStoreOwner,
         factory = orderStatusViewModelFactory(orderStatusRepository, orderDetailRepository, networkMonitor),
     )
+    val settlementViewModel: SettlementViewModel = viewModel(
+        viewModelStoreOwner = sessionViewModelStoreOwner,
+        factory = settlementViewModelFactory(orderDetailRepository, orderSettlementRepository, orderReceiptApi, authenticationRepository, networkMonitor),
+    )
     val state by workbenchViewModel.uiState.collectAsStateWithLifecycle()
     val ordersState by ordersViewModel.uiState.collectAsStateWithLifecycle()
     val historyRecordsState by historyRecordsViewModel.uiState.collectAsStateWithLifecycle()
@@ -252,6 +265,7 @@ private fun AuthenticatedRoot(
     val detailState by detailViewModel.uiState.collectAsStateWithLifecycle()
     val editState by editOrderViewModel.uiState.collectAsStateWithLifecycle()
     val statusState by orderStatusViewModel.uiState.collectAsStateWithLifecycle()
+    val settlementState by settlementViewModel.uiState.collectAsStateWithLifecycle()
     val navigationState = remember(authenticationState.session) { AppNavigationState() }
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
@@ -282,9 +296,11 @@ private fun AuthenticatedRoot(
                 detailViewModel.open(route.orderId)
                 orderStatusViewModel.restorePending(route.orderId) { detailViewModel.open(route.orderId) }
             }
+            is AppRoute.HistoryOrderDetail -> detailViewModel.open(route.orderId)
             is AppRoute.EditOrder -> editOrderViewModel.open(route.orderId)
             is AppRoute.ChangeOrderStatus -> com.chengxu.autoservice.core.orders.model.OrderStatus.fromWire(route.targetStatus)
                 ?.let { orderStatusViewModel.open(route.orderId, it) }
+            is AppRoute.Settlement -> settlementViewModel.open(route.orderId, route.reversing)
             else -> Unit
         }
     }
@@ -352,6 +368,15 @@ private fun AuthenticatedRoot(
         statusState = statusState,
         onStatusConfirm = orderStatusViewModel::submit,
         onStatusConfirmUnknown = orderStatusViewModel::confirmUnknownResult,
+        settlementState = settlementState,
+        onSettlementReceipt = settlementViewModel::selectReceipt,
+        onSettlementPayment = settlementViewModel::updatePayment,
+        onSettlementDate = settlementViewModel::updateDate,
+        onSettlementTime = settlementViewModel::updateTime,
+        onSettlementRemark = settlementViewModel::updateRemark,
+        onSettlementSubmit = settlementViewModel::submit,
+        onSettlementConfirmReverse = settlementViewModel::confirmReverse,
+        onSettlementDismissReverse = settlementViewModel::dismissReverse,
         profileSession = authenticationState.session,
         onLogout = { scope.launch { authenticationRepository.logout() } },
     )
@@ -410,6 +435,12 @@ private fun orderStatusViewModelFactory(
         if (modelClass.isAssignableFrom(OrderStatusViewModel::class.java)) {
             OrderStatusViewModel(repository, detailRepository, networkMonitor) { java.util.UUID.randomUUID().toString() } as T
         } else throw IllegalArgumentException("Unsupported ViewModel class: ${modelClass.name}")
+}
+
+private fun settlementViewModelFactory(detail: OrderDetailRepository, settlement: OrderSettlementRepository, receipt: OrderReceiptApi, sessions: com.chengxu.autoservice.core.session.SessionRepository, network: NetworkMonitor): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST") override fun <T : ViewModel> create(modelClass: Class<T>): T =
+        if (modelClass.isAssignableFrom(SettlementViewModel::class.java)) SettlementViewModel(detail, settlement, receipt, sessions, network) as T
+        else throw IllegalArgumentException("Unsupported ViewModel class: ${modelClass.name}")
 }
 
 private fun ordersViewModelFactory(

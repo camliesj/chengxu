@@ -24,6 +24,9 @@ import com.chengxu.autoservice.ui.edit.EditOrderField
 import com.chengxu.autoservice.ui.profile.ProfileScreen
 import com.chengxu.autoservice.ui.orders.OrderDetailScreen
 import com.chengxu.autoservice.ui.orders.OrderDetailUiState
+import com.chengxu.autoservice.ui.settlement.SettlementScreen
+import com.chengxu.autoservice.ui.settlement.SettlementUiState
+import com.chengxu.autoservice.ui.settlement.SelectedReceipt
 import com.chengxu.autoservice.ui.orders.OrderStatusFilter
 import com.chengxu.autoservice.ui.orders.OrdersScreen
 import com.chengxu.autoservice.ui.orders.OrdersUiState
@@ -108,6 +111,15 @@ fun AppNavDisplay(
     statusState: OrderStatusUiState = OrderStatusUiState(),
     onStatusConfirm: () -> Unit = {},
     onStatusConfirmUnknown: () -> Unit = {},
+    settlementState: SettlementUiState = SettlementUiState(),
+    onSettlementReceipt: (SelectedReceipt) -> Unit = {},
+    onSettlementPayment: (String) -> Unit = {},
+    onSettlementDate: (String) -> Unit = {},
+    onSettlementTime: (String) -> Unit = {},
+    onSettlementRemark: (String) -> Unit = {},
+    onSettlementSubmit: () -> Unit = {},
+    onSettlementConfirmReverse: () -> Unit = {},
+    onSettlementDismissReverse: () -> Unit = {},
     profileSession: AppSession? = null,
     onLogout: () -> Unit = {},
     isOffline: Boolean = false,
@@ -141,6 +153,7 @@ fun AppNavDisplay(
     val currentDetailState by rememberUpdatedState(detailState)
     val currentEditState by rememberUpdatedState(editState)
     val currentStatusState by rememberUpdatedState(statusState)
+    val currentSettlementState by rememberUpdatedState(settlementState)
     val currentIsOffline by rememberUpdatedState(isOffline)
 
     NavDisplay(
@@ -217,11 +230,17 @@ fun AppNavDisplay(
                         onEdit = { onEditOrder(entry.orderId) },
                         statusTargets = availableStatusTargets(currentDetailState, profileSession),
                         onChangeStatus = { target -> navigationState.push(AppRoute.ChangeOrderStatus(entry.orderId, target.wireValue)) },
+                        canSettle = BusinessCapability.SETTLE_ORDER in currentDetailState.capabilities,
+                        onSettle = { navigationState.push(AppRoute.Settlement(entry.orderId)) },
+                        canReverse = BusinessCapability.REVERSE_SETTLEMENT in currentDetailState.capabilities,
+                        onReverse = { navigationState.push(AppRoute.Settlement(entry.orderId, reversing = true)) },
                     )
                     is AppRoute.HistoryOrderDetail -> OrderDetailScreen(
                         order = historyRecordsState.allOrders.firstOrNull { order -> order.id == entry.orderId },
                         onBack = navigationState::pop,
                         readOnly = true,
+                        canReverse = BusinessCapability.REVERSE_SETTLEMENT in currentDetailState.capabilities,
+                        onReverse = { navigationState.push(AppRoute.Settlement(entry.orderId, reversing = true)) },
                     )
                     is AppRoute.CustomerVehicleDetail -> CustomerVehicleDetailScreen(
                         record = customerVehiclesState.records.firstOrNull { it.id == entry.recordId },
@@ -257,6 +276,18 @@ fun AppNavDisplay(
                         onBack = navigationState::pop,
                         onConfirm = onStatusConfirm,
                         onConfirmUnknown = onStatusConfirmUnknown,
+                    )
+                    is AppRoute.Settlement -> SettlementScreen(
+                        state = currentSettlementState,
+                        onBack = navigationState::pop,
+                        onReceipt = onSettlementReceipt,
+                        onPayment = onSettlementPayment,
+                        onDate = onSettlementDate,
+                        onTime = onSettlementTime,
+                        onRemark = onSettlementRemark,
+                        onSubmit = onSettlementSubmit,
+                        onConfirmReverse = onSettlementConfirmReverse,
+                        onDismissReverse = onSettlementDismissReverse,
                     )
                 }
             }

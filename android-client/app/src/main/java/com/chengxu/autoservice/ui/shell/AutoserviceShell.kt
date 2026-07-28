@@ -43,6 +43,8 @@ import com.chengxu.autoservice.ui.records.HistoryRecordsUiState
 import com.chengxu.autoservice.ui.records.HistoryTimeFilter
 import com.chengxu.autoservice.ui.records.CustomerVehiclesUiState
 import com.chengxu.autoservice.ui.records.InsurancePoliciesUiState
+import com.chengxu.autoservice.ui.settlement.SettlementUiState
+import com.chengxu.autoservice.ui.settlement.SelectedReceipt
 import com.chengxu.autoservice.core.orders.InsurancePolicyRecord
 
 @Composable
@@ -101,6 +103,15 @@ fun AutoserviceShell(
     statusState: OrderStatusUiState = OrderStatusUiState(),
     onStatusConfirm: () -> Unit = {},
     onStatusConfirmUnknown: () -> Unit = {},
+    settlementState: SettlementUiState = SettlementUiState(),
+    onSettlementReceipt: (SelectedReceipt) -> Unit = {},
+    onSettlementPayment: (String) -> Unit = {},
+    onSettlementDate: (String) -> Unit = {},
+    onSettlementTime: (String) -> Unit = {},
+    onSettlementRemark: (String) -> Unit = {},
+    onSettlementSubmit: () -> Unit = {},
+    onSettlementConfirmReverse: () -> Unit = {},
+    onSettlementDismissReverse: () -> Unit = {},
     profileSession: AppSession? = null,
     onLogout: () -> Unit = {},
 ) {
@@ -176,6 +187,15 @@ fun AutoserviceShell(
             statusState = statusState,
             onStatusConfirm = onStatusConfirm,
             onStatusConfirmUnknown = onStatusConfirmUnknown,
+            settlementState = settlementState,
+            onSettlementReceipt = onSettlementReceipt,
+            onSettlementPayment = onSettlementPayment,
+            onSettlementDate = onSettlementDate,
+            onSettlementTime = onSettlementTime,
+            onSettlementRemark = onSettlementRemark,
+            onSettlementSubmit = onSettlementSubmit,
+            onSettlementConfirmReverse = onSettlementConfirmReverse,
+            onSettlementDismissReverse = onSettlementDismissReverse,
             profileSession = profileSession,
             onLogout = onLogout,
             isOffline = isOffline,

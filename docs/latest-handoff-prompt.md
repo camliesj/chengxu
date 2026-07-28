@@ -841,7 +841,15 @@ cd E:\codex\chengxu\android-client
 
 ### Android 结算包 Task 3：Android 命令 HTTP 边界（进行中）
 
-### Android 结算包 Task 5：日期选择与详情标题动作（已实现，待提交）
+### Android 结算包 Task 4：结算、返结算与相册到账回执 UI（已完成）
+
+- Android 已接入 `Settlement` 路由与会话级 ViewModel：从当前工单详情进入结算，仅在管理员具备 `SETTLE_ORDER + MAINTAIN_RECEIPT` 且工单为“待结算”时可提交；历史详情仅在具备 `REVERSE_SETTLEMENT` 且工单为“已结算”时可进入返结算确认。
+- 到账回执只使用 Android 系统 `PickVisualMedia` 相册图片选择器，不申请相机权限；本地先校验 JPEG/PNG/WebP、非空且不超过 12 MiB，显示缩略预览，上传成功后携带短暂 `ReceiptReference` 进入版本化结算命令。
+- 回执 COS key 不写入 `ReceiptMetadata` 或 Room 加密缓存，现有安全回归测试已锁定；客户端仅用上传响应中的短暂 key 完成本次命令。
+- 本次无 D1/Room migration、未部署 Pages/D1、未启动模拟器或 connected tests。完整验证：Node `npm.cmd test` 192/192、`npm.cmd run build`、Android `:app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:lintDebug :app:assembleDebug` 全部 `BUILD SUCCESSFUL`。
+- 已归档真实手机可安装 Debug APK：`dist/releases/android/autoservice-android-debug-0.1.0.apk`，20,073,864 bytes，SHA-256 `7B9901E36349F9B6572BC708E0EDDA071A4261D5F4B8D51945186CC261825BF0`；Build Tools 35.0.0 `apksigner` 确认 v2 签名有效。
+
+### Android 结算包 Task 5：日期选择与详情标题动作（已完成）
 
 - `BrandDateField` 已加入设计系统：ISO 日期有效时以该日期打开系统 `DatePickerDialog`，空值或非法值回退当天；输入框只读，日历图标和整块控件均可打开选择器。
 - 新增与编辑工单的保险到期日，以及保险档案编辑的到期日，均已从手工文本输入切换为日期选择。结算表单尚未接入，待 Task 4 UI 创建后使用同一组件。

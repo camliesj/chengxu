@@ -313,7 +313,7 @@ Read one image through `ContentResolver`, reject unsupported type or size before
 
 Replace summary-only detail rows with `OrderDetail` rows for payment, settlement, labor/material and receipt metadata. For upload/replacement call `updateReceipt` after the binary upload; for delete call `updateReceipt(..., null)` before binary delete. Show upload/delete/view controls only when the server capability permits; surface server errors inline; do not add print or camera controls.
 
-- [ ] **Step 6: Run focused GREEN checks**
+- [x] **Step 6: Run focused GREEN checks**
 
 Run: `cd android-client; .\gradlew.bat :app:testDebugUnitTest --tests "*SettlementViewModelTest"`; then `.\gradlew.bat :app:compileDebugAndroidTestKotlin`
 

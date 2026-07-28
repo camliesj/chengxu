@@ -1,6 +1,6 @@
 package com.chengxu.autoservice.core.orders
 
-import com.chengxu.autoservice.core.orders.model.ReceiptMetadata
+import com.chengxu.autoservice.core.orders.model.ReceiptReference
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -101,7 +101,7 @@ class HttpUrlConnectionOrderReceiptApi(
 ) : OrderReceiptApi {
     private val receiptsUrl = "${apiOrigin.trimEnd('/')}/api/receipts"
 
-    override suspend fun upload(token: String, orderId: String, upload: ReceiptUpload): ReceiptOperationResult<ReceiptMetadata> {
+    override suspend fun upload(token: String, orderId: String, upload: ReceiptUpload): ReceiptOperationResult<ReceiptReference> {
         val invalid = validateUpload(orderId, upload)
         if (invalid != null) return invalid
         return safely {
@@ -161,12 +161,12 @@ class HttpUrlConnectionOrderReceiptApi(
         else -> ReceiptOperationResult.MalformedResponse
     }
 
-    private fun parseReceipt(body: String): ReceiptMetadata? = runCatching {
+    private fun parseReceipt(body: String): ReceiptReference? = runCatching {
         val receipt = json.parseToJsonElement(body).jsonObject["receipt"]?.jsonObject ?: return null
         val key = receipt.string("key").takeIf(String::isNotBlank) ?: return null
         val type = receipt.string("type").takeIf(String::isNotBlank) ?: return null
         val size = receipt["size"]?.jsonPrimitive?.longOrNull?.takeIf { it >= 0 } ?: return null
-        ReceiptMetadata(key, receipt.string("name"), type, size, receipt.string("uploadedAt"))
+        ReceiptReference(key, receipt.string("name"), type, size, receipt.string("uploadedAt"))
     }.getOrNull()
 
     private fun errorCode(body: String): String = runCatching { json.parseToJsonElement(body).jsonObject.string("error") }.getOrDefault("")
