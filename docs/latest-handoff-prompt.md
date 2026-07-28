@@ -842,3 +842,5 @@ cd E:\codex\chengxu\android-client
 
 - 新增 Android `SettlementCommand`、`OrderSettlementApi` 与 `HttpUrlConnectionOrderSettlementApi`。结算、返结算、回执元数据更新分别固定为 `/settlement`、`/reverse-settlement`、`/receipt`，复用现有 Bearer、路径编码、详情解析、409 冲突、操作处理中未知结果和 IO 未知结果约定。
 - `ReceiptMetadata` 新增 key 字段，服务端仅在具备 `MAINTAIN_RECEIPT` 的管理员完整详情返回它；列表仍不含 key。Android 聚焦 JVM 测试通过，未启动模拟器。下一步实现仓储门禁和系统相册图片传输。
+
+- 已补齐 `DefaultOrderSettlementRepository`：在线、管理员角色、同企业详情、当前版本及所需能力均在 HTTP 写入前验证；结算需 `SETTLE_ORDER + MAINTAIN_RECEIPT`，返结算需 `REVERSE_SETTLEMENT`，回执元数据需 `MAINTAIN_RECEIPT`。成功与 409 最新详情写回加密详情/摘要缓存，401 失效会话，404 清理详情缓存。聚焦 JVM 测试通过。
