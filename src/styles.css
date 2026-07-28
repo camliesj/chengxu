@@ -203,6 +203,68 @@ button {
   color: var(--blue-deep);
 }
 
+.android-install-qr {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(100%, 310px);
+  margin: 14px auto 0;
+  padding: 10px;
+  border: 1px solid #cce5f5;
+  border-radius: 12px;
+  background: #f5fbff;
+  color: var(--text);
+  text-align: left;
+}
+
+.android-install-qr-code {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 5px;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.android-install-qr-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.android-install-qr-copy strong {
+  color: #1d242b;
+  font-size: 13px;
+}
+
+.android-install-qr-copy span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.android-install-qr button {
+  justify-self: start;
+  border: 0;
+  padding: 2px 0;
+  color: var(--blue);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.android-install-qr.pending,
+.android-install-qr.unavailable {
+  justify-content: center;
+  width: min(100%, 310px);
+  min-height: 40px;
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
 .client-download-backdrop {
   position: fixed;
   z-index: 3000;
@@ -5463,6 +5525,7 @@ button:disabled,
   .client-download-dialog { width: 100%; min-height: 100vh; border: 0; border-radius: 0; }
   .client-download-header { padding: 22px 18px 18px; }
   .client-download-platforms { grid-template-columns: 1fr; padding: 18px; }
+  .android-install-qr { width: 100%; }
   .client-download-status { margin: 16px 18px 0; }
   .settings-launcher-card { grid-template-columns: 42px minmax(0, 1fr) 16px; }
   .settings-launcher-card em { display: none; }
