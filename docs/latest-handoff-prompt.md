@@ -889,3 +889,8 @@ cd E:\codex\chengxu\android-client
 - 用户已确认规格：`docs/superpowers/specs/2026-07-28-unified-archives-and-auto-provisioning-design.md`。网页与 Android 的工单创建将共用服务端自动建档：同一幂等创建命令的 D1 batch 写入工单、客户车辆、可选保险档案、operation 与审计；不新增 D1/Room migration。
 - Android 档案入口将明确提供维修历史、客户车辆、保险档案三个可滚动分区及数量；客户车辆补齐网页端已有的查询、详情、新增、编辑，`customers` 权限可维护；保险继续使用 `insurance` 权限和现有版本冲突合同。创建成功后 Android 刷新两个加密缓存，网页创建成功后刷新档案，避免旧的客户端二次同步。
 - 未经新的明确授权，不部署本功能到远端 D1 或 Pages；依旧不启动 Android 模拟器，只运行 JVM、Android 测试代码编译、lint、APK 构建及签名校验。
+
+### 统一档案与工单自动建档实施计划（已确认，待内联执行）
+
+- 计划文件：`docs/superpowers/plans/2026-07-28-unified-archives-and-auto-provisioning.md`。已按 TDD 切分为五项可独立验证任务：服务端同批自动建档、网页创建后刷新去重、Android 车辆维护 API/权限、Android 档案导航与 UI、创建后缓存刷新及全量无设备门禁。
+- 已完成计划自检：规格中的所有要求均有对应任务；不含占位项；服务端不新增 D1/Room migration，不经授权部署 D1/Pages。用户要求当前会话内联执行，禁止使用子代理。
