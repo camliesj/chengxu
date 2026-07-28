@@ -908,3 +908,10 @@ cd E:\codex\chengxu\android-client
 - 同步修正 Android 测试 Fake 以实现车辆保存接口。当前没有 D1 或 Room migration，也未部署 Pages/D1；仍不启动模拟器或 connected tests。
 - 无设备门禁已完成：Node `npm.cmd test` 194/194、`npm.cmd run build`、Android `:app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:lintDebug :app:assembleDebug` 均为 `BUILD SUCCESSFUL`；未启动模拟器或 connected tests。
 - 已归档 API 26+ 真机可安装 Debug APK：`dist/releases/android/autoservice-android-debug-0.1.0.apk`（20,166,242 bytes，SHA-256 `11340F9887684462DEFA9D861353275DC465367A1EA58A5FEA584A248FF9BC5F`）；Build Tools 35.0.0 `apksigner verify --verbose` 确认 v2 签名有效。
+
+### 统一档案自动建档生产发布（已完成，待有权限真机验收）
+
+- 用户已明确授权。远端 `chengxu-db` 已核验 `No migrations to apply`；本功能沿用现有 `repair_orders`、`customer_vehicles`、`insurance_policies`、`order_operations`，没有新的 D1 migration 或任何业务数据写入。
+- 已重新构建并直传 Pages 生产 `main` 分支，部署 URL：`https://ac1ef058.chengxu.pages.dev`，正式域名：`https://chengxu.pages.dev`。Functions bundle 已随部署发布。
+- 生产只读烟测：未认证 `GET /api/customer-vehicles`、`GET /api/insurance-policies` 均返回 `401`，确认路由和认证门禁生效，未探测或改变真实业务记录。
+- 发布过程中先清空 `dist` 的 APK 归档以避免将安装包上传到 Pages；发布后已从已验证构建产物恢复 APK，大小、SHA-256 与此前记录一致，v2 签名再次校验有效。下一步由两企业有 `customers`/`insurance` 权限的真实账号在网页与 Android 真机验收工单自动建档、车辆新增编辑和保险档案结果。
