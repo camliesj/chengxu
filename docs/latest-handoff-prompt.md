@@ -877,3 +877,9 @@ cd E:\codex\chengxu\android-client
 - 修复：编辑标题栏始终提供“返回详情”动作；离开一个顶层编辑路由后，该路由会被移除但下方工单详情保留，回到原标签直接进入详情。编辑草稿仍由现有自动保存机制处理。
 - TDD：新增导航回归先失败（切换标签后仍为 `EditOrder`），修复后 `AppNavigationStateTest` 通过；新增 Compose 测试源码锁定正常编辑态的返回动作。未改 D1/Room schema，未启动模拟器或 connected tests。
 - 无设备验证：`:app:testDebugUnitTest`、`:app:compileDebugAndroidTestKotlin`、`:app:lintDebug`、`:app:assembleDebug` 均为 `BUILD SUCCESSFUL`。已归档 Debug APK（20,160,845 bytes，SHA-256 `C3D9E33E5733C03599112B467D433FDF68D1EC9AE7EE9E02A8664D675CCA5BF0`，`apksigner` v2=true）。
+
+### 生产结算能力启用与 Pages 发布（已完成，待有权限真机验收）
+
+- 用户明确授权后，已为 `tongda` 与 `xinqiheng` 同时启用 `SETTLE_ORDER`、`MAINTAIN_RECEIPT`、`REVERSE_SETTLEMENT`。写入前核对两家企业账户存在、所有远端 migration 已应用，并导出忽略路径备份 `tmp/d1-backups/pre-settlement-capabilities-2026-07-28.sql`；写入后只读复核 6/6 项能力均为 `enabled=1`。
+- 已重新构建并发布 Pages 生产主分支，部署 URL：`https://92c376a1.chengxu.pages.dev`，正式域名：`https://chengxu.pages.dev`。未认证 `POST /api/orders/route-probe/settlement`、`/reverse-settlement`、`/receipt` 均返回 `401 {"error":"UNAUTHORIZED"}`，确认三条路由注册且认证门禁生效，烟测未改动真实业务数据。
+- 真机验收前提：管理员登录后先将工单从“在修中”推进至“已完工”再至“待结算”；此时 Android 显示“办理结算”，进入后可从系统相册选择到账回执截图。已结算工单显示返结算；具备回执的已结算工单可管理回执。
