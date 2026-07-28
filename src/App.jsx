@@ -1200,18 +1200,11 @@ function App() {
 
   function clearOrderReceipt(order) {
     if (!order?.settlementReceiptKey) return Promise.resolve(order);
-    const eventId = crypto.randomUUID();
-    return deleteSettlementReceipt(order.settlementReceiptKey, order.id, accessSession, { eventId })
-      .then(async () => {
-        const nextOrder = {
-          ...order,
-          settlementReceiptKey: '',
-          settlementReceiptName: '',
-          settlementReceiptType: '',
-          settlementReceiptSize: 0,
-          settlementReceiptUploadedAt: '',
-        };
-        return upsertOrder(nextOrder, { eventId });
+    const receiptKey = order.settlementReceiptKey;
+    return saveReceiptMetadata(order, null)
+      .then(async (savedOrder) => {
+        await deleteSettlementReceipt(receiptKey, order.id, accessSession, { eventId: crypto.randomUUID() });
+        return savedOrder;
       });
   }
 
@@ -1376,6 +1369,32 @@ function App() {
       operationId: crypto.randomUUID(), expectedVersion: order.version,
     }, accessSession);
     return applySettlementResult(result);
+  }
+
+  async function saveReceiptMetadata(order, receipt) {
+    setOrdersCloudState({ loading: true, error: '' });
+    const result = await updateOrderReceiptCommand(order.id, {
+      operationId: crypto.randomUUID(),
+      expectedVersion: order.version,
+      receipt: receipt && {
+        key: receipt.key,
+        name: receipt.name,
+        contentType: receipt.type || receipt.contentType,
+        sizeBytes: receipt.size ?? receipt.sizeBytes,
+        uploadedAt: receipt.uploadedAt,
+      },
+    }, accessSession);
+    return applySettlementResult(result);
+  }
+
+  async function uploadAndSaveReceipt(file, order) {
+    const receipt = await uploadSettlementReceipt(file, order.id, accessSession);
+    try {
+      return await saveReceiptMetadata(order, receipt);
+    } catch (error) {
+      await deleteSettlementReceipt(receipt.key, order.id, accessSession, { eventId: crypto.randomUUID() }).catch(() => {});
+      throw error;
+    }
   }
 
   async function confirmOrderStatusOperation(operationId) {
@@ -1799,6 +1818,7 @@ function App() {
               orderCapabilityState,
               (file, orderId, options) => uploadSettlementReceipt(file, orderId, accessSession, options),
             )}
+            onUploadAndSaveReceipt={canMaintainReceipt ? uploadAndSaveReceipt : null}
             onViewReceipt={(key) => fetchSettlementReceiptBlob(key, accessSession)}
             onDeleteReceipt={clearOrderReceipt}
             onVoidOrder={voidOrder}
@@ -1822,6 +1842,7 @@ function App() {
             onSaveArchivedOrder={saveOrder}
             onReverseSettlement={reverseSettlement}
             onUploadReceipt={(file, orderId, options) => uploadSettlementReceipt(file, orderId, accessSession, options)}
+            onUploadAndSaveReceipt={canMaintainReceipt ? uploadAndSaveReceipt : null}
             onViewReceipt={(key) => fetchSettlementReceiptBlob(key, accessSession)}
             onDeleteReceipt={clearOrderReceipt}
             cloudReadOnly={cloudReadOnly}
@@ -2582,6 +2603,7 @@ function HistoryQueryPage({
   onSaveArchivedOrder,
   onReverseSettlement,
   onUploadReceipt,
+  onUploadAndSaveReceipt,
   onViewReceipt,
   onDeleteReceipt,
   cloudReadOnly = false,
@@ -2742,18 +2764,7 @@ function HistoryQueryPage({
           onEdit={canEditOrder ? () => openEdit(detailOrder) : null}
           onPrint={() => printOrder(detailOrder)}
           onReverseSettle={canReverseSettlement ? () => requestReverse(detailOrder) : null}
-          onUploadReceipt={canMaintainReceipt ? (file, order) => onUploadReceipt(file, order.id).then((receipt) => {
-            const nextOrder = {
-              ...order,
-              settlementReceiptKey: receipt.key,
-              settlementReceiptName: receipt.name,
-              settlementReceiptType: receipt.type,
-              settlementReceiptSize: receipt.size,
-              settlementReceiptUploadedAt: receipt.uploadedAt,
-            };
-            onSaveArchivedOrder(nextOrder, { mode: 'archive_edit', eventId: crypto.randomUUID() });
-            return nextOrder;
-          }) : null}
+          onUploadReceipt={canMaintainReceipt && onUploadAndSaveReceipt ? onUploadAndSaveReceipt : null}
           onViewReceipt={onViewReceipt}
           onDeleteReceipt={canMaintainReceipt ? onDeleteReceipt : null}
           canManageReceipt={canMaintainReceipt}
@@ -2816,6 +2827,7 @@ function RepairReception({
   staffOptions,
   onBatchExport,
   onUploadReceipt,
+  onUploadAndSaveReceipt,
   onViewReceipt,
   onDeleteReceipt,
   onVoidOrder,
@@ -3138,20 +3150,7 @@ function RepairReception({
           onStatusChange={(status) => requestStatusChange(modalOrder, status)}
           onSettle={canSettleOrder ? () => requestSettlement(modalOrder) : null}
           onReverseSettle={canReverseSettlement ? () => requestReverseSettlement(modalOrder) : null}
-          onUploadReceipt={canMaintainReceipt ? (file, order) => onUploadReceipt(file, order.id).then((receipt) => {
-            const nextOrder = {
-              ...order,
-              settlementReceiptKey: receipt.key,
-              settlementReceiptName: receipt.name,
-              settlementReceiptType: receipt.type,
-              settlementReceiptSize: receipt.size,
-              settlementReceiptUploadedAt: receipt.uploadedAt,
-            };
-            onSaveOrder(nextOrder);
-            setWorkOrderModal(openRepairModal('detail', nextOrder.id));
-            setDraft(createOrderDraft(nextOrder));
-            return nextOrder;
-          }) : null}
+          onUploadReceipt={canMaintainReceipt && onUploadAndSaveReceipt ? onUploadAndSaveReceipt : null}
           onViewReceipt={onViewReceipt}
           onDeleteReceipt={canMaintainReceipt ? (order) => onDeleteReceipt(order).then((nextOrder) => {
             setWorkOrderModal(openRepairModal('detail', nextOrder.id));

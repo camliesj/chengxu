@@ -122,7 +122,7 @@ git push origin codex/android-mobile-ui-atlas
 - Consumes: Task 1 routes and receipt object returned by `POST /api/receipts`.
 - Produces: `settleCloudOrder(order, draft)`, `reverseCloudSettlement(order)` and `updateCloudOrderReceipt(order, receipt)` that update local state only from returned `OrderDetail`.
 
-- [ ] **Step 1: Write a failing web adapter test**
+- [x] **Step 1: Write a failing web adapter test**
 
 ```js
 test('web settlement posts the versioned command after receipt upload and uses the returned order', async () => {
@@ -133,13 +133,13 @@ test('web settlement posts the versioned command after receipt upload and uses t
 });
 ```
 
-- [ ] **Step 2: Run the new test to verify RED**
+- [x] **Step 2: Run the new test to verify RED**
 
 Run: `node --test test/orderStatusContract.test.mjs`
 
 Expected: FAIL because the web flow still sends a legacy whole-order upsert.
 
-- [ ] **Step 3: Replace only settlement and reverse persistence**
+- [x] **Step 3: Replace only settlement and reverse persistence**
 
 ```js
 const response = await apiFetch(`/api/orders/${encodeURIComponent(order.id)}/settlement`, {
@@ -153,7 +153,7 @@ setOrders((rows) => replaceOrder(rows, saved.order));
 Keep the existing `SettlementDialog` fields and receipt-before-settlement behavior. Reverse calls `/reverse-settlement` with a fresh operation ID and current version. Use the returned server record for UI state; show the existing cloud error path for 401/403/409/unknown result.
 For an existing receipt upload/replacement, upload first and then post the returned metadata to `/api/orders/:id/receipt`. For delete, post `receipt: null`, replace local state from that response, then call `DELETE /api/receipts`; show a retriable binary-cleanup warning if the latter fails.
 
-- [ ] **Step 4: Run focused and full web verification**
+- [x] **Step 4: Run focused and full web verification**
 
 Run: `node --test test/orderStatusContract.test.mjs test/orderEditContract.test.mjs`; then `npm.cmd run build`
 

@@ -44,6 +44,9 @@ test('web reception and history route settlement mutations through versioned cal
   assert.match(source, /onReverseSettlement=\{reverseSettlement\}/u);
   assert.match(source, /await settleOrderCommand\(order\.id,/u);
   assert.match(source, /await reverseSettlementCommand\(order\.id,/u);
+  assert.match(source, /await updateOrderReceiptCommand\(order\.id,/u);
+  assert.match(source, /return saveReceiptMetadata\(order, null\)/u);
+  assert.match(source, /await deleteSettlementReceipt\(receiptKey, order\.id/u);
 });
 
 function response(status, body) {
