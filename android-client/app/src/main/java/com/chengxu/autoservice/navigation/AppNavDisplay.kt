@@ -56,6 +56,8 @@ import com.chengxu.autoservice.core.orders.model.allowedOrderTransition
 import com.chengxu.autoservice.ui.workbench.WorkbenchAction
 import com.chengxu.autoservice.ui.workbench.WorkbenchScreen
 import com.chengxu.autoservice.ui.workbench.WorkbenchUiState
+import com.chengxu.autoservice.ui.update.UpdateState
+import java.io.File
 
 @Composable
 fun AppNavDisplay(
@@ -133,6 +135,11 @@ fun AppNavDisplay(
     profileSession: AppSession? = null,
     onLogout: () -> Unit = {},
     isOffline: Boolean = false,
+    profileUpdateState: UpdateState = UpdateState(),
+    onProfileCheckUpdate: () -> Unit = {},
+    onProfileDownloadUpdate: () -> Unit = {},
+    onProfileInstallUpdate: (File) -> Unit = {},
+    onProfileDismissUpdate: () -> Unit = {},
 ) {
     // NavDisplay retains NavEntry content between recompositions. Keep the mutable
     // order inputs in updated state so a filter click redraws the active entry.
@@ -170,6 +177,11 @@ fun AppNavDisplay(
     val currentStatusState by rememberUpdatedState(statusState)
     val currentSettlementState by rememberUpdatedState(settlementState)
     val currentIsOffline by rememberUpdatedState(isOffline)
+    val currentProfileUpdateState by rememberUpdatedState(profileUpdateState)
+    val currentProfileCheckUpdate by rememberUpdatedState(onProfileCheckUpdate)
+    val currentProfileDownloadUpdate by rememberUpdatedState(onProfileDownloadUpdate)
+    val currentProfileInstallUpdate by rememberUpdatedState(onProfileInstallUpdate)
+    val currentProfileDismissUpdate by rememberUpdatedState(onProfileDismissUpdate)
 
     NavDisplay(
         backStack = navigationState.currentStack,
@@ -240,7 +252,16 @@ fun AppNavDisplay(
                         onInsuranceSelected = { navigationState.push(AppRoute.InsurancePolicyDetail(it)) },
                     )
                     AppRoute.Profile -> profileSession?.let {
-                        ProfileScreen(session = it, offline = isOffline, onLogout = onLogout)
+                        ProfileScreen(
+                            session = it,
+                            offline = currentIsOffline,
+                            onLogout = onLogout,
+                            updateState = currentProfileUpdateState,
+                            onCheckUpdate = currentProfileCheckUpdate,
+                            onDownloadUpdate = currentProfileDownloadUpdate,
+                            onInstallUpdate = currentProfileInstallUpdate,
+                            onDismissUpdate = currentProfileDismissUpdate,
+                        )
                     } ?: ShellPlaceholder(title = RootTab.PROFILE.label)
                     is AppRoute.OrderDetail -> OrderDetailScreen(
                         order = currentOrdersState.allOrders.firstOrNull { order -> order.id == entry.orderId },

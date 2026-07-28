@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -40,6 +42,10 @@ import com.chengxu.autoservice.core.designsystem.StatusChip
 import com.chengxu.autoservice.core.designsystem.StatusTone
 import com.chengxu.autoservice.core.model.UserRole
 import com.chengxu.autoservice.core.session.AppSession
+import com.chengxu.autoservice.BuildConfig
+import com.chengxu.autoservice.ui.update.UpdatePhase
+import com.chengxu.autoservice.ui.update.UpdateState
+import java.io.File
 
 @Composable
 fun ProfileScreen(
@@ -47,6 +53,11 @@ fun ProfileScreen(
     onLogout: () -> Unit,
     modifier: Modifier = Modifier,
     offline: Boolean = false,
+    updateState: UpdateState = UpdateState(),
+    onCheckUpdate: () -> Unit = {},
+    onDownloadUpdate: () -> Unit = {},
+    onInstallUpdate: (File) -> Unit = {},
+    onDismissUpdate: () -> Unit = {},
 ) {
     var showLogoutDialog by rememberSaveable { mutableStateOf(false) }
     val logoutFocusRequester = remember { FocusRequester() }
@@ -128,6 +139,51 @@ fun ProfileScreen(
             value = "登录状态已加密保存在本机",
             supportingText = "退出后将清除本机登录状态",
         )
+        AutoserviceCard(modifier = Modifier.fillMaxWidth()) {
+            Column(verticalArrangement = Arrangement.spacedBy(AutoserviceSpacing.Sm)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(AutoserviceSpacing.Md),
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = AutoserviceColors.SurfaceSoft,
+                        contentColor = AutoserviceColors.Action,
+                    ) {
+                        BrandIcon(
+                            resource = BrandIconResource.Refresh,
+                            contentDescription = null,
+                            modifier = Modifier.padding(10.dp).size(20.dp),
+                            tint = AutoserviceColors.Action,
+                        )
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("版本与更新", style = MaterialTheme.typography.labelMedium, color = AutoserviceColors.InkMuted)
+                        Text("当前版本 ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.titleMedium, color = AutoserviceColors.Ink)
+                        updateState.message?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = AutoserviceColors.InkMuted) }
+                    }
+                }
+                when (updateState.phase) {
+                    UpdatePhase.DOWNLOADING -> {
+                        LinearProgressIndicator(
+                            progress = { updateState.totalBytes?.takeIf { it > 0 }?.let { updateState.downloadedBytes.toFloat() / it } ?: 0f },
+                            modifier = Modifier.fillMaxWidth(),
+                            color = AutoserviceColors.Action,
+                        )
+                        Text("正在下载更新", style = MaterialTheme.typography.bodySmall, color = AutoserviceColors.InkMuted)
+                    }
+                    UpdatePhase.READY_TO_INSTALL -> BrandButton(onClick = { updateState.downloadedFile?.let(onInstallUpdate) }, modifier = Modifier.fillMaxWidth(), icon = BrandIconResource.Check) {
+                        Text("安装更新")
+                    }
+                    UpdatePhase.CHECKING -> BrandButton(onClick = {}, modifier = Modifier.fillMaxWidth(), enabled = false, icon = BrandIconResource.Refresh) {
+                        Text("正在检查")
+                    }
+                    else -> BrandButton(onClick = onCheckUpdate, modifier = Modifier.fillMaxWidth(), icon = BrandIconResource.Refresh) {
+                        Text(if (updateState.phase == UpdatePhase.UP_TO_DATE) "再次检查" else "检查更新")
+                    }
+                }
+            }
+        }
 
         Spacer(modifier = Modifier.height(AutoserviceSpacing.Xs))
         BrandButton(
@@ -154,6 +210,23 @@ fun ProfileScreen(
                 showLogoutDialog = false
                 onLogout()
             },
+        )
+    }
+
+    if (updateState.phase == UpdatePhase.AVAILABLE) {
+        val release = updateState.release
+        AlertDialog(
+            onDismissRequest = onDismissUpdate,
+            title = { Text("发现新版本 ${release?.version.orEmpty()}") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(AutoserviceSpacing.Xs)) {
+                    release?.publishedAt?.takeIf { it.isNotBlank() }?.let { Text("发布时间：$it") }
+                    release?.size?.takeIf { it.isNotBlank() }?.let { Text("安装包：$it") }
+                    release?.notes?.takeIf { it.isNotBlank() }?.let { Text(it) }
+                }
+            },
+            confirmButton = { BrandButton(onClick = onDownloadUpdate, icon = BrandIconResource.Refresh) { Text("立即下载") } },
+            dismissButton = { BrandButton(onClick = onDismissUpdate, tone = BrandButtonTone.SECONDARY) { Text("暂不更新") } },
         )
     }
 }

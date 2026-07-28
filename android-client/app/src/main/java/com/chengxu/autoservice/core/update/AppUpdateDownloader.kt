@@ -24,6 +24,13 @@ sealed interface AppUpdateDownloadResult {
     data class Failed(val message: String) : AppUpdateDownloadResult
 }
 
+interface AppUpdateDownloader {
+    suspend fun download(
+        url: String,
+        onProgress: (downloaded: Long, total: Long?) -> Unit = { _, _ -> },
+    ): AppUpdateDownloadResult
+}
+
 class UrlConnectionAppUpdateDownloadTransport : AppUpdateDownloadTransport {
     override suspend fun get(url: String): AppUpdateDownloadResponse = withContext(Dispatchers.IO) {
         val connection = (URL(url).openConnection() as HttpURLConnection).apply {
@@ -60,10 +67,10 @@ class UrlConnectionAppUpdateDownloadTransport : AppUpdateDownloadTransport {
 class HttpUrlConnectionAppUpdateDownloader(
     private val directory: File,
     private val transport: AppUpdateDownloadTransport = UrlConnectionAppUpdateDownloadTransport(),
-) {
-    suspend fun download(
+) : AppUpdateDownloader {
+    override suspend fun download(
         url: String,
-        onProgress: (downloaded: Long, total: Long?) -> Unit = { _, _ -> },
+        onProgress: (downloaded: Long, total: Long?) -> Unit,
     ): AppUpdateDownloadResult = try {
         if (!isHttps(url)) return AppUpdateDownloadResult.Failed("更新地址不安全")
         val response = transport.get(url)

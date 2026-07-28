@@ -47,6 +47,8 @@ import com.chengxu.autoservice.ui.settlement.SettlementUiState
 import com.chengxu.autoservice.ui.settlement.SelectedReceipt
 import com.chengxu.autoservice.core.orders.InsurancePolicyRecord
 import com.chengxu.autoservice.core.orders.CustomerVehicleRecord
+import com.chengxu.autoservice.ui.update.UpdateState
+import java.io.File
 
 @Composable
 fun AutoserviceShell(
@@ -124,6 +126,11 @@ fun AutoserviceShell(
     onSettlementDismissDelete: () -> Unit = {},
     profileSession: AppSession? = null,
     onLogout: () -> Unit = {},
+    profileUpdateState: UpdateState = UpdateState(),
+    onProfileCheckUpdate: () -> Unit = {},
+    onProfileDownloadUpdate: () -> Unit = {},
+    onProfileInstallUpdate: (File) -> Unit = {},
+    onProfileDismissUpdate: () -> Unit = {},
 ) {
     val isOffline = connection == ConnectionState.Offline
     val routeWorkbenchAction: (WorkbenchAction) -> Unit = { action ->
@@ -218,6 +225,11 @@ fun AutoserviceShell(
             profileSession = profileSession,
             onLogout = onLogout,
             isOffline = isOffline,
+            profileUpdateState = profileUpdateState,
+            onProfileCheckUpdate = onProfileCheckUpdate,
+            onProfileDownloadUpdate = onProfileDownloadUpdate,
+            onProfileInstallUpdate = onProfileInstallUpdate,
+            onProfileDismissUpdate = onProfileDismissUpdate,
         )
         Surface(
             color = AutoserviceColors.Surface,

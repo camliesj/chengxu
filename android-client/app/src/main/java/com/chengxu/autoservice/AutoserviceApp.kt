@@ -21,6 +21,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.Lifecycle
@@ -69,6 +70,12 @@ import com.chengxu.autoservice.ui.records.HistoryRecordsViewModel
 import com.chengxu.autoservice.ui.records.CustomerVehiclesViewModel
 import com.chengxu.autoservice.ui.records.InsurancePoliciesViewModel
 import com.chengxu.autoservice.ui.settlement.SettlementViewModel
+import com.chengxu.autoservice.core.update.AndroidAppUpdateInstaller
+import com.chengxu.autoservice.core.update.AppUpdateInstallRequest
+import com.chengxu.autoservice.core.update.HttpUrlConnectionAppUpdateApi
+import com.chengxu.autoservice.core.update.HttpUrlConnectionAppUpdateDownloader
+import com.chengxu.autoservice.ui.update.UpdateViewModel
+import android.os.Environment
 import kotlinx.coroutines.launch
 
 @Composable
@@ -257,6 +264,16 @@ private fun AuthenticatedRoot(
         viewModelStoreOwner = sessionViewModelStoreOwner,
         factory = settlementViewModelFactory(orderDetailRepository, orderSettlementRepository, orderReceiptApi, authenticationRepository, networkMonitor),
     )
+    val context = LocalContext.current
+    val updateViewModel: UpdateViewModel = viewModel(
+        viewModelStoreOwner = sessionViewModelStoreOwner,
+        factory = updateViewModelFactory(
+            apiOrigin = BuildConfig.API_ORIGIN,
+            downloadDirectory = requireNotNull(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)),
+            currentVersion = BuildConfig.VERSION_NAME,
+        ),
+    )
+    val updateInstaller = remember(context) { AndroidAppUpdateInstaller(context) }
     val state by workbenchViewModel.uiState.collectAsStateWithLifecycle()
     val ordersState by ordersViewModel.uiState.collectAsStateWithLifecycle()
     val historyRecordsState by historyRecordsViewModel.uiState.collectAsStateWithLifecycle()
@@ -267,9 +284,19 @@ private fun AuthenticatedRoot(
     val editState by editOrderViewModel.uiState.collectAsStateWithLifecycle()
     val statusState by orderStatusViewModel.uiState.collectAsStateWithLifecycle()
     val settlementState by settlementViewModel.uiState.collectAsStateWithLifecycle()
+    val updateState by updateViewModel.state.collectAsStateWithLifecycle()
     val navigationState = remember(authenticationState.session) { AppNavigationState() }
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
+    val onInstallUpdate: (java.io.File) -> Unit = { file ->
+        when (val request = updateInstaller.requestInstall(file)) {
+            is AppUpdateInstallRequest.Install -> runCatching { context.startActivity(request.intent) }
+                .onFailure { updateViewModel.reportInstallFailure("无法打开系统安装器") }
+            is AppUpdateInstallRequest.GrantPermission -> runCatching { context.startActivity(request.intent) }
+                .onFailure { updateViewModel.reportInstallFailure("无法打开安装授权设置") }
+            is AppUpdateInstallRequest.Failed -> updateViewModel.reportInstallFailure(request.message)
+        }
+    }
 
     DisposableEffect(lifecycleOwner, createOrderViewModel, editOrderViewModel) {
         val observer = LifecycleEventObserver { _, event ->
@@ -392,6 +419,11 @@ private fun AuthenticatedRoot(
         onSettlementDismissDelete = settlementViewModel::dismissDelete,
         profileSession = authenticationState.session,
         onLogout = { scope.launch { authenticationRepository.logout() } },
+        profileUpdateState = updateState,
+        onProfileCheckUpdate = updateViewModel::check,
+        onProfileDownloadUpdate = updateViewModel::download,
+        onProfileInstallUpdate = onInstallUpdate,
+        onProfileDismissUpdate = updateViewModel::dismissMessage,
     )
 }
 
@@ -499,6 +531,21 @@ private fun insurancePoliciesViewModelFactory(
     @Suppress("UNCHECKED_CAST") override fun <T : ViewModel> create(modelClass: Class<T>): T =
         if (modelClass.isAssignableFrom(InsurancePoliciesViewModel::class.java)) InsurancePoliciesViewModel(source, networkMonitor.connection, permissions) as T
         else throw IllegalArgumentException("Unsupported ViewModel class: ${modelClass.name}")
+}
+
+private fun updateViewModelFactory(
+    apiOrigin: String,
+    downloadDirectory: java.io.File,
+    currentVersion: String,
+): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST") override fun <T : ViewModel> create(modelClass: Class<T>): T =
+        if (modelClass.isAssignableFrom(UpdateViewModel::class.java)) {
+            UpdateViewModel(
+                api = HttpUrlConnectionAppUpdateApi(apiOrigin),
+                downloader = HttpUrlConnectionAppUpdateDownloader(downloadDirectory),
+                currentVersion = currentVersion,
+            ) as T
+        } else throw IllegalArgumentException("Unsupported ViewModel class: ${modelClass.name}")
 }
 
 private fun createOrderViewModelFactory(

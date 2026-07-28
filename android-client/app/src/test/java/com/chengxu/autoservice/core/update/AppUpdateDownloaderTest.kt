@@ -39,8 +39,8 @@ class AppUpdateDownloaderTest {
             FakeTransport(AppUpdateDownloadResponse(503, null, ByteArrayInputStream(ByteArray(0)))),
         )
 
-        assertTrue(downloader.download("http://example.invalid/app.apk") is AppUpdateDownloadResult.Failed)
-        assertTrue(downloader.download("https://chengxu.pages.dev/app.apk") is AppUpdateDownloadResult.Failed)
+        assertTrue(downloader.download("http://example.invalid/app.apk") { _, _ -> } is AppUpdateDownloadResult.Failed)
+        assertTrue(downloader.download("https://chengxu.pages.dev/app.apk") { _, _ -> } is AppUpdateDownloadResult.Failed)
         assertFalse(File(directory, "zhiwei-update.apk").exists())
     }
 
