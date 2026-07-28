@@ -119,7 +119,7 @@ fun LoginScreen(
                 verticalArrangement = Arrangement.spacedBy(AutoserviceSpacing.Md),
             ) {
                 Text(
-                    text = "登录维修业务移动端",
+                    text = "登录智维车服移动端",
                     style = MaterialTheme.typography.titleLarge,
                 )
                 Text(
@@ -248,7 +248,7 @@ private fun LoginHero(layoutSpec: LoginLayoutSpec) {
             verticalArrangement = Arrangement.spacedBy(AutoserviceSpacing.Xs),
         ) {
             Text(
-                text = "AUTOSERVICE MOBILE",
+                text = "ZHIWEI CAR SERVICE",
                 style = MaterialTheme.typography.labelSmall,
                 color = AutoserviceColors.InkMuted,
                 fontWeight = FontWeight.SemiBold,
@@ -257,7 +257,7 @@ private fun LoginHero(layoutSpec: LoginLayoutSpec) {
                 text = if (layoutSpec.showMarketingTitle) {
                     "让每一次服务\n更从容"
                 } else {
-                    "登录维修业务移动端"
+                    "登录智维车服移动端"
                 },
                 style = if (layoutSpec.showMarketingTitle) {
                     MaterialTheme.typography.headlineMedium

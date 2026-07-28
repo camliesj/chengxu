@@ -755,7 +755,7 @@ function AccessGate({ onUnlock }) {
     <main className="access-page">
       <section className="access-panel">
         <div className="access-copy">
-          <h1>维修接待与车辆保险管理</h1>
+          <h1>智维车服</h1>
           <p>请选择公司并输入账号密码，进入对应门店工作台。</p>
         </div>
         <form onSubmit={submitAccess} className="access-form">
@@ -1606,7 +1606,7 @@ function App() {
         <div className="sidebar-brand">
           <div>
             <strong>{currentCompany.shortName}</strong>
-            <small>维修接待与车辆保险管理</small>
+            <small>智维车服</small>
           </div>
         </div>
         <nav>
