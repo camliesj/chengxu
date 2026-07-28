@@ -925,3 +925,7 @@ cd E:\codex\chengxu\android-client
 
 - 用户已确认统一产品名称为“智维车服”。图标方向为深石墨圆角底、抽象 W 服务道路结构与冰蓝点缀；图标内不放文字，便于同时用于网页 favicon、Windows 与 Android。
 - 规格文件：`docs/superpowers/specs/2026-07-28-zhiwei-car-service-brand-design.md`。先生成 1024×1024 预览；用户确认预览后，才替换三端名称与图标资源。
+
+### 智维车服跨端品牌实施计划（已确认，预览生成中）
+
+- 实施计划：`docs/superpowers/plans/2026-07-28-zhiwei-car-service-brand.md`。严格分为预览确认门、跨端图标派生、可见名称替换和构建验收四步；预览获批前不改产品资源，获批后仍保持包名、数据库名、会话键、Cloudflare 标识与 API 路径不变。
