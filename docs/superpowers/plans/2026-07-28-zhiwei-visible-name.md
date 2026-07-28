@@ -121,21 +121,18 @@ git commit -m "feat(brand): rename visible product to zhiwei"
 
 **Files:**
 - Modify: `docs/latest-handoff-prompt.md`
+- Modify: `public/downloads/zhiwei-car-service_0.1.0.apk`
 - Modify: `dist/releases/android/autoservice-android-debug-0.1.0.apk`
 
 **Interfaces:**
 - Consumes: Task 2 的三端名称和既有 Android 发布资产。
 - Produces: 已验证、可安装的新名称 APK 与准确交接记录。
 
-- [ ] **Step 1: 运行完整 Node 与 Web 构建验证**
+- [ ] **Step 1: 运行完整 Node 验证**
 
 Run: `npm.cmd test`
 
 Expected: 0 failures。
-
-Run: `npm.cmd run build`
-
-Expected: Vite build 成功，且 `dist/downloads/zhiwei-car-service_0.1.0.apk` 仍存在。
 
 - [ ] **Step 2: 运行 Android 全量门禁并生成 APK**
 
@@ -143,24 +140,40 @@ Run: `cd android-client; .\\gradlew.bat :app:testDebugUnitTest :app:compileDebug
 
 Expected: BUILD SUCCESSFUL。
 
-将 `android-client/app/build/outputs/apk/debug/app-debug.apk` 复制到 `dist/releases/android/autoservice-android-debug-0.1.0.apk`，再运行：
+
+- [ ] **Step 3: 更新静态分发 APK、构建 Web 并归档 APK**
+
+将 `android-client/app/build/outputs/apk/debug/app-debug.apk` 复制到 `public/downloads/zhiwei-car-service_0.1.0.apk`。随后运行：
+
+Run: `npm.cmd run build`
+
+Expected: Vite build 成功，且 `dist/downloads/zhiwei-car-service_0.1.0.apk` 存在。
+
+将同一 `app-debug.apk` 复制到 `dist/releases/android/autoservice-android-debug-0.1.0.apk`，再运行：
 
 Run: `apksigner verify --verbose dist/releases/android/autoservice-android-debug-0.1.0.apk`
 
 Expected: v2 scheme 为 `true`。
 
-- [ ] **Step 3: 验证下载文件名不变并记录交接**
+- [ ] **Step 4: 部署并验证生产 APK**
+
+Run: `npx.cmd wrangler pages deploy dist --project-name chengxu --branch main --commit-dirty=true --skip-caching`
+
+Expected: Pages 部署成功。部署后运行：
 
 Run: `curl -I https://chengxu.pages.dev/downloads/zhiwei-car-service_0.1.0.apk`
 
 Expected: 200 和 `application/vnd.android.package-archive`。
 
-在 `docs/latest-handoff-prompt.md` 追加名称替换、验证结果、APK SHA-256、无数据库变更，以及后续发布注意事项。不得改写历史发布记录中的旧名称。
 
-- [ ] **Step 4: 提交并推送最终包**
+Expected: 200 和 `application/vnd.android.package-archive`；下载文件 SHA-256 与新构建 APK 一致。
+
+- [ ] **Step 5: 记录交接、提交并推送最终包**
+
+在 `docs/latest-handoff-prompt.md` 追加名称替换、生产部署、验证结果、APK SHA-256、无数据库变更，以及后续发布注意事项。不得改写历史发布记录中的旧名称。
 
 ```bash
-git add docs/latest-handoff-prompt.md dist/releases/android/autoservice-android-debug-0.1.0.apk
+git add docs/latest-handoff-prompt.md public/downloads/zhiwei-car-service_0.1.0.apk dist/releases/android/autoservice-android-debug-0.1.0.apk
 git commit -m "docs: record zhiwei visible name release"
 git push origin codex/android-mobile-ui-atlas
 ```
@@ -170,3 +183,9 @@ git push origin codex/android-mobile-ui-atlas
 - 规格覆盖了 Web、Windows、Android、二维码无障碍文案和交接记录。
 - 计划未修改 APK URL、文件名、包名、图标或数据库结构。
 - 计划包含先失败后通过的名称合同，以及完整构建和签名验证。
+
+## 执行结果（2026-07-28）
+
+- 三端可见名称已替换为“智纬”，技术标识、图标、Android 包名与既有下载 URL/文件名保持不变。
+- 名称合同先后经历预期 RED（旧名称）和 GREEN；Node 全量 203/203 通过，Android `testDebugUnitTest`、`compileDebugAndroidTestKotlin`、`lintDebug` 与 `assembleDebug` 均为 `BUILD SUCCESSFUL`。
+- 重建 APK 已同步到 Pages 静态分发与本地归档；Pages 部署 `https://14ccca82.chengxu.pages.dev`。生产下载已验证 HTTP 200、APK MIME、应用标签“智纬”及 SHA-256 与构建产物一致。

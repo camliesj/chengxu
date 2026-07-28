@@ -955,3 +955,11 @@ cd E:\codex\chengxu\android-client
 - Pages 已重新部署，最新部署预览为 `https://323760c6.chengxu.pages.dev`，正式域名为 `https://chengxu.pages.dev`。生产下载响应为 `200` 与 `application/vnd.android.package-archive`；实际下载 20,646,930 bytes 的 SHA-256 为 `447EAEE9EBA6316CF81BF120CE7C7B4CECD9DC07AAE3FECD2D892CFAD7778B4E`，与已验证构建产物完全一致。
 - 发布资产同时归档在 `public/downloads/zhiwei-car-service_0.1.0.apk`（Pages 分发源）和 `dist/releases/android/autoservice-android-debug-0.1.0.apk`（本地归档）。本轮未新增 D1 migration、未改变 D1/Room 数据库结构，也未写入业务数据。
 - 后续：发布新版本时重新构建、签名校验后替换上述版本化 APK，上传并更新 `ANDROID_RELEASE_VERSION`、发布时间、大小、说明和下载 URL，再进行生产哈希校验；若需要 Windows 客户端本机构建，需先安装 Windows SDK 的 `RC.EXE`。
+
+### 智纬可见名称替换与 APK 再发布（已完成）
+
+- 用户已确认将所有可见产品名称从“智维车服”改为“智纬”。Web 浏览器标题、登录页和应用内品牌文字，Windows `productName` 与窗口标题，以及 Android launcher、`AppIdentity` 和登录页均已更新；二维码无障碍文案同步更新。
+- 兼容边界保持不变：图标、`com.chengxu.*`、D1/Room schema、API/认证路径、现有下载 URL 及文件名 `zhiwei-car-service_0.1.0.apk` 均未修改；没有 migration，也没有业务数据写入。
+- 名称合同先验证 RED：Node 和 Android JVM 均因旧名称失败；替换后 Node `npm.cmd test` 为 203/203，Android `:app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:lintDebug :app:assembleDebug` 为 `BUILD SUCCESSFUL`。新 Debug APK 的 SHA-256 为 `5830D57D844167F59DEFFCDD837B1F80DAE7EA9E0ED6DC2313B0581DC9F89662`，`apksigner` 确认 v2=true。
+- 已重新部署 Pages，部署预览为 `https://14ccca82.chengxu.pages.dev`，正式下载 URL 仍为 `https://chengxu.pages.dev/downloads/zhiwei-car-service_0.1.0.apk`。生产下载返回 HTTP 200 与 `application/vnd.android.package-archive`；实际下载哈希与新构建一致，`aapt dump badging` 确认应用标签为“智纬”。部署刚完成时正式域名短暂返回旧静态缓存，随后已完成 CDN 传播并复核为新包。
+- 新 APK 已归档在 `public/downloads/zhiwei-car-service_0.1.0.apk` 与 `dist/releases/android/autoservice-android-debug-0.1.0.apk`。后续仅需在新版本发布时更新版本号、静态 APK、Pages 发布元数据并重复哈希与标签校验。
