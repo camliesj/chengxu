@@ -50,6 +50,10 @@ test('unified create forces server fields and completes order plus operation in 
   assert.equal(env.state.sequenceAllocations, 1);
   assert.equal(env.state.batches.length, 1);
   assert.equal(env.state.batches[0].some((statement) => statement.sql.includes('INSERT INTO repair_orders')), true);
+  assert.equal(env.state.batches[0].some((statement) => statement.sql.includes('INSERT INTO customer_vehicles')), true);
+  assert.equal(env.state.batches[0].some((statement) => statement.sql.includes('INSERT INTO insurance_policies')), true);
+  assert.equal(env.state.batches[0].some((statement) => statement.values.includes('CV-RO20260700001')), true);
+  assert.equal(env.state.batches[0].some((statement) => statement.values.includes('IP-RO20260700001')), true);
   assert.equal(env.state.batches[0].some((statement) => statement.sql.includes("state = 'completed'")), true);
   assert.equal(env.state.batches[0].some((statement) => statement.sql.includes('INSERT OR IGNORE INTO operation_logs')), true);
   assert.equal(env.state.insertedOrder.company_id, 'tongda');
@@ -73,6 +77,27 @@ test('same operation replays one result while mismatched content is rejected', a
   const conflict = await createOrder({ request: createRequest(changed), env });
   assert.equal(conflict.status, 409);
   assert.deepEqual(await conflict.json(), { error: 'OPERATION_ID_REUSED' });
+});
+
+test('unified create reuses matching archive records and preserves insurance-managed fields', async () => {
+  const env = environment({
+    vehicle: { id: 'CV-existing', customer: '旧客户', plate: '蒙K12345', source: '手动录入' },
+    policy: { id: 'IP-existing', customer: '旧客户', plate: '蒙K12345', amount: 88800, type: '商业险' },
+    policyVersion: 7,
+  });
+
+  const response = await createOrder({ request: createRequest(validPayload()), env });
+  assert.equal(response.status, 201);
+  const statements = env.state.batches[0];
+  const vehicle = statements.find((statement) => statement.sql.includes('INSERT INTO customer_vehicles'));
+  const policy = statements.find((statement) => statement.sql.includes('INSERT INTO insurance_policies'));
+
+  assert.equal(vehicle.values[1], 'CV-existing');
+  assert.equal(JSON.parse(vehicle.values[2]).customer, '王先生');
+  assert.equal(policy.values[1], 'IP-existing');
+  assert.equal(policy.values[3], 8);
+  assert.equal(JSON.parse(policy.values[2]).amount, 88800);
+  assert.equal(JSON.parse(policy.values[2]).type, '商业险');
 });
 
 test('active matching lease reports in-progress without allocating a number', async () => {
@@ -236,6 +261,9 @@ function environment({
     { capability: 'CREATE_ORDER', enabled: 1 },
   ],
   operation = null,
+  vehicle = null,
+  policy = null,
+  policyVersion = 0,
 } = {}) {
   const calls = [];
   const state = {
@@ -281,6 +309,8 @@ function environment({
           state.sequenceAllocations += 1;
           return { sequence_value: state.sequenceAllocations };
         }
+        if (sql.includes('FROM customer_vehicles')) return vehicle ? { id: vehicle.id, record_json: JSON.stringify(vehicle) } : null;
+        if (sql.includes('FROM insurance_policies')) return policy ? { id: policy.id, record_json: JSON.stringify(policy), version: policyVersion } : null;
         if (sql.includes('SELECT * FROM repair_orders')) return null;
         throw new Error(`Unexpected first SQL: ${sql}`);
       },

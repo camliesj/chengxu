@@ -209,6 +209,13 @@ export async function handleCreateOrderCommand({ env, session, payload }) {
     claim.leaseToken,
     targetId,
   );
+  const archiveStatements = await buildArchiveProvisioningStatements({
+    env,
+    key,
+    leaseToken: claim.leaseToken,
+    targetId,
+    order: toCreatedOrder(row),
+  });
   const completeOperation = env.DB.prepare(`
     UPDATE order_operations
     SET state = 'completed', http_status = ?, response_json = ?,
@@ -230,11 +237,104 @@ export async function handleCreateOrderCommand({ env, session, payload }) {
       (action, target_type, target_id, role, label, detail, event_id, summary, changes)
     VALUES ('create_order', 'repair_order', ?, ?, ?, '', ?, '新增工单', '[]')
   `).bind(targetId, session.role || '', session.label || '', operationId);
-  const batchResults = await env.DB.batch([insertOrder, completeOperation, audit]);
-  if (changes(batchResults[0]) !== 1 || changes(batchResults[1]) !== 1) {
+  const batchResults = await env.DB.batch([insertOrder, ...archiveStatements, completeOperation, audit]);
+  if (changes(batchResults[0]) !== 1 || changes(batchResults[1 + archiveStatements.length]) !== 1) {
     return json({ error: 'OPERATION_IN_PROGRESS' }, { status: 409 });
   }
   return json(responseBody, { status: 201 });
+}
+
+async function buildArchiveProvisioningStatements({ env, key, leaseToken, targetId, order }) {
+  const existingVehicle = await readArchiveRecord(env, 'customer_vehicles', key.companyId, order.plate);
+  const vehicle = {
+    ...(existingVehicle?.record || {}),
+    id: existingVehicle?.record.id || `CV-${order.id}`,
+    companyId: key.companyId,
+    customer: order.customer,
+    phone: order.phone,
+    plate: order.plate,
+    car: order.car,
+    vin: order.vin,
+    insurer: order.insurer,
+    vehicleType: order.type,
+    source: '维修接待',
+    remark: `最近工单：${order.id}`,
+  };
+  const statements = [upsertCustomerVehicle(env, key, leaseToken, targetId, vehicle)];
+  if (!order.insuranceExpiry) return statements;
+
+  const existingPolicy = await readArchiveRecord(env, 'insurance_policies', key.companyId, order.plate);
+  const policy = {
+    ...(existingPolicy?.record || {}),
+    id: existingPolicy?.record.id || `IP-${order.id}`,
+    companyId: key.companyId,
+    customer: order.customer,
+    phone: order.phone,
+    plate: order.plate,
+    car: order.car,
+    vin: order.vin,
+    insurer: order.insurer,
+    expiry: order.insuranceExpiry,
+    amount: existingPolicy?.record.amount || 0,
+    type: existingPolicy?.record.type || '交强险 / 商业险',
+  };
+  const version = (existingPolicy?.version || 0) + 1;
+  return [...statements, upsertInsurancePolicy(env, key, leaseToken, targetId, policy, version)];
+}
+
+async function readArchiveRecord(env, table, companyId, plate) {
+  const row = await env.DB.prepare(`
+    SELECT id, record_json, version
+    FROM ${table}
+    WHERE company_id = ? AND json_extract(record_json, '$.plate') = ?
+    ORDER BY updated_at DESC
+    LIMIT 1
+  `).bind(companyId, plate).first();
+  if (!row?.record_json) return null;
+  try {
+    const record = JSON.parse(row.record_json);
+    if (!record || typeof record !== 'object' || !cleanText(record.id)) return null;
+    return { record, version: Number(row.version) || 0 };
+  } catch {
+    return null;
+  }
+}
+
+function operationGuard(key, leaseToken, targetId) {
+  return `
+    WHERE EXISTS (
+      SELECT 1 FROM order_operations
+      WHERE company_id = ? AND actor = ? AND action = ? AND operation_id = ?
+        AND state = 'started' AND lease_token = ? AND target_id = ?
+    )
+  `;
+}
+
+function operationGuardValues(key, leaseToken, targetId) {
+  return [key.companyId, key.actor, key.action, key.operationId, leaseToken, targetId];
+}
+
+function upsertCustomerVehicle(env, key, leaseToken, targetId, vehicle) {
+  return env.DB.prepare(`
+    INSERT INTO customer_vehicles (company_id, id, record_json, updated_at)
+    SELECT ?, ?, ?, datetime('now')
+    ${operationGuard(key, leaseToken, targetId)}
+    ON CONFLICT(company_id, id) DO UPDATE SET
+      record_json = excluded.record_json,
+      updated_at = datetime('now')
+  `).bind(key.companyId, vehicle.id, JSON.stringify(vehicle), ...operationGuardValues(key, leaseToken, targetId));
+}
+
+function upsertInsurancePolicy(env, key, leaseToken, targetId, policy, version) {
+  return env.DB.prepare(`
+    INSERT INTO insurance_policies (company_id, id, record_json, version, updated_at)
+    SELECT ?, ?, ?, ?, datetime('now')
+    ${operationGuard(key, leaseToken, targetId)}
+    ON CONFLICT(company_id, id) DO UPDATE SET
+      record_json = excluded.record_json,
+      version = excluded.version,
+      updated_at = datetime('now')
+  `).bind(key.companyId, policy.id, JSON.stringify(policy), version, ...operationGuardValues(key, leaseToken, targetId));
 }
 
 export async function readCreateOrderOperation({ env, session, operationId }) {
