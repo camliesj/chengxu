@@ -5,6 +5,6 @@ import org.junit.Test
 
 class BuildSanityTest {
     @Test fun applicationNameContract() {
-        assertEquals("汽修接待", AppIdentity.displayName)
+        assertEquals("智维车服", AppIdentity.displayName)
     }
 }

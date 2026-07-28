@@ -938,3 +938,12 @@ cd E:\codex\chengxu\android-client
 ### 智维车服品牌与 Android 安装二维码发布实施计划（已确认，待内联执行）
 
 - 实施计划：`docs/superpowers/plans/2026-07-28-zhiwei-brand-and-android-qr-release.md`。以 Android artifact 受控上传/下载为先决条件，再接入登录页本地二维码，最后替换跨端名称与图标并构建签名 APK。生产部署、APK 上传与 Pages 环境变量写入均须保持本轮已确认的用户授权范围内执行。
+
+### 智维车服品牌、Android 下载路由与登录页二维码（已完成本地与 Pages 部署，待管理员上传 APK）
+
+- 已完成品牌：网页标题、网页登录页标题、Windows `productName`/窗口标题、Android launcher 标签、`AppIdentity` 与 Android 登录页均为“智维车服”；主图为深石墨圆角底、白色抽象 W 与冰蓝点缀。主资源：`public/brand/zhiwei-car-service-icon.png`，派生为 favicon、Tauri 多平台图标以及 Android adaptive/launcher 密度资源。技术标识 `com.chengxu.*`、`Theme.Autoservice`、`autoservice.db`、`chengxu-*`、D1/COS 既有业务标识未变。
+- 已完成 Android 受控发布合同：`POST /api/release-artifacts` 新增 `x-release-platform: android` 的 `.apk` 校验（只允许 APK MIME 或 octet-stream，25 MiB 上限），对象 key 固定 `releases/android/<version>/zhiwei-car-service_<version>.apk`；公开 `GET /api/client-downloads/android/:version/:fileName` 以附件方式读取 COS。Windows 行为保持兼容。登录页仅在 `/api/client-releases` 返回 HTTPS Android URL 后使用本地 SVG 生成二维码，否则明确显示“Android 安装包发布中”或可重试错误，不发送二维码数据至第三方。
+- 已部署 Pages 生产：`https://f072e409.chengxu.pages.dev`，正式域名 `https://chengxu.pages.dev`。只读核验确认网页标题与 Android 下载 Functions 路由已生效；由于 APK 尚未上传，下载路由当前预期返回 `403 RELEASE_NOT_FOUND`，`/api/client-releases` 的 `android.available` 仍为 false，二维码不会显示无效链接。
+- 已验证：Node `npm.cmd test` 203/203；Vite build 成功；Android `:app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:lintDebug :app:assembleDebug` 为 BUILD SUCCESSFUL（68 tasks）。Tauri source/config 合同通过；本机 `desktop:check` 被 Windows SDK `RC.EXE` 缺失阻断，属于构建环境前置条件，并非配置/代码错误。没有 D1/Room migration。
+- 最新可安装 Debug APK：`dist/releases/android/autoservice-android-debug-0.1.0.apk`；SHA-256 `447EAEE9EBA6316CF81BF120CE7C7B4CECD9DC07AAE3FECD2D892CFAD7778B4E`；Build Tools 35.0.0 `apksigner verify --verbose` 确认 v2=true。模拟器当前未运行，尚未重新安装本包。
+- 下一步唯一外部前置：使用有效管理员会话调用 APK 上传接口，获取返回的 HTTPS URL 后写入五项 `ANDROID_RELEASE_*` Pages 变量；随后只读核验 `android.available=true`、APK 下载 200/附件响应头和登录页二维码。不得通过修改生产账号、权限或业务数据绕过该认证。
