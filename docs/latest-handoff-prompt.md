@@ -862,3 +862,11 @@ cd E:\codex\chengxu\android-client
 - 已新增 `OrderReceiptApi` 与 `HttpUrlConnectionOrderReceiptApi`：仅允许 JPEG/PNG/WebP、最大 12 MiB；上传 multipart 到 `/api/receipts`，下载以编码 key 查询，删除携带 key/orderId。401/403/404、网络和畸形响应均有显式结果映射；聚焦 JVM 合同测试通过。尚未接入仓储或 UI，且未新增 Room/D1 migration。
 
 - 已补齐 `DefaultOrderSettlementRepository`：在线、管理员角色、同企业详情、当前版本及所需能力均在 HTTP 写入前验证；结算需 `SETTLE_ORDER + MAINTAIN_RECEIPT`，返结算需 `REVERSE_SETTLEMENT`，回执元数据需 `MAINTAIN_RECEIPT`。成功与 409 最新详情写回加密详情/摘要缓存，401 失效会话，404 清理详情缓存。聚焦 JVM 测试通过。
+
+### Android 结算包 Task 6：已结算到账回执管理（已完成，待远端部署和真机验收）
+
+- 已结算工单详情在具备 `MAINTAIN_RECEIPT` 且服务端完整详情包含回执时，显示“管理到账回执”入口。管理页支持查看当前截图、仅从系统相册选择新图替换，以及二次确认删除；不申请相机权限。
+- 回执对象 key 只保留在 `OrderDetailEnvelope`、详情 ViewModel 与结算 ViewModel 的活动内存中。`ReceiptMetadata` 和 Room 加密缓存只存名称、类型、大小、上传时间，绝不存 key 或 URL；非 `MAINTAIN_RECEIPT` 响应也会主动丢弃 key。
+- 替换顺序为上传新图 → 版本化 `/receipt` 命令更新引用 → 尽力删除旧图；若引用命令失败，客户端会尽力清理刚上传的新图。删除顺序为先清空版本化引用、后删除二进制，避免工单留下失效 key。
+- 本轮没有 D1/Room migration，也未部署 Pages/D1。后续需在获得单独部署授权后发布服务端结算路由，并以有结算权限的真机账号验收结算、返结算、回执查看/替换/删除及 409 冲突提示。
+- 最终无模拟器门禁：Node `npm.cmd test` 192/192、`npm.cmd run build`、Android `:app:testDebugUnitTest`、`:app:compileDebugAndroidTestKotlin`、`:app:lintDebug` 与 `:app:assembleDebug` 均通过。已归档 API 26+ 真机可安装 Debug APK：`dist/releases/android/autoservice-android-debug-0.1.0.apk`（20,106,369 bytes，SHA-256 `1B52B800E41EBABCEB373B92DC9DBEC3DC61C10071BA83A3AAD0984FAAE7398E`，`apksigner` v2=true）。

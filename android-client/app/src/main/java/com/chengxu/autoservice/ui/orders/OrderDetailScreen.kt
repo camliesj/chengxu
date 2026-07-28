@@ -45,6 +45,8 @@ fun OrderDetailScreen(
     onSettle: () -> Unit = {},
     canReverse: Boolean = false,
     onReverse: () -> Unit = {},
+    canManageReceipt: Boolean = false,
+    onManageReceipt: () -> Unit = {},
     readOnly: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
@@ -104,6 +106,8 @@ fun OrderDetailScreen(
                 onSettle = onSettle,
                 canReverse = canReverse && OrderStatus.fromWire(order.status) == OrderStatus.SETTLED,
                 onReverse = onReverse,
+                canManageReceipt = canManageReceipt && OrderStatus.fromWire(order.status) == OrderStatus.SETTLED,
+                onManageReceipt = onManageReceipt,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -119,6 +123,8 @@ private fun OrderDetailContent(
     onSettle: () -> Unit,
     canReverse: Boolean,
     onReverse: () -> Unit,
+    canManageReceipt: Boolean,
+    onManageReceipt: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -206,11 +212,12 @@ private fun OrderDetailContent(
                 }
             }
         }
-        if (canSettle || canReverse) {
+        if (canSettle || canReverse || canManageReceipt) {
             AutoserviceCard(modifier = Modifier.fillMaxWidth()) {
                 Text("结算操作", style = MaterialTheme.typography.titleMedium, color = AutoserviceColors.Ink)
                 if (canSettle) BrandButton(onClick = onSettle, modifier = Modifier.fillMaxWidth().padding(top = AutoserviceSpacing.Sm)) { Text("办理结算") }
                 if (canReverse) BrandButton(onClick = onReverse, modifier = Modifier.fillMaxWidth().padding(top = AutoserviceSpacing.Sm), tone = BrandButtonTone.DANGER) { Text("返结算") }
+                if (canManageReceipt) BrandButton(onClick = onManageReceipt, modifier = Modifier.fillMaxWidth().padding(top = AutoserviceSpacing.Sm), tone = BrandButtonTone.SECONDARY) { Text("管理到账回执") }
             }
         }
     }

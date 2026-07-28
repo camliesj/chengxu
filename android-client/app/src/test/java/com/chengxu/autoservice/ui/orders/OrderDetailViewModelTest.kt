@@ -60,6 +60,26 @@ class OrderDetailViewModelTest {
         assertFalse(model.uiState.value.canEdit)
     }
 
+    @Test
+    fun keepsPrivilegedReceiptKeyInTheActiveViewModelOnly() = runTest {
+        val model = OrderDetailViewModel(
+            FakeRepository(
+                OrderReadResult.Success(
+                    OrderDetailEnvelope(
+                        detail(),
+                        setOf(BusinessCapability.MAINTAIN_RECEIPT),
+                        "now",
+                        receiptKey = "receipt-key",
+                    ),
+                ),
+            ),
+        )
+        model.open("RO-1")
+        advanceUntilIdle()
+
+        assertEquals("receipt-key", model.uiState.value.receiptKey)
+    }
+
     private class FakeRepository(private val result: OrderReadResult<OrderDetailEnvelope>) : OrderDetailRepository { override suspend fun load(orderId: String) = result }
     private companion object { fun detail() = OrderDetail(OrderSummary("RO-1", "tongda", 4, "2026-07-22", "2026-07-22", "09:30", "蒙A1", "张先生", "P7", "标的车", "在修中", 300, "记录", "2027-01-01", "明日", "now"), "150", "人保", "王", "VIN", "CL", "喷漆", "待确认", "", 100, 200, "", "", "", null, false, "", "") }
 }

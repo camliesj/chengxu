@@ -18,6 +18,8 @@ data class OrderDetailUiState(
     val loading: Boolean = false,
     val detail: OrderDetail? = null,
     val capabilities: Set<BusinessCapability> = emptySet(),
+    /** Kept only for the active detail session; it is never persisted. */
+    val receiptKey: String? = null,
     val closeRequested: Boolean = false,
     val message: String? = null,
 ) {
@@ -34,7 +36,14 @@ class OrderDetailViewModel(private val repository: OrderDetailRepository) : View
         mutableUiState.value = OrderDetailUiState(loading = true)
         viewModelScope.launch {
             when (val result = repository.load(orderId)) {
-                is OrderReadResult.Success -> mutableUiState.update { it.copy(loading = false, detail = result.value.order, capabilities = result.value.capabilities) }
+                is OrderReadResult.Success -> mutableUiState.update {
+                    it.copy(
+                        loading = false,
+                        detail = result.value.order,
+                        capabilities = result.value.capabilities,
+                        receiptKey = result.value.receiptKey,
+                    )
+                }
                 is OrderReadResult.Failure -> mutableUiState.update {
                     it.copy(loading = false, closeRequested = result.reason == OrderReadFailure.NotFound, message = "无法加载工单详情")
                 }

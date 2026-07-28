@@ -375,8 +375,12 @@ private fun AuthenticatedRoot(
         onSettlementTime = settlementViewModel::updateTime,
         onSettlementRemark = settlementViewModel::updateRemark,
         onSettlementSubmit = settlementViewModel::submit,
+        onSettlementViewReceipt = settlementViewModel::viewReceipt,
+        onSettlementDeleteReceipt = settlementViewModel::requestDelete,
         onSettlementConfirmReverse = settlementViewModel::confirmReverse,
         onSettlementDismissReverse = settlementViewModel::dismissReverse,
+        onSettlementConfirmDelete = settlementViewModel::confirmDelete,
+        onSettlementDismissDelete = settlementViewModel::dismissDelete,
         profileSession = authenticationState.session,
         onLogout = { scope.launch { authenticationRepository.logout() } },
     )

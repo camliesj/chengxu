@@ -8,6 +8,8 @@ data class OrderDetailEnvelope(
     val order: OrderDetail,
     val capabilities: Set<BusinessCapability>,
     val serverTime: String,
+    /** In-memory only. Never copy this object-storage key into the encrypted detail cache. */
+    val receiptKey: String? = null,
 )
 
 data class OrderEditCommand(

@@ -118,8 +118,12 @@ fun AppNavDisplay(
     onSettlementTime: (String) -> Unit = {},
     onSettlementRemark: (String) -> Unit = {},
     onSettlementSubmit: () -> Unit = {},
+    onSettlementViewReceipt: () -> Unit = {},
+    onSettlementDeleteReceipt: () -> Unit = {},
     onSettlementConfirmReverse: () -> Unit = {},
     onSettlementDismissReverse: () -> Unit = {},
+    onSettlementConfirmDelete: () -> Unit = {},
+    onSettlementDismissDelete: () -> Unit = {},
     profileSession: AppSession? = null,
     onLogout: () -> Unit = {},
     isOffline: Boolean = false,
@@ -234,6 +238,8 @@ fun AppNavDisplay(
                         onSettle = { navigationState.push(AppRoute.Settlement(entry.orderId)) },
                         canReverse = BusinessCapability.REVERSE_SETTLEMENT in currentDetailState.capabilities,
                         onReverse = { navigationState.push(AppRoute.Settlement(entry.orderId, reversing = true)) },
+                        canManageReceipt = BusinessCapability.MAINTAIN_RECEIPT in currentDetailState.capabilities && currentDetailState.detail?.receipt != null && currentDetailState.receiptKey != null,
+                        onManageReceipt = { navigationState.push(AppRoute.Settlement(entry.orderId)) },
                     )
                     is AppRoute.HistoryOrderDetail -> OrderDetailScreen(
                         order = historyRecordsState.allOrders.firstOrNull { order -> order.id == entry.orderId },
@@ -241,6 +247,8 @@ fun AppNavDisplay(
                         readOnly = true,
                         canReverse = BusinessCapability.REVERSE_SETTLEMENT in currentDetailState.capabilities,
                         onReverse = { navigationState.push(AppRoute.Settlement(entry.orderId, reversing = true)) },
+                        canManageReceipt = BusinessCapability.MAINTAIN_RECEIPT in currentDetailState.capabilities && currentDetailState.detail?.receipt != null && currentDetailState.receiptKey != null,
+                        onManageReceipt = { navigationState.push(AppRoute.Settlement(entry.orderId)) },
                     )
                     is AppRoute.CustomerVehicleDetail -> CustomerVehicleDetailScreen(
                         record = customerVehiclesState.records.firstOrNull { it.id == entry.recordId },
@@ -286,8 +294,12 @@ fun AppNavDisplay(
                         onTime = onSettlementTime,
                         onRemark = onSettlementRemark,
                         onSubmit = onSettlementSubmit,
+                        onViewReceipt = onSettlementViewReceipt,
+                        onDeleteReceipt = onSettlementDeleteReceipt,
                         onConfirmReverse = onSettlementConfirmReverse,
                         onDismissReverse = onSettlementDismissReverse,
+                        onConfirmDelete = onSettlementConfirmDelete,
+                        onDismissDelete = onSettlementDismissDelete,
                     )
                 }
             }

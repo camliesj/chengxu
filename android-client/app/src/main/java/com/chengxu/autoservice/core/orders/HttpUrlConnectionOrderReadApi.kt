@@ -89,11 +89,19 @@ class HttpUrlConnectionOrderReadApi(
     private fun mapDetail(body: String): OrderDetailEnvelope? {
         val envelope = json.parseToJsonElement(body).jsonObject
         return parseOrderDetailEnvelope(body, json, currentYear())?.let { order ->
+            val capabilities = envelope.stringArray("capabilities")
+                .mapNotNull(::businessCapabilityOrNull).toSet()
             OrderDetailEnvelope(
                 order = order,
-                capabilities = envelope.stringArray("capabilities")
-                    .mapNotNull(::businessCapabilityOrNull).toSet(),
+                capabilities = capabilities,
                 serverTime = envelope.string("serverTime"),
+                // Object keys are a short-lived command credential, not business data.
+                // Only accept one from the privileged full-detail response.
+                receiptKey = if (BusinessCapability.MAINTAIN_RECEIPT in capabilities) {
+                    envelope.receiptKeyOrNull()
+                } else {
+                    null
+                },
             )
         }
     }
@@ -156,6 +164,12 @@ private fun JsonObject.receiptOrNull(): ReceiptMetadata? {
         uploadedAt = receipt.string("uploadedAt"),
     )
 }
+
+private fun JsonObject.receiptKeyOrNull(): String? =
+    (this["order"] as? JsonObject)
+        ?.get("receipt")
+        ?.let { it as? JsonObject }
+        ?.stringOrNull("key")
 
 private fun JsonObject.boolean(key: String): Boolean {
     val primitive = this[key] as? JsonPrimitive ?: return false

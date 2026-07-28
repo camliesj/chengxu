@@ -89,7 +89,20 @@ class HttpUrlConnectionOrderReadApiTest {
         assertEquals(128L, detail.receipt?.sizeBytes)
         assertEquals(9L, detail.summary.version)
         assertEquals(setOf(BusinessCapability.VIEW_ORDERS), result.value.capabilities)
+        assertNull(result.value.receiptKey)
         assertEquals("2026-07-20T10:30:00.000Z", result.value.serverTime)
+    }
+
+    @Test
+    fun detailKeepsReceiptObjectKeyOnlyForReceiptManagers() = runTest {
+        val privileged = detailJson.replace(
+            "\"capabilities\":[\"VIEW_ORDERS\"]",
+            "\"capabilities\":[\"VIEW_ORDERS\",\"MAINTAIN_RECEIPT\"]",
+        )
+        val result = api(RecordingTransport(OrdersHttpResponse(200, privileged)))
+            .fetchDetail("token", "RO-1") as OrderReadResult.Success
+
+        assertEquals("receipt-key", result.value.receiptKey)
     }
 
     @Test
@@ -265,7 +278,7 @@ class HttpUrlConnectionOrderReadApiTest {
                 "staff":"张工", "vin":"VIN-001", "claimNo":"CL-001", "accidentType":"常规维修",
                 "paymentMethod":"待确认", "remark":"备注", "laborCents":10050, "labor":1,
                 "material":200, "settlementDate":"", "settlementTime":"", "settlementRemark":"",
-                "receipt":{"name":"receipt.png", "contentType":"image/png", "sizeBytes":128,
+                "receipt":{"key":"receipt-key", "name":"receipt.png", "contentType":"image/png", "sizeBytes":128,
                     "uploadedAt":"2026-07-20 10:00:00"},
                 "voided":false, "voidedAt":"", "voidReason":"", "futureField":"ignored"
             },
