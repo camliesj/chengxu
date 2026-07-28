@@ -19,13 +19,14 @@ test('Android QR state is ready only for an available HTTPS APK release', () => 
       release: {
         platform: 'Android',
         available: true,
+        description: '扫码或下载 Android 安装包。',
         version: '0.1.0',
         publishedAt: '',
         size: '20 MB',
         notes: '',
         downloadUrl,
         canDownload: true,
-        actionLabel: '立即下载',
+        actionLabel: '下载客户端',
       },
     },
   );

@@ -72,8 +72,8 @@ export default function ClientDownloadsDialog({ open, onClose }) {
   if (!open) return null;
 
   const platforms = [
-    { key: 'windows', title: 'Windows 客户端', description: '适用于 Windows 10 与 Windows 11。' },
-    { key: 'android', title: 'Android 客户端', description: '移动端版本将在后续开放。' },
+    { key: 'windows', title: 'Windows 客户端' },
+    { key: 'android', title: 'Android 客户端' },
   ];
 
   return (
@@ -108,7 +108,7 @@ export default function ClientDownloadsDialog({ open, onClose }) {
                 </div>
                 <div className="client-download-platform-copy">
                   <h3>{platform.title}</h3>
-                  <p>{platform.description}</p>
+                  <p>{release.description}</p>
                   <span>{releaseMeta(release)}</span>
                   {release.notes ? <small>{release.notes}</small> : null}
                 </div>

@@ -1,16 +1,21 @@
 function normalizeRelease(item = {}, platform) {
   const available = Boolean(item.available && item.downloadUrl);
+  const notes = String(item.notes || '').trim();
+  const unreadableNotes = (notes.match(/\?/g) || []).length >= 3 && !/[\u3400-\u9fff]/.test(notes);
 
   return {
     platform,
     available,
+    description: platform === 'Android'
+      ? (available ? '扫码或下载 Android 安装包。' : 'Android 安装包即将发布。')
+      : '适用于 Windows 10 与 Windows 11。',
     version: item.version || '',
     publishedAt: item.publishedAt || '',
     size: item.size || '',
-    notes: item.notes || '',
+    notes: unreadableNotes ? '' : notes,
     downloadUrl: item.downloadUrl || '',
     canDownload: available,
-    actionLabel: available ? '立即下载' : '敬请期待',
+    actionLabel: available ? '下载客户端' : '敬请期待',
   };
 }
 

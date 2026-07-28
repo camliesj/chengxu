@@ -54,8 +54,8 @@ button {
   place-items: center;
   padding: 28px;
   background:
-    radial-gradient(circle at 50% 36%, rgba(255, 255, 255, 0.95) 0, rgba(255, 255, 255, 0.72) 34%, rgba(246, 249, 252, 0.9) 68%),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.92), rgba(246, 249, 252, 0.84)),
+    linear-gradient(90deg, rgba(247, 250, 253, 0.98) 0%, rgba(247, 250, 253, 0.93) 38%, rgba(247, 250, 253, 0.44) 68%, rgba(247, 250, 253, 0.12) 100%),
+    radial-gradient(circle at 20% 42%, rgba(255, 255, 255, 0.82) 0, rgba(255, 255, 255, 0.18) 46%, transparent 70%),
     url("/brand/zhiwei-login-background.png") right center / min(1100px, 78vw) auto no-repeat,
     url("/assets/ui/backgrounds/modal-flow-overlay.png") center / cover no-repeat,
     var(--bg);
@@ -300,6 +300,7 @@ button {
 .client-download-platforms {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  align-items: start;
   gap: 14px;
   padding: 22px 28px 28px;
 }
@@ -314,6 +315,11 @@ button {
   border-radius: 8px;
   background: #fff;
   box-shadow: 0 9px 24px rgba(34, 82, 128, 0.06);
+}
+
+.client-download-card > .client-download-action {
+  min-height: 46px;
+  border-radius: 8px;
 }
 
 .client-download-platform-icon {
