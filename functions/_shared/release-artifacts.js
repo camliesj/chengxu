@@ -1,24 +1,71 @@
-const WINDOWS_INSTALLER_PATTERN = /^[^/\\]+\.exe$/i;
 const RELEASE_VERSION_PATTERN = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
 
-export function validateReleaseArtifact(version, fileName) {
-  const cleanVersion = String(version || '').trim();
-  const cleanFileName = String(fileName || '').trim();
-  if (!RELEASE_VERSION_PATTERN.test(cleanVersion)) throw new Error('INVALID_RELEASE_VERSION');
-  if (!WINDOWS_INSTALLER_PATTERN.test(cleanFileName) || cleanFileName.includes('..')) {
+const PLATFORM_ARTIFACTS = {
+  windows: {
+    filePattern: /^[^/\\]+\.exe$/i,
+    key: (version) => `releases/windows/${version}/chengxu_${version}_x64-setup.exe`,
+    downloadPath: (version, fileName) => `/api/client-downloads/windows/${version}/${encodeURIComponent(fileName)}`,
+    downloadContentType: 'application/octet-stream',
+    uploadContentTypes: new Set([
+      'application/octet-stream',
+      'application/x-msdownload',
+      'application/vnd.microsoft.portable-executable',
+    ]),
+  },
+  android: {
+    filePattern: /^[^/\\]+\.apk$/i,
+    key: (version) => `releases/android/${version}/zhiwei-car-service_${version}.apk`,
+    downloadPath: (version, fileName) => `/api/client-downloads/android/${version}/${encodeURIComponent(fileName)}`,
+    downloadContentType: 'application/vnd.android.package-archive',
+    uploadContentTypes: new Set([
+      'application/vnd.android.package-archive',
+      'application/octet-stream',
+    ]),
+  },
+};
+
+function artifactArguments(platformOrVersion, versionOrFileName, maybeFileName) {
+  if (maybeFileName === undefined) {
+    return { platform: 'windows', version: platformOrVersion, fileName: versionOrFileName };
+  }
+  return { platform: platformOrVersion, version: versionOrFileName, fileName: maybeFileName };
+}
+
+function platformArtifact(platform) {
+  const normalizedPlatform = String(platform || '').trim().toLowerCase();
+  const artifact = PLATFORM_ARTIFACTS[normalizedPlatform];
+  if (!artifact) throw new Error('INVALID_RELEASE_PLATFORM');
+  return { platform: normalizedPlatform, artifact };
+}
+
+export function validateReleaseArtifact(platformOrVersion, versionOrFileName, maybeFileName) {
+  const input = artifactArguments(platformOrVersion, versionOrFileName, maybeFileName);
+  const { platform, artifact } = platformArtifact(input.platform);
+  const version = String(input.version || '').trim();
+  const fileName = String(input.fileName || '').trim();
+  if (!RELEASE_VERSION_PATTERN.test(version)) throw new Error('INVALID_RELEASE_VERSION');
+  if (!artifact.filePattern.test(fileName) || fileName.includes('..')) {
     throw new Error('INVALID_RELEASE_FILE');
   }
-  return { version: cleanVersion, fileName: cleanFileName };
+  return { platform, version, fileName };
 }
 
-export function releaseArtifactKey(version, fileName) {
-  const artifact = validateReleaseArtifact(version, fileName);
-  return `releases/windows/${artifact.version}/chengxu_${artifact.version}_x64-setup.exe`;
+export function releaseArtifactKey(platformOrVersion, versionOrFileName, maybeFileName) {
+  const { platform, version, fileName } = validateReleaseArtifact(platformOrVersion, versionOrFileName, maybeFileName);
+  return PLATFORM_ARTIFACTS[platform].key(version, fileName);
 }
 
-export function releaseDownloadPath(version, fileName) {
-  const artifact = validateReleaseArtifact(version, fileName);
-  return `/api/client-downloads/windows/${artifact.version}/${encodeURIComponent(artifact.fileName)}`;
+export function releaseDownloadPath(platformOrVersion, versionOrFileName, maybeFileName) {
+  const { platform, version, fileName } = validateReleaseArtifact(platformOrVersion, versionOrFileName, maybeFileName);
+  return PLATFORM_ARTIFACTS[platform].downloadPath(version, fileName);
+}
+
+export function releaseDownloadContentType(platform) {
+  return platformArtifact(platform).artifact.downloadContentType;
+}
+
+export function isReleaseUploadContentType(platform, contentType) {
+  return platformArtifact(platform).artifact.uploadContentTypes.has(String(contentType || '').trim().toLowerCase());
 }
 
 export function releaseContentDisposition(fileName) {
