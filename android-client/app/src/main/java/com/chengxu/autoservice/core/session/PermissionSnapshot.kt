@@ -40,7 +40,8 @@ data class PermissionSnapshot(private val granted: Set<AppPermission>) {
                 AppPermission.EDIT_ORDER,
                 AppPermission.ADVANCE_ORDER_STATUS,
             )
-            "history", "customers" -> setOf(AppPermission.VIEW_RECORDS)
+            "history" -> setOf(AppPermission.VIEW_RECORDS)
+            "customers" -> setOf(AppPermission.VIEW_RECORDS, AppPermission.MANAGE_CUSTOMER_VEHICLES)
             "insurance" -> setOf(AppPermission.VIEW_RECORDS, AppPermission.MANAGE_INSURANCE)
             else -> emptySet()
         }

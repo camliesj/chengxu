@@ -40,12 +40,13 @@ import com.chengxu.autoservice.ui.records.InsurancePoliciesScreen
 import com.chengxu.autoservice.ui.records.InsurancePoliciesUiState
 import com.chengxu.autoservice.ui.records.InsurancePolicyDetailScreen
 import com.chengxu.autoservice.core.orders.InsurancePolicyRecord
+import com.chengxu.autoservice.core.orders.CustomerVehicleRecord
 import com.chengxu.autoservice.core.designsystem.BrandSegmentedFilter
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.lazy.LazyRow
 import com.chengxu.autoservice.core.designsystem.AutoserviceSpacing
 import com.chengxu.autoservice.ui.status.OrderStatusConfirmScreen
 import com.chengxu.autoservice.ui.status.OrderStatusUiState
@@ -76,6 +77,11 @@ fun AppNavDisplay(
     onHistoryRecordsLoadMore: () -> Unit = {},
     customerVehiclesState: CustomerVehiclesUiState = CustomerVehiclesUiState(),
     onCustomerVehiclesQueryChange: (String) -> Unit = {},
+    onCustomerVehiclesCreate: () -> Unit = {},
+    onCustomerVehiclesDraftChange: ((CustomerVehicleRecord) -> CustomerVehicleRecord) -> Unit = {},
+    onCustomerVehiclesSave: () -> Unit = {},
+    onCustomerVehiclesDismissEditor: () -> Unit = {},
+    onCustomerVehiclesEdit: (CustomerVehicleRecord) -> Unit = {},
     insurancePoliciesState: InsurancePoliciesUiState = InsurancePoliciesUiState(),
     onInsurancePoliciesQueryChange: (String) -> Unit = {},
     onInsurancePoliciesCreate: () -> Unit = {},
@@ -143,6 +149,11 @@ fun AppNavDisplay(
     val currentHistoryRecordsLoadMore by rememberUpdatedState(onHistoryRecordsLoadMore)
     val currentCustomerVehiclesState by rememberUpdatedState(customerVehiclesState)
     val currentCustomerVehiclesQueryChange by rememberUpdatedState(onCustomerVehiclesQueryChange)
+    val currentCustomerVehiclesCreate by rememberUpdatedState(onCustomerVehiclesCreate)
+    val currentCustomerVehiclesDraftChange by rememberUpdatedState(onCustomerVehiclesDraftChange)
+    val currentCustomerVehiclesSave by rememberUpdatedState(onCustomerVehiclesSave)
+    val currentCustomerVehiclesDismissEditor by rememberUpdatedState(onCustomerVehiclesDismissEditor)
+    val currentCustomerVehiclesEdit by rememberUpdatedState(onCustomerVehiclesEdit)
     val currentInsurancePoliciesState by rememberUpdatedState(insurancePoliciesState)
     val currentInsurancePoliciesQueryChange by rememberUpdatedState(onInsurancePoliciesQueryChange)
     val currentInsurancePoliciesCreate by rememberUpdatedState(onInsurancePoliciesCreate)
@@ -212,6 +223,10 @@ fun AppNavDisplay(
                         onHistoryRefresh = currentHistoryRecordsRefresh,
                         onHistoryLoadMore = currentHistoryRecordsLoadMore,
                         onVehicleQueryChange = currentCustomerVehiclesQueryChange,
+                        onVehicleCreate = currentCustomerVehiclesCreate,
+                        onVehicleDraftChange = currentCustomerVehiclesDraftChange,
+                        onVehicleSave = currentCustomerVehiclesSave,
+                        onVehicleDismissEditor = currentCustomerVehiclesDismissEditor,
                         onInsuranceQueryChange = currentInsurancePoliciesQueryChange,
                         onInsuranceCreate = currentInsurancePoliciesCreate,
                         onInsuranceDraftChange = currentInsurancePoliciesDraftChange,
@@ -251,7 +266,13 @@ fun AppNavDisplay(
                         onManageReceipt = { navigationState.push(AppRoute.Settlement(entry.orderId)) },
                     )
                     is AppRoute.CustomerVehicleDetail -> CustomerVehicleDetailScreen(
-                        record = customerVehiclesState.records.firstOrNull { it.id == entry.recordId },
+                        record = currentCustomerVehiclesState.records.firstOrNull { it.id == entry.recordId },
+                        canManage = currentCustomerVehiclesState.canManage,
+                        submitDisabled = currentCustomerVehiclesState.submitDisabled,
+                        onEdit = {
+                            currentCustomerVehiclesState.records.firstOrNull { it.id == entry.recordId }?.let(currentCustomerVehiclesEdit)
+                            navigationState.pop()
+                        },
                         onBack = navigationState::pop,
                     )
                     is AppRoute.InsurancePolicyDetail -> InsurancePolicyDetailScreen(
@@ -317,7 +338,9 @@ private fun RecordsTabs(
     historyState: HistoryRecordsUiState, vehicleState: CustomerVehiclesUiState, insuranceState: InsurancePoliciesUiState, isOffline: Boolean,
     onHistoryQueryChange: (String) -> Unit, onHistoryTimeFilterChange: (HistoryTimeFilter) -> Unit,
     onHistoryClearFilters: () -> Unit, onHistoryRefresh: () -> Unit, onHistoryLoadMore: () -> Unit,
-    onVehicleQueryChange: (String) -> Unit, onInsuranceQueryChange: (String) -> Unit, onInsuranceCreate: () -> Unit,
+    onVehicleQueryChange: (String) -> Unit, onVehicleCreate: () -> Unit,
+    onVehicleDraftChange: ((CustomerVehicleRecord) -> CustomerVehicleRecord) -> Unit, onVehicleSave: () -> Unit,
+    onVehicleDismissEditor: () -> Unit, onInsuranceQueryChange: (String) -> Unit, onInsuranceCreate: () -> Unit,
     onInsuranceDraftChange: ((InsurancePolicyRecord) -> InsurancePolicyRecord) -> Unit, onInsuranceSave: () -> Unit,
     onInsuranceDismissEditor: () -> Unit, onInsuranceDelete: (InsurancePolicyRecord) -> Unit,
     onInsuranceConfirmDelete: () -> Unit, onInsuranceDismissDelete: () -> Unit,
@@ -326,13 +349,17 @@ private fun RecordsTabs(
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     Column(Modifier.fillMaxSize()) {
         Text("档案", modifier = Modifier.padding(horizontal = AutoserviceSpacing.Lg, vertical = AutoserviceSpacing.Md), style = MaterialTheme.typography.headlineSmall)
-        Row(Modifier.fillMaxWidth().padding(horizontal = AutoserviceSpacing.Lg), horizontalArrangement = Arrangement.spacedBy(AutoserviceSpacing.Sm)) {
-            BrandSegmentedFilter("维修历史", selectedTab == 0, { selectedTab = 0 })
-            BrandSegmentedFilter("客户车辆", selectedTab == 1, { selectedTab = 1 })
-            BrandSegmentedFilter("保险档案", selectedTab == 2, { selectedTab = 2 })
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = AutoserviceSpacing.Lg),
+            horizontalArrangement = Arrangement.spacedBy(AutoserviceSpacing.Sm),
+        ) {
+            item { BrandSegmentedFilter("维修历史 ${historyState.allOrders.size}", selectedTab == 0, { selectedTab = 0 }) }
+            item { BrandSegmentedFilter("客户车辆 ${vehicleState.records.size}", selectedTab == 1, { selectedTab = 1 }) }
+            item { BrandSegmentedFilter("保险档案 ${insuranceState.records.size}", selectedTab == 2, { selectedTab = 2 }) }
         }
         if (selectedTab == 0) HistoryRecordsScreen(historyState, isOffline, onHistoryQueryChange, onHistoryTimeFilterChange, onHistoryClearFilters, onHistoryRefresh, onHistoryLoadMore, onOrderSelected, showTitle = false, modifier = Modifier.weight(1f))
-        else if (selectedTab == 1) CustomerVehiclesScreen(vehicleState, onVehicleQueryChange, onVehicleSelected, Modifier.weight(1f))
+        else if (selectedTab == 1) CustomerVehiclesScreen(vehicleState, onVehicleQueryChange, onVehicleCreate, onVehicleSelected, onVehicleDraftChange, onVehicleSave, onVehicleDismissEditor, Modifier.weight(1f))
         else InsurancePoliciesScreen(insuranceState, onInsuranceQueryChange, onInsuranceCreate, onInsuranceSelected, onInsuranceDraftChange, onInsuranceSave, onInsuranceDismissEditor, onInsuranceConfirmDelete, onInsuranceDismissDelete, Modifier.weight(1f))
     }
 }

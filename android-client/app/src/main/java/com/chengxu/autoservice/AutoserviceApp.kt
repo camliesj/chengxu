@@ -58,6 +58,7 @@ import com.chengxu.autoservice.ui.auth.LoginViewModel
 import com.chengxu.autoservice.ui.shell.AutoserviceShell
 import com.chengxu.autoservice.ui.orders.OrdersViewModel
 import com.chengxu.autoservice.ui.create.CreateOrderEvent
+import com.chengxu.autoservice.ui.create.refreshCreatedOrderArchives
 import com.chengxu.autoservice.ui.create.CreateOrderViewModel
 import com.chengxu.autoservice.ui.edit.EditOrderEvent
 import com.chengxu.autoservice.ui.edit.EditOrderViewModel
@@ -230,7 +231,7 @@ private fun AuthenticatedRoot(
     )
     val customerVehiclesViewModel: CustomerVehiclesViewModel = viewModel(
         viewModelStoreOwner = sessionViewModelStoreOwner,
-        factory = customerVehiclesViewModelFactory(customerVehiclesRepository),
+        factory = customerVehiclesViewModelFactory(customerVehiclesRepository, networkMonitor, authenticationState.session.permissions),
     )
     val insurancePoliciesViewModel: InsurancePoliciesViewModel = viewModel(
         viewModelStoreOwner = sessionViewModelStoreOwner,
@@ -308,7 +309,10 @@ private fun AuthenticatedRoot(
     LaunchedEffect(createOrderViewModel, navigationState) {
         createOrderViewModel.events.collect { event ->
             when (event) {
-                is CreateOrderEvent.Created -> navigationState.openCreatedOrder(event.orderId)
+                is CreateOrderEvent.Created -> {
+                    scope.launch { refreshCreatedOrderArchives(customerVehiclesRepository, insurancePoliciesRepository) }
+                    navigationState.openCreatedOrder(event.orderId)
+                }
                 CreateOrderEvent.Exit -> navigationState.select(RootTab.WORKBENCH)
             }
         }
@@ -333,6 +337,11 @@ private fun AuthenticatedRoot(
         onHistoryRecordsLoadMore = historyRecordsViewModel::loadNextPage,
         customerVehiclesState = customerVehiclesState,
         onCustomerVehiclesQueryChange = customerVehiclesViewModel::updateQuery,
+        onCustomerVehiclesCreate = customerVehiclesViewModel::openCreate,
+        onCustomerVehiclesDraftChange = customerVehiclesViewModel::updateDraft,
+        onCustomerVehiclesSave = customerVehiclesViewModel::save,
+        onCustomerVehiclesDismissEditor = customerVehiclesViewModel::dismissEditor,
+        onCustomerVehiclesEdit = customerVehiclesViewModel::openEdit,
         insurancePoliciesState = insurancePoliciesState,
         onInsurancePoliciesQueryChange = insurancePoliciesViewModel::updateQuery,
         onInsurancePoliciesCreate = insurancePoliciesViewModel::openCreate,
@@ -473,10 +482,12 @@ private fun historyRecordsViewModelFactory(
 
 private fun customerVehiclesViewModelFactory(
     source: CustomerVehiclesDataSource,
+    networkMonitor: NetworkMonitor,
+    permissions: com.chengxu.autoservice.core.session.PermissionSnapshot,
 ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        if (modelClass.isAssignableFrom(CustomerVehiclesViewModel::class.java)) CustomerVehiclesViewModel(source) as T
+        if (modelClass.isAssignableFrom(CustomerVehiclesViewModel::class.java)) CustomerVehiclesViewModel(source, networkMonitor.connection, permissions) as T
         else throw IllegalArgumentException("Unsupported ViewModel class: ${modelClass.name}")
 }
 

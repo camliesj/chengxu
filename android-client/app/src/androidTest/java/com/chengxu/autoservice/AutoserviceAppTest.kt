@@ -237,6 +237,7 @@ class AutoserviceAppTest {
     private class FakeCustomerVehiclesRepository : CustomerVehiclesDataSource {
         override val snapshot: StateFlow<CustomerVehiclesSnapshot> = MutableStateFlow(CustomerVehiclesSnapshot())
         override suspend fun refresh() = Unit
+        override suspend fun save(record: com.chengxu.autoservice.core.orders.CustomerVehicleRecord) = Unit
     }
 
     private class FakeOrderCreationRepository : OrderCreationRepository {

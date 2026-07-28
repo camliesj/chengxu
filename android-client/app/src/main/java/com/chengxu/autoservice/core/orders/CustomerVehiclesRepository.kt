@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 
 data class CustomerVehiclesSnapshot(
+    val companyId: String? = null,
     val records: List<CustomerVehicleRecord> = emptyList(),
     val syncState: OrderSyncState = OrderSyncState.LoadingCache,
 )
@@ -57,7 +58,7 @@ class CustomerVehiclesRepository(
                 }
                 previousIdentity = nextIdentity
                 activeIdentity = nextIdentity
-                mutableSnapshot.value = CustomerVehiclesSnapshot()
+                mutableSnapshot.value = CustomerVehiclesSnapshot(companyId = session?.companyId)
                 if (session == null) return@collectLatest
 
                 launch {

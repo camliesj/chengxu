@@ -900,3 +900,11 @@ cd E:\codex\chengxu\android-client
 - 服务端创建命令已在同一个幂等 D1 batch 内写入客户车辆及有到期日的保险档案；同车牌会复用档案 id，保险金额与险种保留、版本递增。Node 193/193 通过。
 - 网页创建成功后改为重新读取车辆和保险档案，避免用旧客户端列表二次 POST；独立刷新逻辑测试和 Vite 构建通过。
 - Android 已新增客户车辆的独立 GET/POST HTTP 传输、保存结果模型和同企业缓存 upsert；`HttpUrlConnectionCustomerVehiclesApiTest` 与 `CustomerVehiclesRepositoryTest` JVM 门禁通过。下一步补齐 `customers` 维护权限、车辆编辑 UI、档案导航数量与创建后刷新，然后运行全量门禁并归档 APK。
+
+### 统一档案自动建档：Android 完整接入（本地完成，待提交与推送）
+
+- Android 档案页已明确提供“维修历史 / 客户车辆 / 保险档案”三个横向可滚动且带数量的分区。客户车辆现支持查询、详情、新增与编辑；仅 `customers` 权限可维护，离线或未授权时保存入口禁用。网页端客户车辆 API 没有删除合同，Android 因此不展示虚假的删除入口。
+- 新增工单成功后会并行刷新客户车辆与保险档案的加密缓存，以读取服务端同一幂等创建命令自动建档的结果；任一刷新失败不会阻断另一档案刷新或工单详情跳转。已为该隔离行为加入 JVM 回归。
+- 同步修正 Android 测试 Fake 以实现车辆保存接口。当前没有 D1 或 Room migration，也未部署 Pages/D1；仍不启动模拟器或 connected tests。
+- 无设备门禁已完成：Node `npm.cmd test` 194/194、`npm.cmd run build`、Android `:app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:lintDebug :app:assembleDebug` 均为 `BUILD SUCCESSFUL`；未启动模拟器或 connected tests。
+- 已归档 API 26+ 真机可安装 Debug APK：`dist/releases/android/autoservice-android-debug-0.1.0.apk`（20,166,242 bytes，SHA-256 `11340F9887684462DEFA9D861353275DC465367A1EA58A5FEA584A248FF9BC5F`）；Build Tools 35.0.0 `apksigner verify --verbose` 确认 v2 签名有效。

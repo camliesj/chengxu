@@ -46,6 +46,7 @@ import com.chengxu.autoservice.ui.records.InsurancePoliciesUiState
 import com.chengxu.autoservice.ui.settlement.SettlementUiState
 import com.chengxu.autoservice.ui.settlement.SelectedReceipt
 import com.chengxu.autoservice.core.orders.InsurancePolicyRecord
+import com.chengxu.autoservice.core.orders.CustomerVehicleRecord
 
 @Composable
 fun AutoserviceShell(
@@ -68,6 +69,11 @@ fun AutoserviceShell(
     onHistoryRecordsLoadMore: () -> Unit = {},
     customerVehiclesState: CustomerVehiclesUiState = CustomerVehiclesUiState(),
     onCustomerVehiclesQueryChange: (String) -> Unit = {},
+    onCustomerVehiclesCreate: () -> Unit = {},
+    onCustomerVehiclesDraftChange: ((CustomerVehicleRecord) -> CustomerVehicleRecord) -> Unit = {},
+    onCustomerVehiclesSave: () -> Unit = {},
+    onCustomerVehiclesDismissEditor: () -> Unit = {},
+    onCustomerVehiclesEdit: (CustomerVehicleRecord) -> Unit = {},
     insurancePoliciesState: InsurancePoliciesUiState = InsurancePoliciesUiState(),
     onInsurancePoliciesQueryChange: (String) -> Unit = {},
     onInsurancePoliciesCreate: () -> Unit = {},
@@ -156,6 +162,11 @@ fun AutoserviceShell(
             onHistoryRecordsLoadMore = onHistoryRecordsLoadMore,
             customerVehiclesState = customerVehiclesState,
             onCustomerVehiclesQueryChange = onCustomerVehiclesQueryChange,
+            onCustomerVehiclesCreate = onCustomerVehiclesCreate,
+            onCustomerVehiclesDraftChange = onCustomerVehiclesDraftChange,
+            onCustomerVehiclesSave = onCustomerVehiclesSave,
+            onCustomerVehiclesDismissEditor = onCustomerVehiclesDismissEditor,
+            onCustomerVehiclesEdit = onCustomerVehiclesEdit,
             insurancePoliciesState = insurancePoliciesState,
             onInsurancePoliciesQueryChange = onInsurancePoliciesQueryChange,
             onInsurancePoliciesCreate = onInsurancePoliciesCreate,
