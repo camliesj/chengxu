@@ -964,3 +964,4 @@ cd E:\codex\chengxu\android-client
 - 已重新部署 Pages，部署预览为 `https://14ccca82.chengxu.pages.dev`，正式下载 URL 仍为 `https://chengxu.pages.dev/downloads/zhiwei-car-service_0.1.0.apk`。生产下载返回 HTTP 200 与 `application/vnd.android.package-archive`；实际下载哈希与新构建一致，`aapt dump badging` 确认应用标签为“智纬”。部署刚完成时正式域名短暂返回旧静态缓存，随后已完成 CDN 传播并复核为新包。
 - 新 APK 已归档在 `public/downloads/zhiwei-car-service_0.1.0.apk` 与 `dist/releases/android/autoservice-android-debug-0.1.0.apk`。后续仅需在新版本发布时更新版本号、静态 APK、Pages 发布元数据并重复哈希与标签校验。
 - Android 手动检查更新已确认采用应用内下载：入口位于“我的”，仅在用户点击时读取现有 `/api/client-releases` Android 元数据；仅高于本机的 HTTPS 版本可下载，下载到应用专属目录后通过 FileProvider 调起系统安装器。规格为 `docs/superpowers/specs/2026-07-28-android-in-app-update-design.md`；尚未进入编码，等待用户审阅规格后再写实施计划。
+- Android 手动检查更新 Task 1 已完成：新增 `core/update` 的发布元数据 API 与严格三段数字版本比较，仅接受 HTTPS 且 `android.available=true` 的发布项；网络、服务端和畸形响应可区分，取消请求会向上传播。JVM 定向测试已通过；未改变 D1/Room 数据库结构或业务数据。下一步为 APK 原子下载、FileProvider 和系统安装器。
