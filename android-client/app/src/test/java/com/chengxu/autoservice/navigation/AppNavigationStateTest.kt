@@ -62,4 +62,20 @@ class AppNavigationStateTest {
             state.currentStack,
         )
     }
+
+    @Test
+    fun leavingAnEditRouteReturnsToTheOrderDetailWhenItsTabIsReopened() {
+        val state = AppNavigationState(initialTab = RootTab.ORDERS).apply {
+            push(AppRoute.OrderDetail("RO-1"))
+            push(AppRoute.EditOrder("RO-1"))
+        }
+
+        state.select(RootTab.WORKBENCH)
+        state.select(RootTab.ORDERS)
+
+        assertEquals(
+            listOf(AppRoute.Orders, AppRoute.OrderDetail("RO-1")),
+            state.currentStack,
+        )
+    }
 }

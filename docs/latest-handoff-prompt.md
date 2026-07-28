@@ -870,3 +870,10 @@ cd E:\codex\chengxu\android-client
 - 替换顺序为上传新图 → 版本化 `/receipt` 命令更新引用 → 尽力删除旧图；若引用命令失败，客户端会尽力清理刚上传的新图。删除顺序为先清空版本化引用、后删除二进制，避免工单留下失效 key。
 - 本轮没有 D1/Room migration，也未部署 Pages/D1。后续需在获得单独部署授权后发布服务端结算路由，并以有结算权限的真机账号验收结算、返结算、回执查看/替换/删除及 409 冲突提示。
 - 最终无模拟器门禁：Node `npm.cmd test` 192/192、`npm.cmd run build`、Android `:app:testDebugUnitTest`、`:app:compileDebugAndroidTestKotlin`、`:app:lintDebug` 与 `:app:assembleDebug` 均通过。已归档 API 26+ 真机可安装 Debug APK：`dist/releases/android/autoservice-android-debug-0.1.0.apk`（20,106,369 bytes，SHA-256 `1B52B800E41EBABCEB373B92DC9DBEC3DC61C10071BA83A3AAD0984FAAE7398E`，`apksigner` v2=true）。
+
+### Android 工单编辑页退出修复（已完成，待真机验收）
+
+- 根因：正常编辑表单没有“返回详情”入口，且底部标签切换会保留原标签顶层的 `EditOrder` 路由；返回原标签时因此重新显示编辑面板。
+- 修复：编辑标题栏始终提供“返回详情”动作；离开一个顶层编辑路由后，该路由会被移除但下方工单详情保留，回到原标签直接进入详情。编辑草稿仍由现有自动保存机制处理。
+- TDD：新增导航回归先失败（切换标签后仍为 `EditOrder`），修复后 `AppNavigationStateTest` 通过；新增 Compose 测试源码锁定正常编辑态的返回动作。未改 D1/Room schema，未启动模拟器或 connected tests。
+- 无设备验证：`:app:testDebugUnitTest`、`:app:compileDebugAndroidTestKotlin`、`:app:lintDebug`、`:app:assembleDebug` 均为 `BUILD SUCCESSFUL`。已归档 Debug APK（20,160,845 bytes，SHA-256 `C3D9E33E5733C03599112B467D433FDF68D1EC9AE7EE9E02A8664D675CCA5BF0`，`apksigner` v2=true）。

@@ -15,6 +15,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,6 +41,7 @@ object EditOrderTestTags {
     const val CONFIRM = "confirm_edit_result"
     const val RETURN = "return_to_detail"
     const val REBASE = "rebase_edit"
+    const val CANCEL = "cancel_edit"
     const val BACK = "edit_order_back"
     const val NEXT = "edit_order_next"
 }
@@ -58,7 +60,7 @@ fun EditOrderScreen(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize().imePadding()) {
-        EditHeader(state)
+        EditHeader(state, onReturn)
         CreateProgress(current = state.step)
         if (state.connection == ConnectionState.Offline) {
             Text(
@@ -83,14 +85,22 @@ fun EditOrderScreen(
 }
 
 @Composable
-private fun EditHeader(state: EditOrderUiState) {
-    Column(modifier = Modifier.fillMaxWidth().padding(AutoserviceSpacing.Lg)) {
-        Text("编辑维修工单", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-        Text(
-            "第 ${state.step.ordinal + 1} / ${EditOrderStep.entries.size} 步 · 工单 ${state.orderId}",
-            style = MaterialTheme.typography.bodySmall,
-            color = AutoserviceColors.InkMuted,
-        )
+private fun EditHeader(state: EditOrderUiState, onReturn: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(start = AutoserviceSpacing.Lg, end = AutoserviceSpacing.Sm, top = AutoserviceSpacing.Sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text("编辑维修工单", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(
+                "第 ${state.step.ordinal + 1} / ${EditOrderStep.entries.size} 步 · 工单 ${state.orderId}",
+                style = MaterialTheme.typography.bodySmall,
+                color = AutoserviceColors.InkMuted,
+            )
+        }
+        TextButton(onClick = onReturn, modifier = Modifier.testTag(EditOrderTestTags.CANCEL)) {
+            Text("返回详情", color = AutoserviceColors.Action)
+        }
     }
 }
 

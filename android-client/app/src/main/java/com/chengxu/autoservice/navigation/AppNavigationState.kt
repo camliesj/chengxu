@@ -23,6 +23,12 @@ class AppNavigationState(initialTab: RootTab = RootTab.WORKBENCH) {
                 add(tab.root)
             }
         } else {
+            // Editing is an in-place panel, not a destination to resume after a tab switch.
+            // Preserve the detail beneath it so returning to the tab never traps the user here.
+            val leavingStack = stacks.getValue(activeTab)
+            if (leavingStack.lastOrNull() is AppRoute.EditOrder) {
+                leavingStack.removeAt(leavingStack.lastIndex)
+            }
             activeTab = tab
         }
     }
