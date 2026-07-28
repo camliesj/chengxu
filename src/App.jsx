@@ -29,6 +29,7 @@ import { useNetworkStatus } from './platform/useNetworkStatus.js';
 import { createOrderCommand } from './orderCreationApi.js';
 import { editOrderCommand } from './orderEditApi.js';
 import { changeOrderStatusCommand, queryStatusOperation } from './orderStatusApi.js';
+import { reverseSettlementCommand, settleOrderCommand, updateOrderReceiptCommand } from './settlementApi.js';
 import { createBrowserOrderCreationDraftStore } from './orderCreationDraftStore.js';
 import { legacyOrderToCreatePayload } from './orderCreationLogic.js';
 import { createUpdateProgress } from './updateLogic.js';
@@ -1335,6 +1336,48 @@ function App() {
     return result;
   }
 
+  async function applySettlementResult(result) {
+    if (result.kind === 'success') {
+      const saved = result.value.order;
+      setOrders((current) => upsertRecord(current, saved));
+      setOrdersCloudState({ loading: false, error: '' });
+      setLastRefreshAt(currentTimeLabel());
+      return saved;
+    }
+    if (result.kind === 'conflict' && result.latest?.id) {
+      setOrders((current) => upsertRecord(current, result.latest));
+    }
+    const messages = {
+      unauthorized: '登录状态已失效，请重新登录', forbidden: '当前账号没有结算权限',
+      conflict: '工单已被其他操作更新，已刷新为服务器最新记录', unknownResult: '操作结果确认中，请刷新工单列表',
+      networkUnavailable: '网络不可用，结算尚未提交', operationReused: '本次操作标识冲突，请重新提交',
+    };
+    throw new Error(messages[result.kind] || result.error || '结算操作失败');
+  }
+
+  async function saveSettlement(order, draft) {
+    setOrdersCloudState({ loading: true, error: '' });
+    const result = await settleOrderCommand(order.id, {
+      operationId: crypto.randomUUID(), expectedVersion: order.version,
+      paymentMethod: draft.paymentMethod, settlementDate: draft.settlementDate,
+      settlementTime: draft.settlementTime, settlementRemark: draft.settlementRemark || '',
+      receipt: {
+        key: draft.settlementReceiptKey, name: draft.settlementReceiptName,
+        contentType: draft.settlementReceiptType, sizeBytes: draft.settlementReceiptSize,
+        uploadedAt: draft.settlementReceiptUploadedAt,
+      },
+    }, accessSession);
+    return applySettlementResult(result);
+  }
+
+  async function reverseSettlement(order) {
+    setOrdersCloudState({ loading: true, error: '' });
+    const result = await reverseSettlementCommand(order.id, {
+      operationId: crypto.randomUUID(), expectedVersion: order.version,
+    }, accessSession);
+    return applySettlementResult(result);
+  }
+
   async function confirmOrderStatusOperation(operationId) {
     setOrdersCloudState({ loading: true, error: '' });
     const result = await queryStatusOperation(operationId, accessSession);
@@ -1735,6 +1778,8 @@ function App() {
             focusRequest={receptionFocus}
             onFocusHandled={() => setReceptionFocus(null)}
             onSaveOrder={saveOrder}
+            onSettlement={saveSettlement}
+            onReverseSettlement={reverseSettlement}
             onStatusChange={updateOrderStatus}
             onStatusOperationQuery={confirmOrderStatusOperation}
             cloudState={ordersCloudState}
@@ -1775,7 +1820,7 @@ function App() {
             onFocusHandled={() => setHistoryFocus(null)}
             onRefresh={refreshOrders}
             onSaveArchivedOrder={saveOrder}
-            onReverseSettlement={saveOrder}
+            onReverseSettlement={reverseSettlement}
             onUploadReceipt={(file, orderId, options) => uploadSettlementReceipt(file, orderId, accessSession, options)}
             onViewReceipt={(key) => fetchSettlementReceiptBlob(key, accessSession)}
             onDeleteReceipt={clearOrderReceipt}
@@ -2621,15 +2666,7 @@ function HistoryQueryPage({
       confirmText: '确认返结算',
       danger: true,
       onConfirm: () => {
-        onReverseSettlement({
-          ...order,
-          status: REPAIR_STATUS.pendingSettlement,
-          paymentMethod: '待确认',
-          settlementDate: '',
-          settlementTime: '',
-          settlementRemark: '',
-        }, { eventId: crypto.randomUUID() });
-        setDetailOrderId('');
+        onReverseSettlement(order).then(() => setDetailOrderId('')).catch(() => {});
       },
     });
   }
@@ -2761,6 +2798,8 @@ function RepairReception({
   focusRequest,
   onFocusHandled,
   onSaveOrder,
+  onSettlement,
+  onReverseSettlement,
   onStatusChange,
   onStatusOperationQuery,
   cloudState,
@@ -2887,18 +2926,11 @@ function RepairReception({
 
   function reverseSettlement(order) {
     if (!canReverseSettlement || !order) return;
-    const nextOrder = {
-      ...order,
-      status: REPAIR_STATUS.pendingSettlement,
-      paymentMethod: '待确认',
-      settlementDate: '',
-      settlementTime: '',
-      settlementRemark: '',
-    };
-    onSaveOrder(nextOrder);
-    setSelectedId(nextOrder.id);
-    setDraft(createOrderDraft(nextOrder));
-    setWorkOrderModal(openRepairModal('detail', nextOrder.id));
+    onReverseSettlement(order).then((nextOrder) => {
+      setSelectedId(nextOrder.id);
+      setDraft(createOrderDraft(nextOrder));
+      setWorkOrderModal(openRepairModal('detail', nextOrder.id));
+    }).catch(() => {});
   }
 
   function requestReverseSettlement(order) {
@@ -2920,12 +2952,12 @@ function RepairReception({
 
   function completeSettlement(settlementDraft) {
     if (!settlementOrder) return;
-    const nextOrder = settleOrder(settlementOrder, settlementDraft);
-    onSaveOrder(nextOrder, { eventId: settlementDraft.auditEventId || crypto.randomUUID() });
-    setSelectedId(nextOrder.id);
-    setDraft(createOrderDraft(nextOrder));
-    setWorkOrderModal(openRepairModal('detail', nextOrder.id));
-    setSettlementOrder(null);
+    onSettlement(settlementOrder, settlementDraft).then((nextOrder) => {
+      setSelectedId(nextOrder.id);
+      setDraft(createOrderDraft(nextOrder));
+      setWorkOrderModal(openRepairModal('detail', nextOrder.id));
+      setSettlementOrder(null);
+    }).catch(() => {});
   }
 
   return (

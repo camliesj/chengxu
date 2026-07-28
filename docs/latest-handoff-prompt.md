@@ -832,3 +832,8 @@ cd E:\codex\chengxu\android-client
 - 新增 `POST /api/orders/:id/settlement`、`reverse-settlement` 与 `receipt`，分别使用 `settle-order`、`reverse-settlement`、`update-order-receipt` 幂等操作；复用现有 `repair_orders` 结算/回执列、`version` 和 `order_operations`，未新增 D1 migration。
 - 结算要求管理员、`repair` 权限、`SETTLE_ORDER + MAINTAIN_RECEIPT`、待结算状态、合法版本和当前企业 JPEG/PNG/WebP 回执；返结算要求 `REVERSE_SETTLEMENT`，清空结算值但保留回执。回执元数据可独立写入或清除，二进制 COS 删除由客户端在清除引用后执行。
 - 移动列表仍不返回回执 key；仅管理员且当前企业开启 `MAINTAIN_RECEIPT` 的完整详情返回该 key，用于企业隔离后的查看、替换和删除。聚焦 Node 合同与详情测试 15/15 通过；尚未部署 Pages 或远端 D1。
+
+### Android 结算包 Task 2：网页结算命令迁移（进行中）
+
+- 已新增 `src/settlementApi.js`，网页维修接待和历史档案的结算/返结算均改为 `settlement`、`reverse-settlement` 版本化命令；成功只采用服务端返回工单，409 回写服务器最新版本。
+- 回执补传与删除尚在迁移到 `POST /api/orders/:id/receipt`，完成前不得把本阶段网页切换视为完整功能包；本阶段同样未部署远端服务。
