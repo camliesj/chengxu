@@ -29,6 +29,7 @@ interface CustomerVehicleCache : AuthenticatedDataCleaner {
 interface CustomerVehiclesDataSource {
     val snapshot: StateFlow<CustomerVehiclesSnapshot>
     suspend fun refresh()
+    suspend fun save(record: CustomerVehicleRecord)
 }
 
 class CustomerVehiclesRepository(
@@ -101,6 +102,19 @@ class CustomerVehiclesRepository(
             throw cancelled
         } finally {
             requestMutex.unlock()
+        }
+    }
+
+    override suspend fun save(record: CustomerVehicleRecord) {
+        val session = sessionRepository.session.value ?: return
+        val identity = session.customerVehicleIdentity()
+        if (!isCurrent(identity) || record.companyId != session.companyId) return
+        if (networkMonitor.connection.value != ConnectionState.Online) return
+        when (val result = customerVehiclesApi.save(session.token, record)) {
+            is CustomerVehicleWriteResult.Success -> if (result.record.companyId == session.companyId && isCurrent(identity)) {
+                customerVehicleCache.replaceVehicles(session.companyId, mutableSnapshot.value.records.filterNot { it.id == result.record.id } + result.record)
+            } else handleFailure(identity, OrdersFailure.MalformedResponse)
+            is CustomerVehicleWriteResult.Failure -> handleFailure(identity, result.reason)
         }
     }
 

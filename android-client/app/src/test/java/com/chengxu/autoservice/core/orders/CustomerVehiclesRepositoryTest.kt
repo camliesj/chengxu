@@ -79,6 +79,7 @@ class CustomerVehiclesRepositoryTest {
     private class FakeApi(private val result: CustomerVehiclesResult = CustomerVehiclesResult.Success(emptyList())) : CustomerVehiclesApi {
         var calls = 0
         override suspend fun fetch(token: String): CustomerVehiclesResult { calls++; return result }
+        override suspend fun save(token: String, record: CustomerVehicleRecord): CustomerVehicleWriteResult = CustomerVehicleWriteResult.Success(record)
     }
     private class FakeCache(
         initial: Map<String, List<CustomerVehicleRecord>> = emptyMap(),

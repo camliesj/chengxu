@@ -19,9 +19,15 @@ data class CustomerVehicleRecord(
 
 interface CustomerVehiclesApi {
     suspend fun fetch(token: String): CustomerVehiclesResult
+    suspend fun save(token: String, record: CustomerVehicleRecord): CustomerVehicleWriteResult
 }
 
 sealed interface CustomerVehiclesResult {
     data class Success(val records: List<CustomerVehicleRecord>) : CustomerVehiclesResult
     data class Failure(val reason: OrdersFailure) : CustomerVehiclesResult
+}
+
+sealed interface CustomerVehicleWriteResult {
+    data class Success(val record: CustomerVehicleRecord) : CustomerVehicleWriteResult
+    data class Failure(val reason: OrdersFailure) : CustomerVehicleWriteResult
 }

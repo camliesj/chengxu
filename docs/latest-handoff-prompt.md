@@ -894,3 +894,9 @@ cd E:\codex\chengxu\android-client
 
 - 计划文件：`docs/superpowers/plans/2026-07-28-unified-archives-and-auto-provisioning.md`。已按 TDD 切分为五项可独立验证任务：服务端同批自动建档、网页创建后刷新去重、Android 车辆维护 API/权限、Android 档案导航与 UI、创建后缓存刷新及全量无设备门禁。
 - 已完成计划自检：规格中的所有要求均有对应任务；不含占位项；服务端不新增 D1/Room migration，不经授权部署 D1/Pages。用户要求当前会话内联执行，禁止使用子代理。
+
+### 统一档案自动建档实施进度：服务端、网页与 Android 车辆写入边界（已提交，待继续 UI）
+
+- 服务端创建命令已在同一个幂等 D1 batch 内写入客户车辆及有到期日的保险档案；同车牌会复用档案 id，保险金额与险种保留、版本递增。Node 193/193 通过。
+- 网页创建成功后改为重新读取车辆和保险档案，避免用旧客户端列表二次 POST；独立刷新逻辑测试和 Vite 构建通过。
+- Android 已新增客户车辆的独立 GET/POST HTTP 传输、保存结果模型和同企业缓存 upsert；`HttpUrlConnectionCustomerVehiclesApiTest` 与 `CustomerVehiclesRepositoryTest` JVM 门禁通过。下一步补齐 `customers` 维护权限、车辆编辑 UI、档案导航数量与创建后刷新，然后运行全量门禁并归档 APK。
