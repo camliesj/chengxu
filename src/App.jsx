@@ -32,6 +32,7 @@ import { changeOrderStatusCommand, queryStatusOperation } from './orderStatusApi
 import { reverseSettlementCommand, settleOrderCommand, updateOrderReceiptCommand } from './settlementApi.js';
 import { createBrowserOrderCreationDraftStore } from './orderCreationDraftStore.js';
 import { legacyOrderToCreatePayload } from './orderCreationLogic.js';
+import { refreshCompanyArchives as fetchCurrentCompanyArchives } from './archiveRefreshLogic.js';
 import { createUpdateProgress } from './updateLogic.js';
 import {
   createOrderCapabilityState,
@@ -1209,6 +1210,7 @@ function App() {
   }
 
   async function saveOrder(nextOrder, options = {}) {
+    const isCreate = !companyOrders.some((order) => order.id === nextOrder.id);
     let savedOrder;
     try {
       savedOrder = await upsertOrder(nextOrder, options);
@@ -1216,12 +1218,10 @@ function App() {
       return null;
     }
 
-    const syncResults = await Promise.allSettled([
-      syncCustomerVehicleFromOrder(savedOrder),
-      syncInsurancePolicyFromOrder(savedOrder),
-    ]);
-    const failedSyncs = syncResults.filter((result) => result.status === 'rejected');
-    if (failedSyncs.length > 0) {
+    try {
+      if (isCreate) await refreshCreatedOrderArchives(savedOrder.companyId || currentCompany.id, accessSession);
+      else await Promise.all([syncCustomerVehicleFromOrder(savedOrder), syncInsurancePolicyFromOrder(savedOrder)]);
+    } catch {
       setRecordCloudState({ loading: false, error: '工单已保存，但客户车辆或保险档案同步失败，请稍后重试' });
     }
     return savedOrder;
@@ -1246,11 +1246,9 @@ function App() {
     setOrders((currentOrders) => upsertRecord(currentOrders, savedOrder));
     setOrdersCloudState({ loading: false, error: '' });
     setLastRefreshAt(currentTimeLabel());
-    const syncResults = await Promise.allSettled([
-      syncCustomerVehicleFromOrder(savedOrder),
-      syncInsurancePolicyFromOrder(savedOrder),
-    ]);
-    if (syncResults.some((syncResult) => syncResult.status === 'rejected')) {
+    try {
+      await refreshCreatedOrderArchives(savedOrder.companyId || currentCompany.id, accessSession);
+    } catch {
       setRecordCloudState({ loading: false, error: '工单已创建，但客户车辆或保险档案同步失败，请稍后重试' });
     }
     return result;
@@ -1327,6 +1325,18 @@ function App() {
       error: result.kind === 'networkUnavailable' ? '网络不可用，工单状态尚未确认' : '',
     });
     return result;
+  }
+
+  async function refreshCreatedOrderArchives(companyId, session) {
+    const archives = await fetchCurrentCompanyArchives({
+      companyId,
+      session,
+      fetchVehicles: fetchCloudCustomerVehicles,
+      fetchPolicies: fetchCloudInsurancePolicies,
+    });
+    setCustomerVehicles((current) => replaceCompanyRecords(current, archives.vehicles, companyId));
+    setInsurancePolicies((current) => replaceCompanyRecords(current, archives.policies, companyId));
+    return archives;
   }
 
   async function applySettlementResult(result) {
