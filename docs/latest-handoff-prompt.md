@@ -905,7 +905,7 @@ cd E:\codex\chengxu\android-client
 
 - Android 档案页已明确提供“维修历史 / 客户车辆 / 保险档案”三个横向可滚动且带数量的分区。客户车辆现支持查询、详情、新增与编辑；仅 `customers` 权限可维护，离线或未授权时保存入口禁用。网页端客户车辆 API 没有删除合同，Android 因此不展示虚假的删除入口。
 - 新增工单成功后会并行刷新客户车辆与保险档案的加密缓存，以读取服务端同一幂等创建命令自动建档的结果；任一刷新失败不会阻断另一档案刷新或工单详情跳转。已为该隔离行为加入 JVM 回归。
-- 同步修正 Android 测试 Fake 以实现车辆保存接口。当前没有 D1 或 Room migration，也未部署 Pages/D1；仍不启动模拟器或 connected tests。
+- 同步修正 Android 测试 Fake 以实现车辆保存接口。当前没有 D1 或 Room migration；原始无设备门禁未启动模拟器或 connected tests，随后用户已明确授权并完成模拟器功能验收。
 - 无设备门禁已完成：Node `npm.cmd test` 194/194、`npm.cmd run build`、Android `:app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:lintDebug :app:assembleDebug` 均为 `BUILD SUCCESSFUL`；未启动模拟器或 connected tests。
 - 已归档 API 26+ 真机可安装 Debug APK：`dist/releases/android/autoservice-android-debug-0.1.0.apk`（20,166,242 bytes，SHA-256 `11340F9887684462DEFA9D861353275DC465367A1EA58A5FEA584A248FF9BC5F`）；Build Tools 35.0.0 `apksigner verify --verbose` 确认 v2 签名有效。
 
@@ -914,4 +914,9 @@ cd E:\codex\chengxu\android-client
 - 用户已明确授权。远端 `chengxu-db` 已核验 `No migrations to apply`；本功能沿用现有 `repair_orders`、`customer_vehicles`、`insurance_policies`、`order_operations`，没有新的 D1 migration 或任何业务数据写入。
 - 已重新构建并直传 Pages 生产 `main` 分支，部署 URL：`https://ac1ef058.chengxu.pages.dev`，正式域名：`https://chengxu.pages.dev`。Functions bundle 已随部署发布。
 - 生产只读烟测：未认证 `GET /api/customer-vehicles`、`GET /api/insurance-policies` 均返回 `401`，确认路由和认证门禁生效，未探测或改变真实业务记录。
-- 发布过程中先清空 `dist` 的 APK 归档以避免将安装包上传到 Pages；发布后已从已验证构建产物恢复 APK，大小、SHA-256 与此前记录一致，v2 签名再次校验有效。下一步由两企业有 `customers`/`insurance` 权限的真实账号在网页与 Android 真机验收工单自动建档、车辆新增编辑和保险档案结果。
+- 发布过程中先清空 `dist` 的 APK 归档以避免将安装包上传到 Pages；发布后已从已验证构建产物恢复 APK，大小、SHA-256 与此前记录一致，v2 签名再次校验有效。
+
+### 统一档案自动建档功能验收（已完成）
+
+- 用户已明确确认功能验证完成。验证会话中已自行启动 `industrial_mobile_api35_ws` Android 模拟器、安装最新 Debug APK，并确认应用登录页及双企业入口正常打开；随后由用户完成完整功能验收。
+- 当前基线：Android 档案三分区、客户车辆查询/新增/编辑、工单创建后的车辆与保险档案自动刷新，以及已发布的 Pages Functions 均已完成验收。后续仅在收到新的业务需求或缺陷反馈后继续开发。
