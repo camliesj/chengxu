@@ -4,6 +4,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.ByteArrayInputStream
 import java.io.IOException
 import java.io.InputStream
 import java.net.HttpURLConnection
@@ -41,7 +42,7 @@ class UrlConnectionAppUpdateDownloadTransport : AppUpdateDownloadTransport {
         val status = connection.responseCode
         if (status !in 200..299) {
             connection.disconnect()
-            return@withContext AppUpdateDownloadResponse(status, null, InputStream.nullInputStream())
+            return@withContext AppUpdateDownloadResponse(status, null, ByteArrayInputStream(ByteArray(0)))
         }
         ConnectionInputStream(connection, connection.inputStream).let { stream ->
             AppUpdateDownloadResponse(status, connection.contentLengthLong.takeIf { it >= 0L }, stream)
