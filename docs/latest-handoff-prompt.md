@@ -837,3 +837,8 @@ cd E:\codex\chengxu\android-client
 
 - 已新增 `src/settlementApi.js`，网页维修接待和历史档案的结算/返结算均改为 `settlement`、`reverse-settlement` 版本化命令；成功只采用服务端返回工单，409 回写服务器最新版本。
 - 回执补传与删除尚在迁移到 `POST /api/orders/:id/receipt`，完成前不得把本阶段网页切换视为完整功能包；本阶段同样未部署远端服务。
+
+### Android 结算包 Task 3：Android 命令 HTTP 边界（进行中）
+
+- 新增 Android `SettlementCommand`、`OrderSettlementApi` 与 `HttpUrlConnectionOrderSettlementApi`。结算、返结算、回执元数据更新分别固定为 `/settlement`、`/reverse-settlement`、`/receipt`，复用现有 Bearer、路径编码、详情解析、409 冲突、操作处理中未知结果和 IO 未知结果约定。
+- `ReceiptMetadata` 新增 key 字段，服务端仅在具备 `MAINTAIN_RECEIPT` 的管理员完整详情返回它；列表仍不含 key。Android 聚焦 JVM 测试通过，未启动模拟器。下一步实现仓储门禁和系统相册图片传输。

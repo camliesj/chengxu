@@ -213,7 +213,7 @@ private fun OrderDetailEntity.toDomain(cipher: StringCipher): OrderDetail = Orde
     materialCents = materialCents, settlementDate = settlementDate, settlementTime = settlementTime,
     settlementRemark = settlementRemark,
     receipt = receiptName.takeIf(String::isNotEmpty)?.let {
-        ReceiptMetadata(receiptName, receiptContentType, receiptSizeBytes, receiptUploadedAt)
+        ReceiptMetadata(name = receiptName, contentType = receiptContentType, sizeBytes = receiptSizeBytes, uploadedAt = receiptUploadedAt)
     },
     voided = voided, voidedAt = voidedAt, voidReason = voidReason,
 )

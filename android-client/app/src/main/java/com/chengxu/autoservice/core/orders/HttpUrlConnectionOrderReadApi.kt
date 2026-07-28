@@ -150,6 +150,7 @@ private fun businessCapabilityOrNull(value: String): BusinessCapability? =
 private fun JsonObject.receiptOrNull(): ReceiptMetadata? {
     val receipt = this["receipt"] as? JsonObject ?: return null
     return ReceiptMetadata(
+        key = receipt.string("key"),
         name = receipt.string("name"),
         contentType = receipt.string("contentType"),
         sizeBytes = receipt.nonNegativeLong("sizeBytes") ?: 0L,
