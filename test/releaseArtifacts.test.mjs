@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  maxReleaseUploadBytes,
   releaseArtifactKey,
   releaseDownloadPath,
   validateReleaseArtifact,
@@ -33,6 +34,11 @@ test('Windows release artifacts use a version-scoped COS key', () => {
     releaseArtifactKey('0.1.1', '汽修接待与车辆保险管理_0.1.1_x64-setup.exe'),
     'releases/windows/0.1.1/chengxu_0.1.1_x64-setup.exe',
   );
+});
+
+test('Windows installer upload limit accepts signed desktop bundles up to 64 MiB', () => {
+  assert.equal(maxReleaseUploadBytes('windows'), 64 * 1024 * 1024);
+  assert.equal(maxReleaseUploadBytes('android'), 25 * 1024 * 1024);
 });
 
 test('release download path safely encodes the installer name', () => {

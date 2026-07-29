@@ -2,12 +2,12 @@ import { json, requireSession } from '../_shared/auth.js';
 import { cosFailure, cosFetch } from '../_shared/cos.js';
 import {
   isReleaseUploadContentType,
+  maxReleaseUploadBytes,
   releaseArtifactKey,
   releaseDownloadPath,
   validateReleaseArtifact,
 } from '../_shared/release-artifacts.js';
 
-const MAX_INSTALLER_SIZE = 25 * 1024 * 1024;
 export async function onRequestPost({ request, env }) {
   const { error } = await requireSession(request, env, { adminOnly: true });
   if (error) return error;
@@ -28,11 +28,12 @@ export async function onRequestPost({ request, env }) {
     return json({ error: 'INVALID_RELEASE_CONTENT_TYPE' }, { status: 400 });
   }
 
+  const maxUploadBytes = maxReleaseUploadBytes(artifact.platform);
   const declaredSize = Number(request.headers.get('content-length') || 0);
-  if (declaredSize > MAX_INSTALLER_SIZE) return json({ error: 'RELEASE_FILE_TOO_LARGE' }, { status: 413 });
+  if (declaredSize > maxUploadBytes) return json({ error: 'RELEASE_FILE_TOO_LARGE' }, { status: 413 });
   const body = await request.arrayBuffer();
   if (body.byteLength <= 0) return json({ error: 'RELEASE_FILE_REQUIRED' }, { status: 400 });
-  if (body.byteLength > MAX_INSTALLER_SIZE) return json({ error: 'RELEASE_FILE_TOO_LARGE' }, { status: 413 });
+  if (body.byteLength > maxUploadBytes) return json({ error: 'RELEASE_FILE_TOO_LARGE' }, { status: 413 });
 
   const key = releaseArtifactKey(artifact.platform, artifact.version, artifact.fileName);
   const { response, error: cosError } = await cosFetch('PUT', key, env, {

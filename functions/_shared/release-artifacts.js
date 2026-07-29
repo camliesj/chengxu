@@ -2,6 +2,7 @@ const RELEASE_VERSION_PATTERN = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
 
 const PLATFORM_ARTIFACTS = {
   windows: {
+    maxUploadBytes: 64 * 1024 * 1024,
     filePattern: /^[^/\\]+\.exe$/i,
     key: (version) => `releases/windows/${version}/chengxu_${version}_x64-setup.exe`,
     downloadPath: (version, fileName) => `/api/client-downloads/windows/${version}/${encodeURIComponent(fileName)}`,
@@ -13,6 +14,7 @@ const PLATFORM_ARTIFACTS = {
     ]),
   },
   android: {
+    maxUploadBytes: 25 * 1024 * 1024,
     filePattern: /^[^/\\]+\.apk$/i,
     key: (version) => `releases/android/${version}/zhiwei-car-service_${version}.apk`,
     downloadPath: (version, fileName) => `/api/client-downloads/android/${version}/${encodeURIComponent(fileName)}`,
@@ -62,6 +64,10 @@ export function releaseDownloadPath(platformOrVersion, versionOrFileName, maybeF
 
 export function releaseDownloadContentType(platform) {
   return platformArtifact(platform).artifact.downloadContentType;
+}
+
+export function maxReleaseUploadBytes(platform) {
+  return platformArtifact(platform).artifact.maxUploadBytes;
 }
 
 export function isReleaseUploadContentType(platform, contentType) {
