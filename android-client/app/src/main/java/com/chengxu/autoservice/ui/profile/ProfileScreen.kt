@@ -46,6 +46,7 @@ import com.chengxu.autoservice.BuildConfig
 import com.chengxu.autoservice.ui.update.UpdatePhase
 import com.chengxu.autoservice.ui.update.UpdateState
 import java.io.File
+import com.chengxu.autoservice.core.sync.CompanySyncState
 
 @Composable
 fun ProfileScreen(
@@ -58,6 +59,8 @@ fun ProfileScreen(
     onDownloadUpdate: () -> Unit = {},
     onInstallUpdate: (File) -> Unit = {},
     onDismissUpdate: () -> Unit = {},
+    syncState: CompanySyncState = CompanySyncState(),
+    onRefreshData: () -> Unit = {},
 ) {
     var showLogoutDialog by rememberSaveable { mutableStateOf(false) }
     val logoutFocusRequester = remember { FocusRequester() }
@@ -129,10 +132,11 @@ fun ProfileScreen(
         ProfileDetailCard(
             icon = if (offline) BrandIconResource.Offline else BrandIconResource.Refresh,
             title = "数据同步",
-            value = "刚刚同步",
+            value = syncState.lastSuccessfulAtMillis?.let { "最近同步：${java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.CHINA).format(java.util.Date(it))}" } ?: "尚未完成同步",
             supportingText = if (offline) "当前离线，恢复网络后将自动刷新" else "工作数据已是最新状态",
             tone = if (offline) AutoserviceColors.Warning else AutoserviceColors.Success,
         )
+        BrandButton(onClick = onRefreshData, modifier = Modifier.fillMaxWidth(), enabled = !syncState.syncing, icon = BrandIconResource.Refresh) { Text(if (syncState.syncing) "同步中" else "同步刷新") }
         ProfileDetailCard(
             icon = BrandIconResource.Lock,
             title = "账户安全",

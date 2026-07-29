@@ -39,6 +39,7 @@ import com.chengxu.autoservice.core.orders.cache.EncryptedOrderStore
 import com.chengxu.autoservice.core.orders.cache.RoomOrderCache
 import com.chengxu.autoservice.core.security.DEFAULT_ORDER_FIELDS_KEY_ALIAS
 import com.chengxu.autoservice.core.security.androidKeystoreStringCipher
+import com.chengxu.autoservice.core.sync.SharedPreferencesCompanySyncStore
 
 class MainActivity : ComponentActivity() {
     private lateinit var encryptedOrderStore: EncryptedOrderStore
@@ -161,6 +162,7 @@ class MainActivity : ComponentActivity() {
                 orderStatusRepository = orderStatusRepository,
                 orderSettlementRepository = orderSettlementRepository,
                 orderReceiptApi = HttpUrlConnectionOrderReceiptApi(BuildConfig.API_ORIGIN),
+                companySyncStore = SharedPreferencesCompanySyncStore(applicationContext),
             )
         }
     }

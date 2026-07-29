@@ -49,6 +49,7 @@ import com.chengxu.autoservice.core.orders.InsurancePolicyRecord
 import com.chengxu.autoservice.core.orders.CustomerVehicleRecord
 import com.chengxu.autoservice.ui.update.UpdateState
 import java.io.File
+import com.chengxu.autoservice.core.sync.CompanySyncState
 
 @Composable
 fun AutoserviceShell(
@@ -131,6 +132,8 @@ fun AutoserviceShell(
     onProfileDownloadUpdate: () -> Unit = {},
     onProfileInstallUpdate: (File) -> Unit = {},
     onProfileDismissUpdate: () -> Unit = {},
+    profileSyncState: CompanySyncState = CompanySyncState(),
+    onProfileSync: () -> Unit = {},
 ) {
     val isOffline = connection == ConnectionState.Offline
     val routeWorkbenchAction: (WorkbenchAction) -> Unit = { action ->
@@ -223,6 +226,8 @@ fun AutoserviceShell(
             onSettlementConfirmDelete = onSettlementConfirmDelete,
             onSettlementDismissDelete = onSettlementDismissDelete,
             profileSession = profileSession,
+            profileSyncState = profileSyncState,
+            onProfileSync = onProfileSync,
             onLogout = onLogout,
             isOffline = isOffline,
             profileUpdateState = profileUpdateState,

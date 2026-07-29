@@ -58,6 +58,7 @@ import com.chengxu.autoservice.ui.workbench.WorkbenchScreen
 import com.chengxu.autoservice.ui.workbench.WorkbenchUiState
 import com.chengxu.autoservice.ui.update.UpdateState
 import java.io.File
+import com.chengxu.autoservice.core.sync.CompanySyncState
 
 @Composable
 fun AppNavDisplay(
@@ -140,6 +141,8 @@ fun AppNavDisplay(
     onProfileDownloadUpdate: () -> Unit = {},
     onProfileInstallUpdate: (File) -> Unit = {},
     onProfileDismissUpdate: () -> Unit = {},
+    profileSyncState: CompanySyncState = CompanySyncState(),
+    onProfileSync: () -> Unit = {},
 ) {
     // NavDisplay retains NavEntry content between recompositions. Keep the mutable
     // order inputs in updated state so a filter click redraws the active entry.
@@ -261,6 +264,8 @@ fun AppNavDisplay(
                             onDownloadUpdate = currentProfileDownloadUpdate,
                             onInstallUpdate = currentProfileInstallUpdate,
                             onDismissUpdate = currentProfileDismissUpdate,
+                            syncState = profileSyncState,
+                            onRefreshData = onProfileSync,
                         )
                     } ?: ShellPlaceholder(title = RootTab.PROFILE.label)
                     is AppRoute.OrderDetail -> OrderDetailScreen(

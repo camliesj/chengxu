@@ -74,6 +74,8 @@ import com.chengxu.autoservice.core.update.AndroidAppUpdateInstaller
 import com.chengxu.autoservice.core.update.AppUpdateInstallRequest
 import com.chengxu.autoservice.core.update.HttpUrlConnectionAppUpdateApi
 import com.chengxu.autoservice.core.update.HttpUrlConnectionAppUpdateDownloader
+import com.chengxu.autoservice.core.sync.CompanySyncCoordinator
+import com.chengxu.autoservice.core.sync.CompanySyncStore
 import com.chengxu.autoservice.ui.update.UpdateViewModel
 import android.os.Environment
 import kotlinx.coroutines.launch
@@ -92,6 +94,7 @@ fun AutoserviceApp(
     orderStatusRepository: OrderStatusRepository,
     orderSettlementRepository: OrderSettlementRepository,
     orderReceiptApi: OrderReceiptApi,
+    companySyncStore: CompanySyncStore = com.chengxu.autoservice.core.sync.InMemoryCompanySyncStore(),
 ) {
     val authenticationState by authenticationRepository.state.collectAsStateWithLifecycle()
 
@@ -123,6 +126,7 @@ fun AutoserviceApp(
                     orderStatusRepository = orderStatusRepository,
                     orderSettlementRepository = orderSettlementRepository,
                     orderReceiptApi = orderReceiptApi,
+                    companySyncStore = companySyncStore,
                     authenticationState = state,
                 )
             }
@@ -216,6 +220,7 @@ private fun AuthenticatedRoot(
     orderStatusRepository: OrderStatusRepository,
     orderSettlementRepository: OrderSettlementRepository,
     orderReceiptApi: OrderReceiptApi,
+    companySyncStore: CompanySyncStore,
     authenticationState: AuthenticationState.Authenticated,
 ) {
     val sessionViewModelStoreOwner = remember(authenticationState.session) {
@@ -274,6 +279,10 @@ private fun AuthenticatedRoot(
         ),
     )
     val updateInstaller = remember(context) { AndroidAppUpdateInstaller(context) }
+    val syncCoordinator = remember(authenticationState.session) {
+        CompanySyncCoordinator(authenticationState.session.companyId, companySyncStore, System::currentTimeMillis, ordersRepository, customerVehiclesRepository, insurancePoliciesRepository, historyOrdersRepository)
+    }
+    val syncState by syncCoordinator.state.collectAsStateWithLifecycle()
     val state by workbenchViewModel.uiState.collectAsStateWithLifecycle()
     val ordersState by ordersViewModel.uiState.collectAsStateWithLifecycle()
     val historyRecordsState by historyRecordsViewModel.uiState.collectAsStateWithLifecycle()
@@ -418,6 +427,8 @@ private fun AuthenticatedRoot(
         onSettlementConfirmDelete = settlementViewModel::confirmDelete,
         onSettlementDismissDelete = settlementViewModel::dismissDelete,
         profileSession = authenticationState.session,
+        profileSyncState = syncState,
+        onProfileSync = { scope.launch { syncCoordinator.refreshAll() } },
         onLogout = { scope.launch { authenticationRepository.logout() } },
         profileUpdateState = updateState,
         onProfileCheckUpdate = updateViewModel::check,
