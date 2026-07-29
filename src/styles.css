@@ -1786,6 +1786,33 @@ tbody tr.selected-row {
   background: #fff2f0;
 }
 
+.dismissible-error-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.dismissible-error-close {
+  display: inline-grid;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 0;
+  border-radius: 7px;
+  color: currentColor;
+  background: transparent;
+  font-size: 21px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.dismissible-error-close:hover,
+.dismissible-error-close:focus-visible {
+  background: rgba(215, 59, 47, 0.1);
+}
+
 .reception-toolbar .quick-filters {
   display: flex;
   flex-wrap: wrap;

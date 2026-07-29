@@ -977,6 +977,13 @@ cd E:\codex\chengxu\android-client
 - 本次验证：`npm.cmd test` 206/206、`npm.cmd run build`、使用官方 MSVC 环境的 `npm.cmd run desktop:check`、带 updater 签名的 `npm.cmd run desktop:build` 均成功。为恢复 Windows 构建链已安装 Visual Studio 2022 C++ Build Tools（含 `link.exe` 与 Windows SDK `rc.exe`）；未改动 D1/Room schema 或业务数据。
 - 固定后续发布约定：每次涉及 Windows 或 Android 客户端可见更新，均递增对应版本、构建并签名、上传可安装包至发布渠道、更新发布元数据、核验线上哈希，并在提交/推送与本交接文档中记录结果；不得只发布源码而遗漏安装包。
 
+### 跨端本机同步与错误提示（网页/Windows 第一检查点）
+
+- 已确认采用“本机、按企业”的最近成功同步时间：新增 `src/companySyncLogic.js`，使用 `zhiwei:company-sync:<companyId>` 本地键隔离时间；四个业务来源全部成功才产生新时间，任一失败不覆盖旧值。
+- 工作台“刷新数据”已接入当前企业的工单、客户车辆、保险档案全量读取；网页历史由完整订单读取结果派生，因此同一订单读取同时覆盖历史数据。成功时持久化 ISO 时间，失败时保留旧时间与缓存。
+- 新增 `DismissibleErrorBanner` 与八秒生命周期逻辑；档案云端错误现在可手动关闭且会自动清除，订单和档案全局状态错误也会自动清除。字段校验与作废/能力说明等静态红色业务提示未改动。
+- 定向 Node 测试 6/6 通过，`npm.cmd run build` 通过。Android 的安全持久化、全量同步协调器、个人页按钮、无设备门禁和版本化 APK 发布尚未执行；在完成 Android 端前不得将本检查点称为完整跨端交付。
+
 ### 线上测试业务数据归零（已完成）
 
 - 用户明确确认当前订单、客户车辆和保险档案均为虚假测试数据，并授权清理。清理前已从生产 D1 `chengxu-db` 导出可恢复备份至已忽略路径 `tmp/d1-backups/pre-test-data-reset-20260729-165328.sql`（132,801 bytes，SHA-256 `95922692390546A182B22399983D0580F9C3F0F4A6F2935D72CCE0017B312353`）。

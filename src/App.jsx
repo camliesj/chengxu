@@ -33,6 +33,8 @@ import { reverseSettlementCommand, settleOrderCommand, updateOrderReceiptCommand
 import { createBrowserOrderCreationDraftStore } from './orderCreationDraftStore.js';
 import { legacyOrderToCreatePayload } from './orderCreationLogic.js';
 import { refreshCompanyArchives as fetchCurrentCompanyArchives } from './archiveRefreshLogic.js';
+import { readCompanySyncAt, runCompanyFullSync, writeCompanySyncAt } from './companySyncLogic.js';
+import DismissibleErrorBanner from './components/DismissibleErrorBanner.jsx';
 import { createUpdateProgress } from './updateLogic.js';
 import {
   createOrderCapabilityState,
@@ -993,6 +995,22 @@ function App() {
   };
 
   useEffect(() => {
+    setLastRefreshAt(readCompanySyncAt(localStorage, currentCompany.id));
+  }, [currentCompany.id]);
+
+  useEffect(() => {
+    if (!ordersCloudState.error) return undefined;
+    const timer = window.setTimeout(() => setOrdersCloudState((state) => ({ ...state, error: '' })), 8000);
+    return () => window.clearTimeout(timer);
+  }, [ordersCloudState.error]);
+
+  useEffect(() => {
+    if (!recordCloudState.error) return undefined;
+    const timer = window.setTimeout(() => setRecordCloudState((state) => ({ ...state, error: '' })), 8000);
+    return () => window.clearTimeout(timer);
+  }, [recordCloudState.error]);
+
+  useEffect(() => {
     localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(orders));
   }, [orders]);
 
@@ -1325,6 +1343,42 @@ function App() {
       error: result.kind === 'networkUnavailable' ? '网络不可用，工单状态尚未确认' : '',
     });
     return result;
+  }
+
+  async function refreshCurrentCompanyData() {
+    if (!accessSession?.token || ordersCloudState.loading || recordCloudState.loading) return;
+    const companyId = currentCompany.id;
+    setOrdersCloudState({ loading: true, error: '' });
+    setRecordCloudState({ loading: true, error: '' });
+    const result = await runCompanyFullSync({
+      now: () => new Date().toISOString(),
+      refreshOrders: async () => {
+        const envelope = await fetchCloudOrders(accessSession);
+        setOrders(envelope.orders);
+        dispatchOrderCapabilities({ type: 'requestSucceeded', ...beginOrderCapabilityRequest(accessSession), capabilities: envelope.capabilities });
+      },
+      refreshVehicles: async () => {
+        if (!hasUiPermission(accessSession, 'customers')) return;
+        const vehicles = await fetchCloudCustomerVehicles(accessSession);
+        setCustomerVehicles((current) => replaceCompanyRecords(current, vehicles, companyId));
+      },
+      refreshPolicies: async () => {
+        if (!hasUiPermission(accessSession, 'insurance')) return;
+        const policies = await fetchCloudInsurancePolicies(accessSession);
+        setInsurancePolicies((current) => replaceCompanyRecords(current, policies, companyId));
+      },
+      // Web history is derived from the same complete order response above.
+      refreshHistory: async () => {},
+    });
+    if (result.ok) {
+      writeCompanySyncAt(localStorage, companyId, result.at);
+      setLastRefreshAt(result.at);
+      setOrdersCloudState({ loading: false, error: '' });
+      setRecordCloudState({ loading: false, error: '' });
+      return;
+    }
+    setOrdersCloudState({ loading: false, error: result.error });
+    setRecordCloudState({ loading: false, error: result.error });
   }
 
   async function refreshCreatedOrderArchives(companyId, session) {
@@ -1776,9 +1830,10 @@ function App() {
           </div>
         </header>
 
-        {recordCloudState.error ? (
-          <div className="cloud-banner error archive-cloud-banner" role="alert">{recordCloudState.error}</div>
-        ) : null}
+        <DismissibleErrorBanner
+          message={recordCloudState.error}
+          onDismiss={() => setRecordCloudState((state) => ({ ...state, error: '' }))}
+        />
 
         {activePage === '首页看板' && (
           <Dashboard
@@ -1787,7 +1842,7 @@ function App() {
             dateRange={dateRange}
             lastRefreshAt={lastRefreshAt}
             cloudState={ordersCloudState}
-            onRefreshOrders={refreshOrders}
+            onRefreshOrders={refreshCurrentCompanyData}
             onViewInsurance={openInsurancePolicy}
             onViewOrder={openOrderByStatus}
             onOpenRepairList={openRepairDashboardList}
