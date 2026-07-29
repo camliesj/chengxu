@@ -976,3 +976,11 @@ cd E:\codex\chengxu\android-client
 - 发布基础设施已更新：Pages Functions 部署预览为 `https://eb0040a5.chengxu.pages.dev`，生产 `DESKTOP_RELEASE_*` 七项元数据已写入。只读验收确认 `/api/client-releases` 返回 Windows `0.1.4`，`/api/client-updates/windows/x86_64/0.1.3` 返回 HTTP 200、0.1.4 与 416 字符更新签名，`/api/client-updates/windows/x86_64/0.1.4` 返回 HTTP 204。
 - 本次验证：`npm.cmd test` 206/206、`npm.cmd run build`、使用官方 MSVC 环境的 `npm.cmd run desktop:check`、带 updater 签名的 `npm.cmd run desktop:build` 均成功。为恢复 Windows 构建链已安装 Visual Studio 2022 C++ Build Tools（含 `link.exe` 与 Windows SDK `rc.exe`）；未改动 D1/Room schema 或业务数据。
 - 固定后续发布约定：每次涉及 Windows 或 Android 客户端可见更新，均递增对应版本、构建并签名、上传可安装包至发布渠道、更新发布元数据、核验线上哈希，并在提交/推送与本交接文档中记录结果；不得只发布源码而遗漏安装包。
+
+### 线上测试业务数据归零（已完成）
+
+- 用户明确确认当前订单、客户车辆和保险档案均为虚假测试数据，并授权清理。清理前已从生产 D1 `chengxu-db` 导出可恢复备份至已忽略路径 `tmp/d1-backups/pre-test-data-reset-20260729-165328.sql`（132,801 bytes，SHA-256 `95922692390546A182B22399983D0580F9C3F0F4A6F2935D72CCE0017B312353`）。
+- 已通过生产管理员会话删除 3 份与测试订单关联的 COS 到账回执截图；随后在 D1 远程批处理中清理：`repair_orders` 11 条、`customer_vehicles` 9 条、`insurance_policies` 6 条、`order_operations` 12 条，以及 `operation_logs` 中 `repair_order`、`customer_vehicle`、`insurance_policy` 三类共 73 条关联审计（包含回执清理产生的临时审计）。
+- 清理后线上核验：`repair_orders=0`、`customer_vehicles=0`、`insurance_policies=0`、`order_operations=0`；保留 `operation_logs=47`，仅余 `access_code` 20 条、`account` 19 条和 `dictionary` 8 条系统审计。企业、账号、访问码、权限能力、字典、序号配置和数据库 schema 均未修改；未执行 migration 或 Pages 部署。
+- Cloudflare D1 远程执行器拒绝显式 `BEGIN/COMMIT`；初次脚本被完整拒绝且回查数据未变。后续已用只读多语句探针和外键检查确认该执行器按语句隐式原子提交、三个业务表无外键依赖，再按审计/幂等记录/订单/车辆/保险的依赖顺序完成 5 条批处理语句并复核。
+- 当前 D1 业务相关表仍完整保留：`repair_orders`、`customer_vehicles`、`insurance_policies`、`order_operations`、`insurance_policy_operations`、`operation_logs`、`order_number_sequences`；下次新增的真实订单会继续由现有编号、自动车辆/保险归档和权限规则创建。
