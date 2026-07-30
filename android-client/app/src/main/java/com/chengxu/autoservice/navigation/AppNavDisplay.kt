@@ -185,6 +185,8 @@ fun AppNavDisplay(
     val currentProfileDownloadUpdate by rememberUpdatedState(onProfileDownloadUpdate)
     val currentProfileInstallUpdate by rememberUpdatedState(onProfileInstallUpdate)
     val currentProfileDismissUpdate by rememberUpdatedState(onProfileDismissUpdate)
+    val currentProfileSyncState by rememberUpdatedState(profileSyncState)
+    val currentProfileSync by rememberUpdatedState(onProfileSync)
 
     NavDisplay(
         backStack = navigationState.currentStack,
@@ -264,8 +266,8 @@ fun AppNavDisplay(
                             onDownloadUpdate = currentProfileDownloadUpdate,
                             onInstallUpdate = currentProfileInstallUpdate,
                             onDismissUpdate = currentProfileDismissUpdate,
-                            syncState = profileSyncState,
-                            onRefreshData = onProfileSync,
+                            syncState = currentProfileSyncState,
+                            onRefreshData = currentProfileSync,
                         )
                     } ?: ShellPlaceholder(title = RootTab.PROFILE.label)
                     is AppRoute.OrderDetail -> OrderDetailScreen(

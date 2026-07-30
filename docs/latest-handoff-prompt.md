@@ -986,6 +986,16 @@ cd E:\codex\chengxu\android-client
 
 ### 跨端本机同步与错误提示（Android 第二检查点）
 
+### 跨端本地同步、错误提示与客户端 0.1.2/0.1.5 发布（已完成）
+
+- 网页与 Windows：工作台“刷新数据”现在同时刷新当前企业的工单、客户车辆、保险档案和由完整工单派生的维修历史；仅四项都成功时才按 `zhiwei:company-sync:<companyId>` 更新本机最近同步时间。订单和档案的云端错误提示支持关闭，并会在八秒后自动消失；字段校验和权限提示保持常驻。
+- Android：新增按企业串行保护的 `CompanySyncCoordinator`，并行刷新工单、车辆、保险和历史四个既有数据源；失败时保留旧时间和缓存。个人页新增“同步刷新”按钮及“最近同步”时间，并修复导航缓存页面没有接收最新同步状态的问题。时间戳仅保存在本机 `SharedPreferences`，不包含订单、客户或账号信息。
+- Android 版本已由 `0.1.1`/code 2 递增为 `0.1.2`/code 3；Windows npm、Cargo、Tauri 与 lockfile 版本统一为 `0.1.5`。未修改 D1 migration、D1/Room schema 或业务数据。
+- 验证：Node `npm.cmd test` 212/212；Android `:app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:lintDebug :app:assembleDebug --offline` BUILD SUCCESSFUL；MSVC 环境中的 `npm.cmd run desktop:check` 与带 updater 签名的 `npm.cmd run desktop:build` 均成功。Android `apksigner` 验证 v2=true，`aapt` 确认包名 `com.chengxu.autoservice`、标签“智纬”、versionName `0.1.2`。
+- 安装包：Android `public/downloads/zhiwei-car-service_0.1.2.apk`，20,565,052 bytes，SHA-256 `1CD2A33AE5569899B15EA08A4B1467ABE686CF89C7D4C94A1E5312070E8BE30B`；Windows `智纬_0.1.5_x64-setup.exe`，65,410,203 bytes，SHA-256 `16D0659E035DCF82638961C0F2F16B7A568FE5F5BC9C53B767EED1F18A9E86C1`，已生成对应 `.sig`。
+- 已正式部署 Pages（生产部署 `https://ac118150.chengxu.pages.dev`）。生产 `/api/client-releases` 已返回 Android `0.1.2` 和 Windows `0.1.5`；Windows 受控对象键为 `releases/windows/0.1.5/chengxu_0.1.5_x64-setup.exe`，0.1.4 更新查询返回 0.1.5、0.1.5 返回 204。线上下载的 Android 与 Windows SHA-256 已分别与本地构建一致。
+- 注意：首次使用 Windows 0.1.5 可通过受控下载 URL 安装；Android 0.1.1 用户在“我的 → 检查更新”可发现并下载 0.1.2。未启动 Android 模拟器。
+
 - 新增 Android `CompanySyncCoordinator`：同一企业的工单、车辆、保险、历史四个既有数据源并行刷新，仅全部成功时写入本机同步时间；失败保留旧时间和缓存，并禁止同步中重复提交。
 - “我的”页的数据同步卡已显示最近成功时间或“尚未完成同步”，并新增符合既有按钮体系的“同步刷新”入口；同步中显示“同步中”。
 - 已使用按企业键的 Android 本机 `SharedPreferences` 存储同步时间；该值只含 epoch 时间戳，不含账号、订单或客户信息，未新增 Room/D1 schema。

@@ -19,9 +19,9 @@ test('Tauri config targets the Windows NSIS application shell', () => {
   const [window] = config.app.windows;
 
   assert.equal(config.productName, '智纬');
-  assert.equal(config.version, '0.1.4');
+  assert.equal(config.version, '0.1.5');
   assert.equal(packageJson.version, config.version);
-  assert.match(cargoToml, /^version = "0\.1\.4"$/m);
+  assert.match(cargoToml, /^version = "0\.1\.5"$/m);
   assert.match(cargoToml, /^\[profile\.release\]$/m);
   assert.match(cargoToml, /^strip = true$/m);
   assert.match(cargoToml, /^lto = "thin"$/m);

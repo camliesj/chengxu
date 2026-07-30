@@ -5,8 +5,8 @@ import org.junit.Test
 
 class BuildVersionTest {
     @Test
-    fun buildConfigExposesReleaseVersion_0_1_1() {
-        assertEquals("0.1.1", BuildConfig.VERSION_NAME)
-        assertEquals(2, BuildConfig.VERSION_CODE)
+    fun buildConfigExposesReleaseVersion_0_1_2() {
+        assertEquals("0.1.2", BuildConfig.VERSION_NAME)
+        assertEquals(3, BuildConfig.VERSION_CODE)
     }
 }
